@@ -61,14 +61,14 @@ jobs:
       - name: Get packages
         run: cd temp_project && flutter pub get
 
-      - name: Build Release APK
+      - name: Build APK
         run: |
           cd temp_project
-          flutter build apk --release --no-tree-shake-icons
+          flutter build apk --debug --no-tree-shake-icons
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ChatX-Release
+          name: ChatX-Debug
           path: temp_project/build/**/*.apk
           retention-days: 7
