@@ -34,7 +34,7 @@ jobs:
       - name: Setup google-services.json
         run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > temp_project/android/app/google-services.json
 
-      - name: Fix Android gradle for Firebase
+      - name: Fix gradle for Firebase
         run: |
           cat > temp_project/android/build.gradle << 'EOF'
           buildscript {
@@ -56,21 +56,19 @@ jobs:
               }
           }
           EOF
-          echo "" >> temp_project/android/app/build.gradle
           echo "apply plugin: 'com.google.gms.google-services'" >> temp_project/android/app/build.gradle
 
-      - name: Get Flutter packages
+      - name: Get packages
         run: cd temp_project && flutter pub get
 
-      - name: Build APK with Gradle directly
+      - name: Build Release APK
         run: |
-          cd temp_project/android
-          ./gradlew assembleDebug
-          find . -name "*.apk" 2>/dev/null
+          cd temp_project
+          flutter build apk --release --no-tree-shake-icons
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ChatX-Flutter-Debug
-          path: temp_project/android/app/build/outputs/apk/debug/app-debug.apk
+          name: ChatX-Release
+          path: temp_project/build/**/*.apk
           retention-days: 7
