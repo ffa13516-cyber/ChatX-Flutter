@@ -28,21 +28,36 @@ jobs:
         run: |
           flutter create --org com.chatx --project-name chatx temp_project
           mkdir -p temp_project/assets/images
-
-      - name: Copy source files
-        run: |
           cp -r lib temp_project/
           cp pubspec.yaml temp_project/
 
       - name: Setup google-services.json
-        run: |
-          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > temp_project/android/app/google-services.json
+        run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > temp_project/android/app/google-services.json
 
-      - name: Add Firebase classpath to build.gradle
+      - name: Fix Android gradle for Firebase
         run: |
-          cd temp_project/android
-          sed -i "s|classpath 'com.android.tools.build:gradle:.*'|classpath 'com.android.tools.build:gradle:8.1.0'\n        classpath 'com.google.gms:google-services:4.4.0'|" build.gradle
-          echo -e "\napply plugin: 'com.google.gms.google-services'" >> app/build.gradle
+          cat > temp_project/android/build.gradle << 'EOF'
+          buildscript {
+              ext.kotlin_version = '1.9.0'
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.1.0'
+                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+                  classpath 'com.google.gms:google-services:4.4.0'
+              }
+          }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          EOF
+          echo "" >> temp_project/android/app/build.gradle
+          echo "apply plugin: 'com.google.gms.google-services'" >> temp_project/android/app/build.gradle
 
       - name: Get Flutter packages
         run: cd temp_project && flutter pub get
