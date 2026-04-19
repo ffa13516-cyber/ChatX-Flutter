@@ -1,0 +1,31 @@
+{
+  "_INSTRUCTIONS": "Replace this file with your google-services.json from Firebase Console. Package name: com.chatx.app",
+  "project_info": {
+    "project_number": "560030093300",
+    "firebase_url": "https://messengerapp-d6e7c-default-rtdb.firebaseio.com",
+    "project_id": "messengerapp-d6e7c",
+    "storage_bucket": "messengerapp-d6e7c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:560030093300:android:REPLACE_WITH_NEW_APP_ID",
+        "android_client_info": {
+          "package_name": "com.chatx.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "REPLACE_WITH_YOUR_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
