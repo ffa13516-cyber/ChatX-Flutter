@@ -1,17 +1,15 @@
-import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:uuid/uuid.dart';
 import '../models/models.dart';
 
 class FirebaseRepo {
   static final _db = FirebaseDatabase.instanceFor(
     app: Firebase.app(),
-    databaseURL: 'PUT_YOUR_DATABASE_URL_HERE',
+    databaseURL: 'https://messengerapp-d6e7c-default-rtdb.firebaseio.com',
   );
-
   static const _uuid = Uuid();
 
-  // References
   static DatabaseReference get usersRef => _db.ref('users');
   static DatabaseReference get chatsRef => _db.ref('chats');
   static DatabaseReference get messagesRef => _db.ref('messages');
@@ -20,7 +18,6 @@ class FirebaseRepo {
   static DatabaseReference get channelsRef => _db.ref('channels');
   static DatabaseReference get channelMsgsRef => _db.ref('channelMessages');
 
-  // ==================== USERS ====================
   static Future<void> saveUser(UserModel user) async {
     await usersRef.child(user.uid).set(user.toMap());
   }
@@ -59,7 +56,6 @@ class FirebaseRepo {
     });
   }
 
-  // ==================== CHATS ====================
   static String getChatId(String uid1, String uid2) {
     final ids = [uid1, uid2]..sort();
     return '${ids[0]}_${ids[1]}';
@@ -71,10 +67,7 @@ class FirebaseRepo {
     if (snap.exists) {
       return ChatModel.fromMap(snap.value as Map);
     }
-    final chat = ChatModel(
-      chatId: chatId,
-      participants: [myUid, otherUid],
-    );
+    final chat = ChatModel(chatId: chatId, participants: [myUid, otherUid]);
     await chatsRef.child(chatId).set(chat.toMap());
     return chat;
   }
@@ -119,7 +112,6 @@ class FirebaseRepo {
     });
   }
 
-  // ==================== GROUPS ====================
   static Future<GroupModel> createGroup(GroupModel group) async {
     final ref = groupsRef.push();
     final groupWithId = GroupModel(
@@ -172,7 +164,6 @@ class FirebaseRepo {
     });
   }
 
-  // ==================== CHANNELS ====================
   static Future<ChannelModel> createChannel(ChannelModel channel) async {
     final ref = channelsRef.push();
     final channelWithId = ChannelModel(
@@ -191,7 +182,6 @@ class FirebaseRepo {
     if (!channel.exists) return;
     final channelData = ChannelModel.fromMap(channel.value as Map);
     if (channelData.adminId != adminId) return;
-
     final msgRef = channelMsgsRef.child(channelId).push();
     final msgWithId = MessageModel(
       messageId: msgRef.key ?? _uuid.v4(),
@@ -224,9 +214,14 @@ class FirebaseRepo {
       final map = event.snapshot.value as Map;
       return map.values
           .map((v) => ChannelModel.fromMap(v as Map))
-          .where((c) => c.subscribers.contains(uid) || c.adminId == uid)
+          .filter((c) => c.subscribers.contains(uid) || c.adminId == uid)
           .toList()
         ..sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
     });
   }
+}
+
+extension on Iterable {
+  Iterable<T> filter<T>(bool Function(T) test) =>
+      whereType<T>().where(test);
 }
