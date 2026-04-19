@@ -26,7 +26,7 @@ jobs:
 
       - name: Create Flutter project
         run: |
-          flutter create --org com.chatx --project-name chatx temp_project
+          flutter create --org com.chatx --project-name app temp_project
           mkdir -p temp_project/assets/images
           cp -r lib temp_project/
           cp pubspec.yaml temp_project/
