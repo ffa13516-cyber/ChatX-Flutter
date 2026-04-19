@@ -65,9 +65,12 @@ jobs:
       - name: Build APK
         run: cd temp_project && flutter build apk --debug --no-tree-shake-icons
 
+      - name: Find APK
+        run: find temp_project/build -name "*.apk" 2>/dev/null || echo "No APK found"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ChatX-Flutter-Debug
-          path: temp_project/build/app/outputs/flutter-apk/app-debug.apk
+          path: temp_project/build/app/outputs/apk/debug/app-debug.apk
           retention-days: 7
