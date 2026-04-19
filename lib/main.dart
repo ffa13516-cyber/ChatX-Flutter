@@ -9,7 +9,18 @@ import 'utils/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  
+  await Firebase.initializeApp(
+    options: const FirebaseOptions(
+      apiKey: "AIzaSyDMbgMfJkuiEc4EmN8S_nOLVIghAZSzQiE",
+      appId: "1:560030093300:android:ad0677ea0cd7b0b36433a1",
+      messagingSenderId: "560030093300",
+      projectId: "messengerapp-d6e7c",
+      databaseURL: "https://messengerapp-d6e7c-default-rtdb.firebaseio.com",
+      storageBucket: "messengerapp-d6e7c.firebasestorage.app",
+    ),
+  );
+
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -17,6 +28,7 @@ void main() async {
       systemNavigationBarColor: AppColors.bgDark,
     ),
   );
+
   final prefs = await SharedPreferences.getInstance();
   final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
   runApp(ChatXApp(isLoggedIn: isLoggedIn));
