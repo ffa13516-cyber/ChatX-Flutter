@@ -46,7 +46,9 @@ class FirebaseRepo {
     final snap = await usersRef.get();
     if (!snap.exists) return [];
     final map = snap.value as Map;
-    return map.values.map((v) => UserModel.fromMap(v as Map)).toList();
+    return map.values
+        .map((v) => UserModel.fromMap(v as Map))
+        .toList();
   }
 
   static Stream<UserModel?> observeUser(String uid) {
@@ -104,11 +106,12 @@ class FirebaseRepo {
     return chatsRef.onValue.map((event) {
       if (!event.snapshot.exists) return [];
       final map = event.snapshot.value as Map;
-      return map.values
+      final list = map.values
           .map((v) => ChatModel.fromMap(v as Map))
           .where((c) => c.participants.contains(uid))
-          .toList()
-        ..sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+          .toList();
+      list.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+      return list;
     });
   }
 
@@ -156,11 +159,12 @@ class FirebaseRepo {
     return groupsRef.onValue.map((event) {
       if (!event.snapshot.exists) return [];
       final map = event.snapshot.value as Map;
-      return map.values
+      final list = map.values
           .map((v) => GroupModel.fromMap(v as Map))
           .where((g) => g.members.contains(uid))
-          .toList()
-        ..sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+          .toList();
+      list.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+      return list;
     });
   }
 
@@ -212,16 +216,12 @@ class FirebaseRepo {
     return channelsRef.onValue.map((event) {
       if (!event.snapshot.exists) return [];
       final map = event.snapshot.value as Map;
-      return map.values
+      final list = map.values
           .map((v) => ChannelModel.fromMap(v as Map))
-          .filter((c) => c.subscribers.contains(uid) || c.adminId == uid)
-          .toList()
-        ..sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+          .where((c) => c.subscribers.contains(uid) || c.adminId == uid)
+          .toList();
+      list.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+      return list;
     });
   }
-}
-
-extension on Iterable {
-  Iterable<T> filter<T>(bool Function(T) test) =>
-      whereType<T>().where(test);
 }
