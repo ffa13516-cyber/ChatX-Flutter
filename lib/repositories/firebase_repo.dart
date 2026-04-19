@@ -1,9 +1,14 @@
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:uuid/uuid.dart';
 import '../models/models.dart';
 
 class FirebaseRepo {
-  static final _db = FirebaseDatabase.instance;
+  static final _db = FirebaseDatabase.instanceFor(
+    app: Firebase.app(),
+    databaseURL: 'PUT_YOUR_DATABASE_URL_HERE',
+  );
+
   static const _uuid = Uuid();
 
   // References
