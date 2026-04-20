@@ -17,74 +17,70 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.0'
           channel: 'stable'
+          cache: true
 
       - name: Create Flutter project
         run: |
           flutter create --org com.chatx --project-name app temp_project
           cp -r lib temp_project/
           cp pubspec.yaml temp_project/
+          mkdir -p temp_project/assets/images
 
-      - name: Setup Firebase & Stable Gradle
+      - name: Setup Firebase & Ultimate Kotlin Fix
         run: |
           cd temp_project/android
           
-          # استخدام نسخة Gradle مستقرة جداً وأقدم قليلاً لضمان التوافق مع المكتبات
+          # تعديل ملف build.gradle الرئيسي لفرض نسخة Kotlin حديثة جداً
           cat > build.gradle << 'EOF'
           buildscript {
-              ext.kotlin_version = '1.7.10'
-              repositories {
-                  google()
-                  mavenCentral()
-              }
+              ext.kotlin_version = '1.9.10'
+              repositories { google(); mavenCentral() }
               dependencies {
-                  classpath 'com.android.tools.build:gradle:7.3.0'
-                  classpath 'com.google.gms:google-services:4.3.14'
+                  classpath 'com.android.tools.build:gradle:8.0.2'
+                  classpath 'com.google.gms:google-services:4.4.0'
                   classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
               }
           }
           allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
+              repositories { google(); mavenCentral() }
+              subprojects {
+                  afterEvaluate { project ->
+                      if (project.hasProperty('android')) {
+                          project.android {
+                              if (namespace == null) {
+                                  namespace project.group
+                              }
+                          }
+                      }
+                  }
               }
           }
           EOF
           
-          # ضبط الـ Gradle Wrapper لنسخة 7.5 (متوافقة مع Gradle Plugin 7.3.0)
-          sed -i 's/gradle-.*-all.zip/gradle-7.5-all.zip/' gradle/wrapper/gradle-wrapper.properties
-          
-          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
+          # تفعيل الفايربيز ورفع الـ Compile SDK لـ 34 عشان المكتبات الحديثة
+          sed -i 's/compileSdkVersion .*/compileSdkVersion 34/' app/build.gradle
           echo "apply plugin: 'com.google.gms.google-services'" >> app/build.gradle
+          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
 
       - name: Get packages
         run: |
           cd temp_project
           flutter pub get
 
-      - name: Configure Signing
-        run: |
-          cd temp_project/android/app
-          keytool -genkey -v -keystore keystore.jks -alias chatx -keyalg RSA -keysize 2048 -validity 10000 -storepass chatx123 -keypass chatx123 -dname "CN=ChatX, OU=ChatX, O=ChatX, L=Cairo, S=Cairo, C=EG"
-          cat >> build.gradle << 'EOF'
-          android {
-              signingConfigs { release { keyAlias 'chatx'; keyPassword 'chatx123'; storeFile file('keystore.jks'); storePassword 'chatx123' } }
-              buildTypes { release { signingConfig signingConfigs.release } }
-          }
-          EOF
-
       - name: Build Release APK
         run: |
           cd temp_project
-          flutter build apk --release --no-tree-shake-icons
+          flutter build apk --release --no-tree-shake-icons --split-per-abi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ChatX-Release
-          path: temp_project/build/app/outputs/flutter-apk/app-release.apk
+          path: temp_project/build/app/outputs/flutter-apk/*.apk
