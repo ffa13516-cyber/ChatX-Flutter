@@ -31,11 +31,11 @@ jobs:
           cp pubspec.yaml temp_project/
           mkdir -p temp_project/assets/images
 
-      - name: Setup Firebase & Fix Gradle
+      - name: Setup Firebase & Force Kotlin Version
         run: |
           cd temp_project/android
           
-          # تعديل ملف build.gradle الرئيسي ليكون مرن مع نسخ Kotlin
+          # تعديل ملف build.gradle لإجبار كل الإضافات على نسخة كوتلن محددة
           cat > build.gradle << 'EOF'
           buildscript {
               ext.kotlin_version = '1.8.22'
@@ -44,8 +44,8 @@ jobs:
                   mavenCentral()
               }
               dependencies {
-                  classpath 'com.android.tools.build:gradle:8.2.2'
-                  classpath 'com.google.gms:google-services:4.4.1'
+                  classpath 'com.android.tools.build:gradle:8.1.0'
+                  classpath 'com.google.gms:google-services:4.3.15'
                   classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
               }
           }
@@ -53,6 +53,14 @@ jobs:
               repositories {
                   google()
                   mavenCentral()
+              }
+              // إجبار كل الـ dependencies على نسخة كوتلن 1.8.22 لحل التعارض
+              configurations.all {
+                  resolutionStrategy.eachDependency { details ->
+                      if (details.requested.group == 'org.jetbrains.kotlin') {
+                          details.useVersion "1.8.22"
+                      }
+                  }
               }
           }
           EOF
@@ -96,7 +104,6 @@ jobs:
       - name: Build Release APK
         run: |
           cd temp_project
-          # تنظيف الكاش قبل البيلد لضمان عدم تداخل النسخ
           flutter clean
           flutter pub get
           flutter build apk --release --no-tree-shake-icons
