@@ -90,6 +90,7 @@ jobs:
           }
           android.buildTypes.release.signingConfig = android.signingConfigs.release
           android.buildTypes.release.minifyEnabled = false
+          android.buildTypes.release.shrinkResources = false
           EOF
 
       - name: Build Release APK
