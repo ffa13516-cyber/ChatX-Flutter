@@ -21,16 +21,15 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0'
+          flutter-version: '3.27.0'        # ⬅️ تم تحديث الإصدار لآخر stable
           channel: 'stable'
 
       - name: Create Flutter project
         run: |
           flutter create --org com.chatx --project-name app temp_project
-          # نسخ مجلد lib و pubspec.yaml
           cp -r lib temp_project/
           cp pubspec.yaml temp_project/
-          # نسخ مجلد assets فقط إذا كان موجودًا (وإلا يتجاهل بدون خطأ)
+          # نسخ مجلد assets إذا كان موجودًا
           if [ -d "assets" ]; then cp -r assets temp_project/; fi
 
       - name: Setup google-services.json
@@ -66,12 +65,8 @@ jobs:
       - name: Get packages
         run: cd temp_project && flutter pub get
 
-      - name: Build APK with verbose logging
-        run: |
-          cd temp_project
-          flutter build apk --debug --verbose
-          echo "==================== APK Search ===================="
-          find . -name "*.apk" || echo "No APK found!"
+      - name: Build APK
+        run: cd temp_project && flutter build apk --debug --no-pub   # ⬅️ بدون verbose، وعدم تكرار تحميل الحزم
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
