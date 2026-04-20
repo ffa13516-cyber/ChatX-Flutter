@@ -15,16 +15,14 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '11' # رجعنا لجاوا 11 للتوافق مع النسخ القديمة
           distribution: 'temurin'
-          cache: 'gradle'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0'
+          flutter-version: '3.16.0' # نسخة مستقرة جداً مع المكتبات القديمة
           channel: 'stable'
-          cache: true
 
       - name: Create Flutter project
         run: |
@@ -33,41 +31,31 @@ jobs:
           cp pubspec.yaml temp_project/
           mkdir -p temp_project/assets/images
 
-      - name: Setup Firebase & Ultimate Kotlin Fix
+      - name: Setup Firebase & Legacy Fix
         run: |
           cd temp_project/android
           
-          # تعديل ملف build.gradle الرئيسي لفرض نسخة Kotlin حديثة جداً
+          # مسح وكتابة ملف build.gradle بنظام قديم يرضي الـ Plugins
           cat > build.gradle << 'EOF'
           buildscript {
-              ext.kotlin_version = '1.9.10'
+              ext.kotlin_version = '1.6.10'
               repositories { google(); mavenCentral() }
               dependencies {
-                  classpath 'com.android.tools.build:gradle:8.0.2'
-                  classpath 'com.google.gms:google-services:4.4.0'
+                  classpath 'com.android.tools.build:gradle:7.1.0'
+                  classpath 'com.google.gms:google-services:4.3.10'
                   classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
               }
           }
           allprojects {
               repositories { google(); mavenCentral() }
-              subprojects {
-                  afterEvaluate { project ->
-                      if (project.hasProperty('android')) {
-                          project.android {
-                              if (namespace == null) {
-                                  namespace project.group
-                              }
-                          }
-                      }
-                  }
-              }
           }
           EOF
           
-          # تفعيل الفايربيز ورفع الـ Compile SDK لـ 34 عشان المكتبات الحديثة
-          sed -i 's/compileSdkVersion .*/compileSdkVersion 34/' app/build.gradle
-          echo "apply plugin: 'com.google.gms.google-services'" >> app/build.gradle
+          # ضبط الـ Gradle Wrapper لنسخة تتوافق مع 7.1.0
+          sed -i 's/gradle-.*-all.zip/gradle-7.2-all.zip/' gradle/wrapper/gradle-wrapper.properties
+          
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
+          echo "apply plugin: 'com.google.gms.google-services'" >> app/build.gradle
 
       - name: Get packages
         run: |
@@ -77,10 +65,10 @@ jobs:
       - name: Build Release APK
         run: |
           cd temp_project
-          flutter build apk --release --no-tree-shake-icons --split-per-abi
+          flutter build apk --release --no-tree-shake-icons
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ChatX-Release
-          path: temp_project/build/app/outputs/flutter-apk/*.apk
+          path: temp_project/build/app/outputs/flutter-apk/app-release.apk
