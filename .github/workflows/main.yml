@@ -69,36 +69,12 @@ jobs:
       - name: Get packages
         run: cd temp_project && flutter pub get
 
-      - name: Build APK
-        id: build
-        continue-on-error: true
-        run: |
-          cd temp_project
-          flutter build apk --debug --no-pub 2>&1 | tee build.log
+      - name: Build Release Split APKs
+        run: cd temp_project && flutter build apk --release --split-per-abi --no-pub
 
-      - name: Get Gradle stacktrace if failed
-        if: steps.build.outcome == 'failure'
-        run: |
-          cd temp_project/android
-          ./gradlew assembleDebug --stacktrace --info 2>&1 | tee -a ../build.log
-
-      - name: Upload build log (always)
-        if: always()
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: build-log
-          path: temp_project/build.log
+          name: ChatX-Release
+          path: temp_project/build/app/outputs/flutter-apk/*.apk
           retention-days: 7
-
-      - name: Upload APK (if succeeded)
-        if: steps.build.outcome == 'success'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ChatX-Debug
-          path: |
-            temp_project/**/*.apk
-          retention-days: 7
-
-      - name: Fail job if build failed
-        if: steps.build.outcome == 'failure'
-        run: exit 1
