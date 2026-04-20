@@ -26,41 +26,54 @@ jobs:
 
       - name: Create Flutter project
         run: |
-          # إنشاء المشروع بالهيكل الصحيح لنسخة 3.19
           flutter create --org com.chatx --project-name app temp_project
           cp -r lib temp_project/
           cp pubspec.yaml temp_project/
-          # التأكد من وجود المجلدات المطلوبة
           mkdir -p temp_project/assets/images
 
-      - name: Setup Firebase & Gradle Fix
+      - name: Setup Firebase & Fix Gradle Plugins
         run: |
           cd temp_project/android
-          # إضافة الـ Firebase Plugin في ملف الـ build.gradle الأساسي (Top-level)
-          # بنستخدم sed عشان نضيف السطر من غير ما نمسح الملف
-          sed -i '/dependencies {/a \        classpath "com.google.gms:google-services:4.4.1"' build.gradle
           
-          # إضافة الـ Google Services في ملف الـ App
-          echo "apply plugin: 'com.google.gms.google-services'" >> app/build.gradle
+          # تعديل ملف build.gradle الرئيسي لإضافة كلاس باث جوجل سيرفسز في البداية
+          cat > build.gradle << 'EOF'
+          buildscript {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.2.2'
+                  classpath 'com.google.gms:google-services:4.4.1'
+                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22"
+              }
+          }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          EOF
           
-          # وضع ملف السيكرت
+          # إضافة ملف google-services.json وتفعيل الـ Plugin في ملف الـ App
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
+          echo "apply plugin: 'com.google.gms.google-services'" >> app/build.gradle
 
       - name: Get packages
         run: |
           cd temp_project
           flutter pub get
 
-      - name: Configure Signing
+      - name: Configure Signing & Keystore
         run: |
           cd temp_project/android/app
-          # إنشاء Keystore سريع للبيلد
           keytool -genkey -v -keystore keystore.jks \
             -alias chatx -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass chatx123 -keypass chatx123 \
             -dname "CN=ChatX, OU=ChatX, O=ChatX, L=Cairo, S=Cairo, C=EG"
           
-          # تعديل ملف build.gradle لإضافة الـ Signing Config برمجياً
+          # إضافة إعدادات التوقيع داخل ملف build.gradle
           cat >> build.gradle << 'EOF'
           android {
               signingConfigs {
@@ -74,6 +87,8 @@ jobs:
               buildTypes {
                   release {
                       signingConfig signingConfigs.release
+                      minifyEnabled false
+                      shrinkResources false
                   }
               }
           }
@@ -82,7 +97,6 @@ jobs:
       - name: Build Release APK
         run: |
           cd temp_project
-          # استخدام --no-pub لسرعة البيلد طالما عملنا pub get
           flutter build apk --release --no-tree-shake-icons
 
       - name: Upload APK
@@ -90,3 +104,4 @@ jobs:
         with:
           name: ChatX-Release
           path: temp_project/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7
