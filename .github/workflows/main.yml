@@ -29,23 +29,22 @@ jobs:
           flutter create --org com.chatx --project-name app temp_project
           cp -r lib temp_project/
           cp pubspec.yaml temp_project/
-          mkdir -p temp_project/assets/images
 
-      - name: Setup Firebase & Force Kotlin Version
+      - name: Setup Firebase & Stable Gradle
         run: |
           cd temp_project/android
           
-          # تعديل ملف build.gradle لإجبار كل الإضافات على نسخة كوتلن محددة
+          # استخدام نسخة Gradle مستقرة جداً وأقدم قليلاً لضمان التوافق مع المكتبات
           cat > build.gradle << 'EOF'
           buildscript {
-              ext.kotlin_version = '1.8.22'
+              ext.kotlin_version = '1.7.10'
               repositories {
                   google()
                   mavenCentral()
               }
               dependencies {
-                  classpath 'com.android.tools.build:gradle:8.1.0'
-                  classpath 'com.google.gms:google-services:4.3.15'
+                  classpath 'com.android.tools.build:gradle:7.3.0'
+                  classpath 'com.google.gms:google-services:4.3.14'
                   classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
               }
           }
@@ -54,16 +53,11 @@ jobs:
                   google()
                   mavenCentral()
               }
-              // إجبار كل الـ dependencies على نسخة كوتلن 1.8.22 لحل التعارض
-              configurations.all {
-                  resolutionStrategy.eachDependency { details ->
-                      if (details.requested.group == 'org.jetbrains.kotlin') {
-                          details.useVersion "1.8.22"
-                      }
-                  }
-              }
           }
           EOF
+          
+          # ضبط الـ Gradle Wrapper لنسخة 7.5 (متوافقة مع Gradle Plugin 7.3.0)
+          sed -i 's/gradle-.*-all.zip/gradle-7.5-all.zip/' gradle/wrapper/gradle-wrapper.properties
           
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
           echo "apply plugin: 'com.google.gms.google-services'" >> app/build.gradle
@@ -73,39 +67,20 @@ jobs:
           cd temp_project
           flutter pub get
 
-      - name: Configure Signing & Keystore
+      - name: Configure Signing
         run: |
           cd temp_project/android/app
-          keytool -genkey -v -keystore keystore.jks \
-            -alias chatx -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass chatx123 -keypass chatx123 \
-            -dname "CN=ChatX, OU=ChatX, O=ChatX, L=Cairo, S=Cairo, C=EG"
-          
+          keytool -genkey -v -keystore keystore.jks -alias chatx -keyalg RSA -keysize 2048 -validity 10000 -storepass chatx123 -keypass chatx123 -dname "CN=ChatX, OU=ChatX, O=ChatX, L=Cairo, S=Cairo, C=EG"
           cat >> build.gradle << 'EOF'
           android {
-              signingConfigs {
-                  release {
-                      keyAlias 'chatx'
-                      keyPassword 'chatx123'
-                      storeFile file('keystore.jks')
-                      storePassword 'chatx123'
-                  }
-              }
-              buildTypes {
-                  release {
-                      signingConfig signingConfigs.release
-                      minifyEnabled false
-                      shrinkResources false
-                  }
-              }
+              signingConfigs { release { keyAlias 'chatx'; keyPassword 'chatx123'; storeFile file('keystore.jks'); storePassword 'chatx123' } }
+              buildTypes { release { signingConfig signingConfigs.release } }
           }
           EOF
 
       - name: Build Release APK
         run: |
           cd temp_project
-          flutter clean
-          flutter pub get
           flutter build apk --release --no-tree-shake-icons
 
       - name: Upload APK
@@ -113,4 +88,3 @@ jobs:
         with:
           name: ChatX-Release
           path: temp_project/build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 7
