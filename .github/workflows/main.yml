@@ -21,7 +21,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.27.0'        # ⬅️ تم تحديث الإصدار لآخر stable
+          flutter-version: '3.27.0'
           channel: 'stable'
 
       - name: Create Flutter project
@@ -29,7 +29,6 @@ jobs:
           flutter create --org com.chatx --project-name app temp_project
           cp -r lib temp_project/
           cp pubspec.yaml temp_project/
-          # نسخ مجلد assets إذا كان موجودًا
           if [ -d "assets" ]; then cp -r assets temp_project/; fi
 
       - name: Setup google-services.json
@@ -59,18 +58,53 @@ jobs:
           EOF
           echo "apply plugin: 'com.google.gms.google-services'" >> temp_project/android/app/build.gradle
 
-      - name: Ensure minSdkVersion 21 for Firebase
-        run: sed -i 's/minSdkVersion .*/minSdkVersion 21/' temp_project/android/app/build.gradle
+      - name: Ensure minSdkVersion 21 in app/build.gradle
+        run: |
+          cd temp_project/android/app
+          sed -i 's/minSdkVersion .*/minSdkVersion 21/' build.gradle
+          if ! grep -q 'minSdkVersion' build.gradle; then
+            sed -i '/defaultConfig {/a\    minSdkVersion 21' build.gradle
+          fi
 
       - name: Get packages
         run: cd temp_project && flutter pub get
 
-      - name: Build APK
-        run: cd temp_project && flutter build apk --debug --no-pub   # ⬅️ بدون verbose، وعدم تكرار تحميل الحزم
+      - name: Build APK with Gradle stacktrace
+        id: build
+        continue-on-error: true   # ⬅️ يستمر حتى لو فشل عشان نعرف السبب
+        run: |
+          cd temp_project
+          flutter build apk --debug --no-pub --verbose 2>&1 | tee build.log
+        # نستخدم --verbose هنا مرة واحدة فقط للحصول على التفاصيل الكاملة
 
-      - name: Upload APK
+      - name: Upload build log if failed
+        if: steps.build.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: temp_project/build.log
+
+      - name: Show Gradle error summary (if any)
+        if: steps.build.outcome == 'failure'
+        run: |
+          echo "=== Searching for Gradle errors ==="
+          cd temp_project/android
+          if [ -f .gradle/buildOutputCleanup/cache.properties ]; then
+            echo "Gradle cache exists"
+          fi
+          # طباعة أي ملف تقرير خطأ من Gradle
+          find . -name "*.log" -exec echo "--- {} ---" \; -exec cat {} \;
+          echo "=== Checking APK paths ==="
+          find .. -name "*.apk"
+
+      - name: Upload APK (if succeeded)
+        if: steps.build.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: ChatX-Debug
           path: temp_project/build/app/outputs/flutter-apk/*.apk
           retention-days: 7
+
+      - name: Fail job if build failed
+        if: steps.build.outcome == 'failure'
+        run: exit 1
