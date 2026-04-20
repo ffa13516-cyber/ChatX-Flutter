@@ -27,9 +27,11 @@ jobs:
       - name: Create Flutter project
         run: |
           flutter create --org com.chatx --project-name app temp_project
-          mkdir -p temp_project/assets/images
+          # نسخ مجلد lib و pubspec.yaml
           cp -r lib temp_project/
           cp pubspec.yaml temp_project/
+          # نسخ مجلد assets فقط إذا كان موجودًا (وإلا يتجاهل بدون خطأ)
+          if [ -d "assets" ]; then cp -r assets temp_project/; fi
 
       - name: Setup google-services.json
         run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > temp_project/android/app/google-services.json
@@ -58,17 +60,22 @@ jobs:
           EOF
           echo "apply plugin: 'com.google.gms.google-services'" >> temp_project/android/app/build.gradle
 
+      - name: Ensure minSdkVersion 21 for Firebase
+        run: sed -i 's/minSdkVersion .*/minSdkVersion 21/' temp_project/android/app/build.gradle
+
       - name: Get packages
         run: cd temp_project && flutter pub get
 
-      - name: Build APK
+      - name: Build APK with verbose logging
         run: |
           cd temp_project
-          flutter build apk --debug --no-tree-shake-icons
+          flutter build apk --debug --verbose
+          echo "==================== APK Search ===================="
+          find . -name "*.apk" || echo "No APK found!"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ChatX-Debug
-          path: temp_project/build/**/*.apk
+          path: temp_project/build/app/outputs/flutter-apk/*.apk
           retention-days: 7
