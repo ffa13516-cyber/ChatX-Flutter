@@ -75,54 +75,21 @@ jobs:
           storeFile=keystore.jks
           EOF
 
-      - name: Add signing config to build.gradle
+      - name: Add signing config
         run: |
-          cd temp_project/android
-          cat > app/build.gradle << 'EOF'
-          def localProperties = new Properties()
-          def localPropertiesFile = rootProject.file('key.properties')
-          if (localPropertiesFile.exists()) {
-              localPropertiesFile.withReader('UTF-8') { reader ->
-                  localProperties.load(reader)
+          cd temp_project/android/app
+          cat >> build.gradle << 'EOF'
+
+          android.signingConfigs {
+              release {
+                  keyAlias 'chatx'
+                  keyPassword 'chatx123'
+                  storeFile file('keystore.jks')
+                  storePassword 'chatx123'
               }
           }
-          def flutterRoot = localProperties.getProperty('flutter.sdk')
-          apply plugin: 'com.android.application'
-          apply plugin: 'kotlin-android'
-          apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
-          android {
-              namespace "com.chatx.app"
-              compileSdkVersion 34
-              defaultConfig {
-                  applicationId "com.chatx.app"
-                  minSdkVersion 21
-                  targetSdkVersion 34
-                  versionCode 1
-                  versionName "1.0.0"
-              }
-              signingConfigs {
-                  release {
-                      keyAlias 'chatx'
-                      keyPassword 'chatx123'
-                      storeFile file('keystore.jks')
-                      storePassword 'chatx123'
-                  }
-              }
-              buildTypes {
-                  release {
-                      signingConfig signingConfigs.release
-                      minifyEnabled true
-                      shrinkResources true
-                  }
-              }
-          }
-          flutter {
-              source '../..'
-          }
-          dependencies {
-              implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-          }
-          apply plugin: 'com.google.gms.google-services'
+          android.buildTypes.release.signingConfig = android.signingConfigs.release
+          android.buildTypes.release.minifyEnabled = false
           EOF
 
       - name: Build Release APK
