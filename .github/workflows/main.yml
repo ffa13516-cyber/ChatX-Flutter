@@ -17,6 +17,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -24,25 +25,13 @@ jobs:
           flutter-version: '3.19.0'
           channel: 'stable'
 
-      - name: Create Flutter project
+      - name: Prepare Android Environment
         run: |
-          flutter create --org com.chatx --project-name app temp_project
-          cp -r lib temp_project/
-          cp pubspec.yaml temp_project/
-          mkdir -p temp_project/assets/images
-
-      - name: Setup Firebase & Kill Conflicts
-        run: |
-          cd temp_project/android
-          
-          # 1. استجابة للأيرور: تحديث الـ Wrapper لـ 7.5
+          cd android
+          # تحديث الـ Gradle Wrapper للنسخة المطلوبة
           sed -i 's/gradle-.*-all.zip/gradle-7.5-all.zip/' gradle/wrapper/gradle-wrapper.properties
           
-          # 2. تعديل ملف settings.gradle اللي كان بيعمل التعارض من ورانا
-          sed -i 's/id "com.android.application" version .*/id "com.android.application" version "7.4.2" apply false/' settings.gradle
-          sed -i 's/id "org.jetbrains.kotlin.android" version .*/id "org.jetbrains.kotlin.android" version "1.8.22" apply false/' settings.gradle
-          
-          # 3. كتابة ملف build.gradle متوافق بنسبة 100%
+          # إعداد ملفات الـ Gradle لضمان التوافق مع الكوتلن
           cat > build.gradle << 'EOF'
           buildscript {
               ext.kotlin_version = '1.8.22'
@@ -58,21 +47,18 @@ jobs:
           }
           EOF
           
-          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
+          # إضافة جوجل سيرفس وتعديل الـ Namespace
           echo "apply plugin: 'com.google.gms.google-services'" >> app/build.gradle
+          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
 
-      - name: Get packages
-        run: |
-          cd temp_project
-          flutter pub get
+      - name: Install Dependencies
+        run: flutter pub get
 
-      - name: Build Release APK
-        run: |
-          cd temp_project
-          flutter build apk --release --no-tree-shake-icons
+      - name: Build APK
+        run: flutter build apk --release --no-tree-shake-icons
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ChatX-Release
-          path: temp_project/build/app/outputs/flutter-apk/app-release.apk
+          name: ChatX-Final-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
