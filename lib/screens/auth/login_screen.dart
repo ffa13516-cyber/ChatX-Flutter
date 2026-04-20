@@ -28,7 +28,14 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      UserModel? user = await FirebaseRepo.getUserByPhone(phone);
+      UserModel? user;
+      
+      try {
+        user = await FirebaseRepo.getUserByPhone(phone)
+            .timeout(const Duration(seconds: 8));
+      } catch (e) {
+        user = null;
+      }
 
       if (user == null) {
         final uid = DateTime.now().millisecondsSinceEpoch.toString();
@@ -40,7 +47,12 @@ class _LoginScreenState extends State<LoginScreen> {
           lastSeen: DateTime.now().millisecondsSinceEpoch,
           isOnline: true,
         );
-        await FirebaseRepo.saveUser(user);
+        try {
+          await FirebaseRepo.saveUser(user)
+              .timeout(const Duration(seconds: 8));
+        } catch (e) {
+          // Continue even if save fails
+        }
       }
 
       await SessionManager.instance.saveSession(
@@ -69,7 +81,9 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: AppColors.bgCard,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 5),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
       ),
     );
   }
