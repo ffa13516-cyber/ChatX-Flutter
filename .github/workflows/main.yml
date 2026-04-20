@@ -21,15 +21,15 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.27.0'
+          flutter-version: '3.19.0'
           channel: 'stable'
 
       - name: Create Flutter project
         run: |
           flutter create --org com.chatx --project-name app temp_project
+          mkdir -p temp_project/assets/images
           cp -r lib temp_project/
           cp pubspec.yaml temp_project/
-          if [ -d "assets" ]; then cp -r assets temp_project/; fi
 
       - name: Setup google-services.json
         run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > temp_project/android/app/google-services.json
@@ -58,46 +58,17 @@ jobs:
           EOF
           echo "apply plugin: 'com.google.gms.google-services'" >> temp_project/android/app/build.gradle
 
-      - name: Ensure minSdkVersion 21 in app/build.gradle
-        run: |
-          cd temp_project/android/app
-          sed -i 's/minSdkVersion .*/minSdkVersion 21/' build.gradle
-          if ! grep -q 'minSdkVersion' build.gradle; then
-            sed -i '/defaultConfig {/a\    minSdkVersion 21' build.gradle
-          fi
-
       - name: Get packages
         run: cd temp_project && flutter pub get
 
-      - name: Build Release Split APKs (attempt 1)
-        id: build_release
-        continue-on-error: true
+      - name: Build APK
         run: |
           cd temp_project
-          flutter build apk --release --split-per-abi --no-pub
+          flutter build apk --debug --no-tree-shake-icons
 
-      - name: Get detailed Gradle error if build failed
-        if: steps.build_release.outcome == 'failure'
-        run: |
-          cd temp_project/android
-          ./gradlew assembleRelease --stacktrace --info 2>&1 | tee ../gradle_error.log
-
-      - name: Upload Gradle error log (if failed)
-        if: steps.build_release.outcome == 'failure'
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: gradle-error-log
-          path: temp_project/gradle_error.log
+          name: ChatX-Debug
+          path: temp_project/build/**/*.apk
           retention-days: 7
-
-      - name: Upload APKs (if succeeded)
-        if: steps.build_release.outcome == 'success'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ChatX-Release
-          path: temp_project/build/app/outputs/flutter-apk/*.apk
-          retention-days: 7
-
-      - name: Fail job if build failed
-        if: steps.build_release.outcome == 'failure'
-        run: exit 1
