@@ -28,11 +28,9 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Check existing user
       UserModel? user = await FirebaseRepo.getUserByPhone(phone);
 
       if (user == null) {
-        // Create new user
         final uid = DateTime.now().millisecondsSinceEpoch.toString();
         final name = 'User ${phone.substring(phone.length - 4)}';
         user = UserModel(
@@ -58,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } catch (e) {
-      _showSnack('Login failed. Try again.');
+      _showSnack('Error: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -70,6 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
         content: Text(msg),
         backgroundColor: AppColors.bgCard,
         behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 5),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
@@ -87,8 +86,6 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Spacer(flex: 2),
-
-                // Logo
                 Center(
                   child: Container(
                     width: 90,
@@ -116,9 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ).animate().fadeIn(duration: 600.ms).scale(),
-
                 const SizedBox(height: 32),
-
                 const Center(
                   child: Text(
                     'Welcome to ChatX 👋',
@@ -129,33 +124,29 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.3),
-
                 const SizedBox(height: 8),
-
                 const Center(
                   child: Text(
                     'Enter your phone number to continue',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 15),
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 15,
+                    ),
                   ),
                 ).animate().fadeIn(delay: 300.ms),
-
                 const Spacer(),
-
                 CustomTextField(
                   hint: 'Phone number (e.g. +1234567890)',
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   prefixIcon: Icons.phone_rounded,
                 ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.3),
-
                 const SizedBox(height: 20),
-
                 GradientButton(
                   text: 'Continue',
                   onPressed: _login,
                   isLoading: _isLoading,
                 ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.3),
-
                 const Spacer(flex: 2),
               ],
             ),
