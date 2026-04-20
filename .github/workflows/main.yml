@@ -61,14 +61,78 @@ jobs:
       - name: Get packages
         run: cd temp_project && flutter pub get
 
-      - name: Build APK
+      - name: Create keystore
+        run: |
+          cd temp_project/android
+          keytool -genkey -v -keystore app/keystore.jks \
+            -alias chatx -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass chatx123 -keypass chatx123 \
+            -dname "CN=ChatX, OU=ChatX, O=ChatX, L=Cairo, S=Cairo, C=EG"
+          cat > key.properties << 'EOF'
+          storePassword=chatx123
+          keyPassword=chatx123
+          keyAlias=chatx
+          storeFile=keystore.jks
+          EOF
+
+      - name: Add signing config to build.gradle
+        run: |
+          cd temp_project/android
+          cat > app/build.gradle << 'EOF'
+          def localProperties = new Properties()
+          def localPropertiesFile = rootProject.file('key.properties')
+          if (localPropertiesFile.exists()) {
+              localPropertiesFile.withReader('UTF-8') { reader ->
+                  localProperties.load(reader)
+              }
+          }
+          def flutterRoot = localProperties.getProperty('flutter.sdk')
+          apply plugin: 'com.android.application'
+          apply plugin: 'kotlin-android'
+          apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
+          android {
+              namespace "com.chatx.app"
+              compileSdkVersion 34
+              defaultConfig {
+                  applicationId "com.chatx.app"
+                  minSdkVersion 21
+                  targetSdkVersion 34
+                  versionCode 1
+                  versionName "1.0.0"
+              }
+              signingConfigs {
+                  release {
+                      keyAlias 'chatx'
+                      keyPassword 'chatx123'
+                      storeFile file('keystore.jks')
+                      storePassword 'chatx123'
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release
+                      minifyEnabled true
+                      shrinkResources true
+                  }
+              }
+          }
+          flutter {
+              source '../..'
+          }
+          dependencies {
+              implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+          }
+          apply plugin: 'com.google.gms.google-services'
+          EOF
+
+      - name: Build Release APK
         run: |
           cd temp_project
-          flutter build apk --debug --no-tree-shake-icons
+          flutter build apk --release --no-tree-shake-icons
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ChatX-Debug
+          name: ChatX-Release
           path: temp_project/build/**/*.apk
           retention-days: 7
