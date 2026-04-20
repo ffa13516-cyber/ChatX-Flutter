@@ -17,7 +17,6 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'gradle'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -25,40 +24,46 @@ jobs:
           flutter-version: '3.19.0'
           channel: 'stable'
 
-      - name: Prepare Android Environment
+      - name: Create and Configure Project
         run: |
+          # 1. إنشاء المشروع وتجهيزه
+          flutter create --org com.chatx --project-name chatx .
+          
+          # 2. تحديث الـ Gradle للنسخة اللي طلبها الأيرور (7.5)
           cd android
-          # تحديث الـ Gradle Wrapper للنسخة المطلوبة
           sed -i 's/gradle-.*-all.zip/gradle-7.5-all.zip/' gradle/wrapper/gradle-wrapper.properties
           
-          # إعداد ملفات الـ Gradle لضمان التوافق مع الكوتلن
-          cat > build.gradle << 'EOF'
-          buildscript {
-              ext.kotlin_version = '1.8.22'
-              repositories { google(); mavenCentral() }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:7.4.2'
-                  classpath 'com.google.gms:google-services:4.3.15'
-                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-              }
+          # 3. ضبط النسخ في settings.gradle (عشان نتفادى أيرور الـ 1.6.0)
+          cat > settings.gradle << 'EOF'
+          pluginManagement {
+              def flutterSdkPath = {
+                  def properties = new Properties()
+                  file("local.properties").withInputStream { properties.load(it) }
+                  def flutterSdkPath = properties.getProperty("flutter.sdk")
+                  assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
+                  return flutterSdkPath
+              }()
+              includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
           }
-          allprojects {
-              repositories { google(); mavenCentral() }
+          plugins {
+              id "dev.flutter.flutter-gradle-plugin" version "1.0.0" apply false
+              id "com.android.application" version "7.4.2" apply false
+              id "org.jetbrains.kotlin.android" version "1.8.22" apply false
           }
+          include ":app"
           EOF
           
-          # إضافة جوجل سيرفس وتعديل الـ Namespace
-          echo "apply plugin: 'com.google.gms.google-services'" >> app/build.gradle
+          # 4. إضافة جوجل سيرفس
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
 
-      - name: Install Dependencies
-        run: flutter pub get
-
       - name: Build APK
-        run: flutter build apk --release --no-tree-shake-icons
+        run: |
+          flutter pub get
+          flutter build apk --release --no-tree-shake-icons
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ChatX-Final-APK
+          name: ChatX-Final
           path: build/app/outputs/flutter-apk/app-release.apk
