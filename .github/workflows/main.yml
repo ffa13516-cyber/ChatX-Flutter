@@ -1,76 +1,47 @@
 name: Build ChatX Flutter APK
 
 on:
-push:
-branches: [ main, master ]
-workflow_dispatch:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
-build:
-runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-latest
 
-steps:
-  - name: Checkout code
-    uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  - name: Setup Java
-    uses: actions/setup-java@v4
-    with:
-      java-version: '17'
-      distribution: 'temurin'
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle' # تسريع البيلد المرات الجاية
 
-  - name: Setup Flutter
-    uses: subosito/flutter-action@v2
-    with:
-      flutter-version: '3.19.0'
-      channel: 'stable'
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+          cache: true
 
-  - name: Create Flutter project
-    run: |
-      flutter create --org com.chatx --project-name app temp_project
-      mkdir -p temp_project/assets/images
-      cp -r lib temp_project/
-      cp pubspec.yaml temp_project/
+      - name: Get packages
+        run: flutter pub get
 
-  - name: Setup google-services.json
-    run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > temp_project/android/app/google-services.json
+      # استبدل ملف الـ Firebase إذا كنت تستخدمه فعلياً
+      - name: Setup Firebase
+        if: env.GOOGLE_SERVICES_JSON != ''
+        run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
-  - name: Fix gradle for Firebase
-    run: |
-      cat > temp_project/android/build.gradle << 'EOF'
-      buildscript {
-          ext.kotlin_version = '1.9.22'
-          repositories {
-              google()
-              mavenCentral()
-          }
-          dependencies {
-              classpath 'com.android.tools.build:gradle:8.2.2'
-              classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-              classpath 'com.google.gms:google-services:4.4.1'
-          }
-      }
+      - name: Build Release APK
+        run: flutter build apk --release
 
-      allprojects {
-          repositories {
-              google()
-              mavenCentral()
-          }
-      }
-      EOF
-
-      echo "apply plugin: 'com.google.gms.google-services'" >> temp_project/android/app/build.gradle
-
-  - name: Get packages
-    run: cd temp_project && flutter pub get
-
-  - name: Build Release APK
-    run: |
-      cd temp_project
-      flutter build apk --release
-
-  - name: Upload APK
-    uses: actions/upload-artifact@v4
-    with:
-      name: ChatX-Release
-      path: temp_project/build/**/*.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChatX-Release
+          path: build/app/outputs/flutter-apk/app-release.apk
