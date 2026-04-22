@@ -1,125 +1,97 @@
 import 'dart:ui';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+    ),
+  );
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(),
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: const Color(0xFF080B14),
+      ),
       home: const ProfileScreen(),
     );
   }
 }
 
-// ─── Color System ───────────────────────────────────────────────────────────
-
-class AppColors {
-  static const background   = Color(0xFF020B18);
-  static const glassWhite   = Color(0x0DFFFFFF);   // 5% white
-  static const glassBorder  = Color(0x1AFFFFFF);   // 10% white
-  static const primaryBlue  = Color(0xFF4D7CFF);
-  static const primaryPurple= Color(0xFF9B51E0);
-  static const accentPink   = Color(0xFFFF2E63);
-  static const onlineGreen  = Color(0xFF27AE60);
-  static const textMuted    = Color(0xFF8E8E93);
-  static const white        = Colors.white;
+// ══════════════════════════════════════════════
+// COLORS
+// ══════════════════════════════════════════════
+class C {
+  static const bg          = Color(0xFF080B14);
+  static const card        = Color(0xFF111520);
+  static const blue        = Color(0xFF4D7CFF);
+  static const purple      = Color(0xFF9B51E0);
+  static const pink        = Color(0xFFFF2E63);
+  static const green       = Color(0xFF27AE60);
+  static const muted       = Color(0xFF8E8E93);
+  static const verifiedBg  = Color(0xFF4F6EF7);
+  static const socialCard  = Color(0xFF131826);
 }
 
-// ─── Gradients ───────────────────────────────────────────────────────────────
-
-final primaryGradient = const LinearGradient(
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-  colors: [AppColors.primaryBlue, AppColors.primaryPurple],
-);
-
-final sweepBorderGradient = const SweepGradient(
-  colors: [
-    AppColors.primaryBlue,
-    AppColors.primaryPurple,
-    AppColors.accentPink,
-    AppColors.primaryBlue,
-  ],
-);
-
-// ─── ProfileScreen ────────────────────────────────────────────────────────────
-
+// ══════════════════════════════════════════════
+// PROFILE SCREEN
+// ══════════════════════════════════════════════
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final sw = MediaQuery.of(context).size.width;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: C.bg,
       body: Stack(
         children: [
-          // Background radial glow from top-center
+          // subtle background radial glow
           Positioned(
-            top: -120,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                width: 420,
-                height: 420,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      AppColors.primaryBlue.withOpacity(0.28),
-                      AppColors.primaryPurple.withOpacity(0.12),
-                      Colors.transparent,
-                    ],
-                    stops: const [0.0, 0.5, 1.0],
-                  ),
-                ),
-              ),
-            ),
+            top: -80, left: sw / 2 - 180,
+            child: _radialGlow(360, C.blue.withOpacity(0.18)),
+          ),
+          Positioned(
+            top: 20, right: -60,
+            child: _radialGlow(240, C.purple.withOpacity(0.12)),
           ),
 
-          // Second accent glow (teal / cyan)
-          Positioned(
-            top: 60,
-            right: -60,
-            child: Container(
-              width: 220,
-              height: 220,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    const Color(0xFF00C6FF).withOpacity(0.15),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Main scrollable content
           SafeArea(
+            bottom: false,
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: Column(
                 children: [
-                  _HeaderSection(),
-                  const SizedBox(height: 20),
+                  // ── HEADER (story cards + avatar)
+                  _Header(screenWidth: sw),
+
+                  // ── USER INFO
+                  const SizedBox(height: 18),
                   _UserInfo(),
-                  const SizedBox(height: 24),
+
+                  // ── ACTION BUTTONS
+                  const SizedBox(height: 28),
                   _ActionButtons(),
-                  const SizedBox(height: 28),
-                  _SocialSection(),
-                  const SizedBox(height: 28),
-                  _GalleryGrid(),
+
+                  // ── SOCIAL SECTION
                   const SizedBox(height: 32),
+                  _SocialSection(),
+
+                  // ── GALLERY
+                  const SizedBox(height: 24),
+                  _GalleryGrid(),
+
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
@@ -128,43 +100,66 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+
+  Widget _radialGlow(double size, Color color) => Container(
+    width: size, height: size,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      gradient: RadialGradient(colors: [color, Colors.transparent]),
+    ),
+  );
 }
 
-// ─── Header: story cards + avatar ────────────────────────────────────────────
+// ══════════════════════════════════════════════
+// HEADER  ─  story cards + avatar overlapping
+// ══════════════════════════════════════════════
+class _Header extends StatelessWidget {
+  final double screenWidth;
+  const _Header({required this.screenWidth});
 
-class _HeaderSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 260,
+      height: 310,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Story cards row
+          // ── story cards row fills full width
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
+            top: 0, left: 0, right: 0,
             child: SizedBox(
-              height: 200,
+              height: 230,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(child: _StoryCard(color: const Color(0xFF6A1B9A), label: 'Now')),
-                  const SizedBox(width: 4),
-                  Expanded(child: _StoryCard(color: const Color(0xFF1565C0), label: 'Then', isCenter: true)),
-                  const SizedBox(width: 4),
-                  Expanded(child: _StoryCard(color: const Color(0xFFAD1457), label: '1h ago')),
+                  _StoryCard(
+                    label: 'Now',
+                    topColor: const Color(0xFF5B1A8A),
+                    bottomColor: const Color(0xFF1A0033),
+                    isCenter: false,
+                  ),
+                  const SizedBox(width: 6),
+                  _StoryCard(
+                    label: 'Then',
+                    topColor: const Color(0xFF1A4A9E),
+                    bottomColor: const Color(0xFF0A0D2A),
+                    isCenter: true,
+                  ),
+                  const SizedBox(width: 6),
+                  _StoryCard(
+                    label: '1h ago',
+                    topColor: const Color(0xFF8A1535),
+                    bottomColor: const Color(0xFF1A0010),
+                    isCenter: false,
+                  ),
                 ],
               ),
             ),
           ),
 
-          // Avatar centered, overlapping bottom of cards
+          // ── avatar centered, overlapping cards bottom
           Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
+            bottom: 0, left: 0, right: 0,
             child: Center(child: _GlowAvatar()),
           ),
         ],
@@ -173,255 +168,312 @@ class _HeaderSection extends StatelessWidget {
   }
 }
 
+// ══════════════════════════════════════════════
+// STORY CARD
+// ══════════════════════════════════════════════
 class _StoryCard extends StatelessWidget {
-  final Color color;
   final String label;
+  final Color topColor;
+  final Color bottomColor;
   final bool isCenter;
 
-  const _StoryCard({required this.color, required this.label, this.isCenter = false});
+  const _StoryCard({
+    required this.label,
+    required this.topColor,
+    required this.bottomColor,
+    required this.isCenter,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Simulated image with gradient fill
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  color.withOpacity(0.9),
-                  color.withOpacity(0.4),
-                  Colors.black.withOpacity(0.7),
-                ],
-              ),
-            ),
-          ),
-          // Silhouette shape
-          Center(
-            child: Container(
-              width: 50,
-              height: 90,
+    return Expanded(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // base gradient
+            Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(40),
-                color: Colors.white.withOpacity(0.08),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [topColor, bottomColor],
+                ),
               ),
             ),
-          ),
-          // Gradient overlay
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withOpacity(0.6),
+
+            // person silhouette shape
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: isCenter ? 44 : 36,
+                    height: isCenter ? 44 : 36,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.13),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    width: isCenter ? 60 : 48,
+                    height: isCenter ? 52 : 42,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      color: Colors.white.withOpacity(0.10),
+                    ),
+                  ),
                 ],
               ),
             ),
-          ),
-          // Blur on sides
-          if (!isCenter)
-            BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 1.5, sigmaY: 1.5),
-              child: Container(color: Colors.transparent),
-            ),
-          // Label
-          Positioned(
-            top: 12,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+
+            // bottom dark fade
+            Positioned.fill(
+              child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.55),
+                    ],
+                    stops: const [0.4, 1.0],
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+
+            // blur for side cards
+            if (!isCenter)
+              BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+                child: Container(color: Colors.black.withOpacity(0.08)),
+              ),
+
+            // label badge top center
+            Positioned(
+              top: 14,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                        ),
+                      ),
+                      child: Text(
+                        label,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// ─── Avatar with sweep gradient border + glow ─────────────────────────────────
-
+// ══════════════════════════════════════════════
+// AVATAR  ─  glow + sweep border + icon
+// ══════════════════════════════════════════════
 class _GlowAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: 110,
+      height: 110,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         boxShadow: [
+          // pink/red inner glow
           BoxShadow(
-            color: AppColors.primaryBlue.withOpacity(0.55),
-            blurRadius: 28,
-            spreadRadius: 4,
+            color: const Color(0xFFFF2E63).withOpacity(0.45),
+            blurRadius: 24,
+            spreadRadius: 2,
           ),
+          // blue outer glow
           BoxShadow(
-            color: AppColors.primaryPurple.withOpacity(0.40),
-            blurRadius: 40,
-            spreadRadius: 8,
+            color: C.blue.withOpacity(0.35),
+            blurRadius: 38,
+            spreadRadius: 6,
+          ),
+          // purple far glow
+          BoxShadow(
+            color: C.purple.withOpacity(0.25),
+            blurRadius: 55,
+            spreadRadius: 10,
           ),
         ],
       ),
       child: CustomPaint(
-        painter: _SweepBorderPainter(borderWidth: 3),
-        child: Container(
-          width: 96,
-          height: 96,
-          margin: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [
-                const Color(0xFFFF6B8A),
-                const Color(0xFF8B2FC9),
-                const Color(0xFF1A0533),
-              ],
+        painter: _SweepBorderPainter(strokeWidth: 3.5),
+        child: Padding(
+          padding: const EdgeInsets.all(3.5),
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFFE0427A),
+                  Color(0xFF9B3FC8),
+                  Color(0xFF4D7CFF),
+                ],
+              ),
+            ),
+            child: ClipOval(
+              child: Center(
+                child: Icon(
+                  Icons.person,
+                  size: 52,
+                  color: Colors.white.withOpacity(0.75),
+                ),
+              ),
             ),
           ),
-          child: ClipOval(
-            child: _AvatarPlaceholder(),
-          ),
         ),
-      ),
-    );
-  }
-}
-
-class _AvatarPlaceholder extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFFF6B8A).withOpacity(0.8),
-            const Color(0xFF8B2FC9),
-          ],
-        ),
-      ),
-      child: Center(
-        child: Icon(Icons.person, color: Colors.white.withOpacity(0.6), size: 44),
       ),
     );
   }
 }
 
 class _SweepBorderPainter extends CustomPainter {
-  final double borderWidth;
-  const _SweepBorderPainter({required this.borderWidth});
+  final double strokeWidth;
+  const _SweepBorderPainter({required this.strokeWidth});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
     final paint = Paint()
-      ..shader = sweepBorderGradient.createShader(rect)
+      ..shader = const SweepGradient(
+        colors: [
+          Color(0xFF4D7CFF),
+          Color(0xFF9B51E0),
+          Color(0xFFFF2E63),
+          Color(0xFF4D7CFF),
+        ],
+      ).createShader(rect)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = borderWidth;
-    canvas.drawCircle(size.center(Offset.zero), size.width / 2 - borderWidth / 2, paint);
+      ..strokeWidth = strokeWidth
+      ..isAntiAlias = true;
+
+    canvas.drawCircle(
+      size.center(Offset.zero),
+      size.width / 2 - strokeWidth / 2,
+      paint,
+    );
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// ─── User Info ────────────────────────────────────────────────────────────────
-
+// ══════════════════════════════════════════════
+// USER INFO
+// ══════════════════════════════════════════════
 class _UserInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         children: [
-          // Name + verified badge
+          // Name + verified
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Text(
                 'Kristin Watson',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 0.3,
+                  letterSpacing: 0.2,
                 ),
               ),
               const SizedBox(width: 8),
+              // verified badge — solid blue circle with white check
               Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.primaryBlue, AppColors.primaryPurple],
-                  ),
+                width: 26,
+                height: 26,
+                decoration: const BoxDecoration(
+                  color: C.verifiedBg,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check, color: Colors.white, size: 14),
+                child: const Icon(
+                  Icons.check,
+                  color: Colors.white,
+                  size: 16,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+
+          const SizedBox(height: 10),
 
           // Online status
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 8,
-                height: 8,
+                width: 9,
+                height: 9,
                 decoration: BoxDecoration(
-                  color: AppColors.onlineGreen,
+                  color: C.green,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.onlineGreen.withOpacity(0.6),
-                      blurRadius: 6,
+                      color: C.green.withOpacity(0.7),
+                      blurRadius: 7,
                       spreadRadius: 1,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 7),
               const Text(
                 'Online',
                 style: TextStyle(
-                  color: AppColors.onlineGreen,
-                  fontSize: 14,
+                  color: C.green,
+                  fontSize: 15,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+
+          const SizedBox(height: 16),
 
           // Bio
           const Text(
-            "I'm a generous and girl, hope my enthusiasm add more color to your life... More",
+            "I'm a generous and girl, hope my enthusiasm\nadd more color to your life... More",
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.textMuted,
+              color: C.muted,
               fontSize: 14,
-              height: 1.5,
+              height: 1.6,
             ),
           ),
         ],
@@ -430,86 +482,97 @@ class _UserInfo extends StatelessWidget {
   }
 }
 
-// ─── Action Buttons ───────────────────────────────────────────────────────────
-
+// ══════════════════════════════════════════════
+// ACTION BUTTONS
+// ══════════════════════════════════════════════
 class _ActionButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 48),
+      padding: const EdgeInsets.symmetric(horizontal: 28),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _GlassCircleButton(icon: Icons.share_outlined),
-          const SizedBox(width: 16),
-          _GradientMessageButton(),
-          const SizedBox(width: 16),
-          _GlassCircleButton(icon: Icons.person_add_outlined),
+          _CircleGlassBtn(icon: Icons.share_outlined),
+          const SizedBox(width: 20),
+          _MessageBtn(),
+          const SizedBox(width: 20),
+          _CircleGlassBtn(icon: Icons.person_add_outlined),
         ],
       ),
     );
   }
 }
 
-class _GlassCircleButton extends StatelessWidget {
+class _CircleGlassBtn extends StatelessWidget {
   final IconData icon;
-  const _GlassCircleButton({required this.icon});
+  const _CircleGlassBtn({required this.icon});
 
   @override
   Widget build(BuildContext context) {
     return ClipOval(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
-          width: 52,
-          height: 52,
+          width: 56,
+          height: 56,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.glassWhite,
-            border: Border.all(color: AppColors.glassBorder, width: 1),
+            color: Colors.white.withOpacity(0.07),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.15),
+              width: 1.2,
+            ),
           ),
-          child: Icon(icon, color: Colors.white, size: 22),
+          child: Icon(icon, color: Colors.white, size: 24),
         ),
       ),
     );
   }
 }
 
-class _GradientMessageButton extends StatelessWidget {
+class _MessageBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      height: 54,
+      constraints: const BoxConstraints(minWidth: 160),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32),
-        gradient: primaryGradient,
+        gradient: const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [Color(0xFF5B6CF6), Color(0xFF8B4FE8)],
+        ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryBlue.withOpacity(0.5),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+            color: const Color(0xFF5B6CF6).withOpacity(0.55),
+            blurRadius: 22,
+            offset: const Offset(0, 5),
             spreadRadius: 2,
           ),
           BoxShadow(
-            color: AppColors.primaryPurple.withOpacity(0.35),
-            blurRadius: 28,
-            offset: const Offset(0, 8),
+            color: const Color(0xFF8B4FE8).withOpacity(0.4),
+            blurRadius: 35,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
-      child: ElevatedButton(
-        onPressed: () {},
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-          shape: const StadiumBorder(),
-        ),
-        child: const Text(
-          'Message',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(32),
+          onTap: () {},
+          child: const Center(
+            child: Text(
+              'Message',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3,
+              ),
+            ),
           ),
         ),
       ),
@@ -517,8 +580,9 @@ class _GradientMessageButton extends StatelessWidget {
   }
 }
 
-// ─── Social Section ───────────────────────────────────────────────────────────
-
+// ══════════════════════════════════════════════
+// SOCIAL SECTION
+// ══════════════════════════════════════════════
 class _SocialSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -526,19 +590,31 @@ class _SocialSection extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          Expanded(child: _SocialCard(label: 'Friends Flow', count: '+123', colors: [
-            const Color(0xFF6A1B9A),
-            const Color(0xFF1565C0),
-            const Color(0xFFAD1457),
-            const Color(0xFF4CAF50),
-          ])),
+          Expanded(
+            child: _SocialCard(
+              label: 'Friends Flow',
+              count: '+123',
+              avatarColors: const [
+                Color(0xFF7B2FBE),
+                Color(0xFF2979FF),
+                Color(0xFFE91E8C),
+                Color(0xFF4CAF50),
+              ],
+            ),
+          ),
           const SizedBox(width: 16),
-          Expanded(child: _SocialCard(label: 'Mutual Groups', count: '+12', colors: [
-            const Color(0xFFFF5722),
-            const Color(0xFF9C27B0),
-            const Color(0xFF2196F3),
-            const Color(0xFFFF9800),
-          ])),
+          Expanded(
+            child: _SocialCard(
+              label: 'Mutual Groups',
+              count: '+12',
+              avatarColors: const [
+                Color(0xFFFF5722),
+                Color(0xFF9C27B0),
+                Color(0xFF2196F3),
+                Color(0xFFFF9800),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -548,39 +624,41 @@ class _SocialSection extends StatelessWidget {
 class _SocialCard extends StatelessWidget {
   final String label;
   final String count;
-  final List<Color> colors;
+  final List<Color> avatarColors;
 
-  const _SocialCard({required this.label, required this.count, required this.colors});
+  const _SocialCard({
+    required this.label,
+    required this.count,
+    required this.avatarColors,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.glassWhite,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.glassBorder, width: 1),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _StackedAvatars(colors: colors, count: count),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: C.socialCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.07),
+          width: 1,
         ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // stacked avatars + count
+          _StackedAvatars(colors: avatarColors, count: count),
+          const SizedBox(height: 10),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -593,14 +671,16 @@ class _StackedAvatars extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const size = 32.0;
-    const overlap = 20.0;
+    const double size = 34;
+    const double overlap = 22;
+    final totalWidth = size + (colors.length - 1) * overlap + 46;
 
     return SizedBox(
       height: size,
-      width: (size + (colors.length - 1) * overlap) + 44,
+      width: totalWidth,
       child: Stack(
         children: [
+          // avatar circles
           for (int i = 0; i < colors.length; i++)
             Positioned(
               left: i * overlap,
@@ -610,26 +690,30 @@ class _StackedAvatars extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: colors[i],
-                  border: Border.all(color: AppColors.background, width: 2),
+                  border: Border.all(color: C.socialCard, width: 2.5),
                 ),
               ),
             ),
+          // count pill
           Positioned(
             left: colors.length * overlap,
             child: Container(
-              width: size + 8,
+              width: 44,
               height: size,
               decoration: BoxDecoration(
-                color: AppColors.primaryBlue.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.glassBorder, width: 1),
+                color: C.blue.withOpacity(0.25),
+                borderRadius: BorderRadius.circular(17),
+                border: Border.all(
+                  color: C.blue.withOpacity(0.5),
+                  width: 1,
+                ),
               ),
               alignment: Alignment.center,
               child: Text(
                 count,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 10,
+                  fontSize: 11,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -641,55 +725,71 @@ class _StackedAvatars extends StatelessWidget {
   }
 }
 
-// ─── Gallery Grid ─────────────────────────────────────────────────────────────
-
+// ══════════════════════════════════════════════
+// GALLERY GRID
+// ══════════════════════════════════════════════
 class _GalleryGrid extends StatelessWidget {
-  final List<_GalleryItem> items = const [
-    _GalleryItem(color1: Color(0xFFFF6B6B), color2: Color(0xFF4ECDC4)),
-    _GalleryItem(color1: Color(0xFFA8EDEA), color2: Color(0xFFFED6E3)),
-    _GalleryItem(color1: Color(0xFFFFD89B), color2: Color(0xFF19547B)),
-    _GalleryItem(color1: Color(0xFF6A3093), color2: Color(0xFFA044FF)),
-    _GalleryItem(color1: Color(0xFFFF9A9E), color2: Color(0xFFFECFEF)),
-    _GalleryItem(color1: Color(0xFFF8CDDA), color2: Color(0xFF1D2B64)),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         children: [
-          // Row 1: square + wide rectangle
-          Row(
-            children: [
-              Expanded(
-                flex: 1,
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: _GalleryCell(item: items[0]),
+          // Row 1: small square  +  wide rectangle
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: 130,
+                  child: _GalleryTile(
+                    colors: [const Color(0xFFFF6B8A), const Color(0xFF8B2FC9)],
+                    radius: 18,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                flex: 2,
-                child: AspectRatio(
-                  aspectRatio: 2,
-                  child: _GalleryCell(item: items[1]),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SizedBox(
+                    height: 130,
+                    child: _GalleryTile(
+                      colors: [const Color(0xFFAEF0E4), const Color(0xFFFED6E3)],
+                      radius: 18,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+
           const SizedBox(height: 8),
 
-          // Row 2: 3 equal portrait cards
-          Row(
-            children: [
-              Expanded(child: AspectRatio(aspectRatio: 0.8, child: _GalleryCell(item: items[2]))),
-              const SizedBox(width: 8),
-              Expanded(child: AspectRatio(aspectRatio: 0.8, child: _GalleryCell(item: items[3]))),
-              const SizedBox(width: 8),
-              Expanded(child: AspectRatio(aspectRatio: 0.8, child: _GalleryCell(item: items[4]))),
-            ],
+          // Row 2: 3 portrait tiles
+          SizedBox(
+            height: 155,
+            child: Row(
+              children: [
+                Expanded(
+                  child: _GalleryTile(
+                    colors: [const Color(0xFFFFD89B), const Color(0xFF19547B)],
+                    radius: 18,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _GalleryTile(
+                    colors: [const Color(0xFF6A3093), const Color(0xFFA044FF)],
+                    radius: 18,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _GalleryTile(
+                    colors: [const Color(0xFFF8CDDA), const Color(0xFF1D2B64)],
+                    radius: 18,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -697,21 +797,15 @@ class _GalleryGrid extends StatelessWidget {
   }
 }
 
-@immutable
-class _GalleryItem {
-  final Color color1;
-  final Color color2;
-  const _GalleryItem({required this.color1, required this.color2});
-}
-
-class _GalleryCell extends StatelessWidget {
-  final _GalleryItem item;
-  const _GalleryCell({required this.item});
+class _GalleryTile extends StatelessWidget {
+  final List<Color> colors;
+  final double radius;
+  const _GalleryTile({required this.colors, required this.radius});
 
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(radius),
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -720,33 +814,33 @@ class _GalleryCell extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [item.color1, item.color2],
+                colors: colors,
               ),
             ),
           ),
-          // Subtle noise / pattern overlay
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withOpacity(0.35),
-                ],
+          // bottom darkening overlay
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.3),
+                  ],
+                ),
               ),
             ),
           ),
-          // Decorative shape
+          // decorative circle accent
           Positioned(
-            top: -20,
-            right: -20,
+            top: -16, right: -16,
             child: Container(
-              width: 70,
-              height: 70,
+              width: 60, height: 60,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.07),
+                color: Colors.white.withOpacity(0.06),
               ),
             ),
           ),
