@@ -45,7 +45,7 @@ class ChatXApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF05070D),
         textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
       ),
-      home: const ProfilePage(), // ✅ تم التعديل من ProfileScreen إلى ProfilePage
+      home: const ProfileScreen(), // ✅ تم التعديل من ProfileScreen إلى ProfilePage
     );
   }
 }
