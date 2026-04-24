@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class Message {
@@ -12,17 +13,16 @@ class ChatScreen extends StatelessWidget {
 
   final List<Message> messages = [
     Message("Hey! 👋", false),
-    Message("عامل ايه؟", false),
-    Message("تمام الحمدلله 😎", true),
-    Message("الدنيا تمام", true),
-    Message("حلو 🔥", false),
-    Message("عايزين نشتغل على التصميم", false),
+    Message("How are you?", false),
+    Message("I'm good. You?", true),
+    Message("It seems we have a lot in common", false),
+    Message("Good concepts! 🔥", true),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0F1A),
+      backgroundColor: const Color(0xFF070B14),
       body: SafeArea(
         child: Column(
           children: [
@@ -123,22 +123,43 @@ class _MessageBubble extends StatelessWidget {
             ),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
+              // ✨ Gradient للرسائل بتاعتك
               gradient: message.isMe
                   ? const LinearGradient(
-                      colors: [Color(0xFF7F00FF), Color(0xFFE100FF)],
+                      colors: [
+                        Color(0xFF6A5AE0),
+                        Color(0xFFB44CFF),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     )
                   : null,
+
+              // 🧊 Glass effect بسيط للرسائل التانية
               color: message.isMe
                   ? null
-                  : Colors.grey.shade800,
+                  : Colors.white.withOpacity(0.06),
+
               borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(18),
-                topRight: const Radius.circular(18),
+                topLeft: const Radius.circular(20),
+                topRight: const Radius.circular(20),
                 bottomLeft: Radius.circular(
-                    message.isMe ? 18 : (isLast ? 18 : 6)),
+                    message.isMe ? 20 : (isLast ? 20 : 6)),
                 bottomRight: Radius.circular(
-                    message.isMe ? (isLast ? 18 : 6) : 18),
+                    message.isMe ? (isLast ? 20 : 6) : 20),
               ),
+
+              // 🔥 Glow
+              boxShadow: message.isMe
+                  ? [
+                      BoxShadow(
+                        color:
+                            const Color(0xFF7F00FF).withOpacity(0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : [],
             ),
             child: Text(
               message.text,
@@ -156,32 +177,58 @@ class _InputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      child: Row(
-        children: [
-          const Icon(Icons.add, color: Colors.white54),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade900,
-                borderRadius: BorderRadius.circular(25),
-              ),
-              child: const TextField(
-                style: TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: "Type a message...",
-                  hintStyle: TextStyle(color: Colors.white38),
-                  border: InputBorder.none,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                  color: Colors.white.withOpacity(0.1)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.emoji_emotions_outlined,
+                    color: Colors.white54),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: TextField(
+                    style: TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: "Message...",
+                      hintStyle:
+                          TextStyle(color: Colors.white38),
+                      border: InputBorder.none,
+                    ),
+                  ),
                 ),
-              ),
+                const Icon(Icons.attach_file,
+                    color: Colors.white54),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(0xFF7F00FF),
+                        Color(0xFFE100FF),
+                      ],
+                    ),
+                  ),
+                  child: const Icon(Icons.mic,
+                      color: Colors.white, size: 18),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 10),
-          Icon(Icons.mic, color: Colors.purple.shade300),
-        ],
+        ),
       ),
     );
   }
