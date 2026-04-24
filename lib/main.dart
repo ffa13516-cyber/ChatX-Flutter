@@ -1,51 +1,126 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'utils/app_colors.dart';
 
-// استيراد شاشة البروفايل الجديدة
-import 'screens/profile/profile_screen_new.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  await Firebase.initializeApp(
-    options: const FirebaseOptions(
-      apiKey: "AIzaSyDMbgMfJkuiEc4EmN8S_nOLVIghAZSzQiE",
-      appId: "1:560030093300:android:ad0677ea0cd7b0b36433a1",
-      messagingSenderId: "560030093300",
-      projectId: "messengerapp-d6e7c",
-      databaseURL: "https://messengerapp-d6e7c-default-rtdb.firebaseio.com",
-      storageBucket: "messengerapp-d6e7c.firebasestorage.app",
-    ),
-  );
-
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-    ),
-  );
-
-  runApp(const ChatXApp());
+void main() {
+  runApp(const MyApp());
 }
 
-class ChatXApp extends StatelessWidget {
-  const ChatXApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ChatX',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF05070D),
-        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+      home: const ChatScreen(),
+    );
+  }
+}
+
+class Message {
+  final String text;
+  final bool isMe;
+
+  Message(this.text, this.isMe);
+}
+
+class ChatScreen extends StatelessWidget {
+  const ChatScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final messages = [
+      Message("Hey! How are you?", false),
+      Message("I'm good. You?", true),
+      Message("It seems we have a lot in common", false),
+      Message("Good concepts! 🔥", true),
+    ];
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF0B0F1A),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // 🔝 HEADER
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const CircleAvatar(radius: 20),
+                  const SizedBox(width: 10),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Daniel Garcia",
+                          style: TextStyle(color: Colors.white)),
+                      Text("Online",
+                          style: TextStyle(color: Colors.green, fontSize: 12)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // 💬 MESSAGES
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                itemCount: messages.length,
+                itemBuilder: (context, index) {
+                  final msg = messages[index];
+                  return Align(
+                    alignment:
+                        msg.isMe ? Alignment.centerRight : Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: msg.isMe
+                            ? Colors.deepPurple
+                            : Colors.grey.shade800,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        msg.text,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // ✍️ INPUT
+            Container(
+              padding: const EdgeInsets.all(10),
+              child: Row(
+                children: [
+                  const Icon(Icons.add, color: Colors.white54),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade900,
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      child: const TextField(
+                        style: TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: "Type a message...",
+                          hintStyle: TextStyle(color: Colors.white38),
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Icon(Icons.mic, color: Colors.purple),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-      home: const ProfileScreen(), // ✅ تم التعديل من ProfileScreen إلى ProfilePage
     );
   }
 }
