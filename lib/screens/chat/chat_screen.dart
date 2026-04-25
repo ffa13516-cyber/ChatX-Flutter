@@ -15,12 +15,21 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final List<Message> messages = [
     Message(text: "Hi 👋 It's good, yours?", isMe: false),
+
+    /// 🔥 مثال صورة
+    Message(
+      text: "",
+      isMe: true,
+      type: MessageType.image,
+      imageUrl: "https://picsum.photos/300",
+    ),
+
     Message(text: "Good Concept!", isMe: true),
   ];
 
   final ScrollController _controller = ScrollController();
 
-  bool isTyping = true; // 🔥 تقدر تغيرها
+  bool isTyping = true;
 
   void sendMessage(String text) {
     if (text.trim().isEmpty) return;
@@ -65,6 +74,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
+          /// Glow
           Positioned(
             top: -120,
             left: -120,
@@ -79,8 +89,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: ListView.builder(
                     controller: _controller,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       final msg = messages[index];
@@ -89,7 +99,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
 
-                /// 🔥 Typing Indicator
+                /// Typing
                 if (isTyping)
                   const Padding(
                     padding: EdgeInsets.only(left: 20, bottom: 8),
