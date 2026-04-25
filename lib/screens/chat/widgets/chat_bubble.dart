@@ -81,6 +81,7 @@ class ChatBubble extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+                /// 💬 النص
                 Text(
                   message.text,
                   style: const TextStyle(
@@ -92,13 +93,21 @@ class ChatBubble extends StatelessWidget {
 
                 const SizedBox(height: 6),
 
-                /// ⏱️ الوقت
-                Text(
-                  time,
-                  style: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 10,
-                  ),
+                /// ⏱️ الوقت + ✓✓
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      time,
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 10,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+
+                    if (message.isMe) _statusIcon(),
+                  ],
                 ),
               ],
             ),
@@ -106,6 +115,28 @@ class ChatBubble extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _statusIcon() {
+    IconData icon;
+    Color color;
+
+    switch (message.status) {
+      case MessageStatus.sent:
+        icon = Icons.check;
+        color = Colors.white38;
+        break;
+      case MessageStatus.delivered:
+        icon = Icons.done_all;
+        color = Colors.white38;
+        break;
+      case MessageStatus.seen:
+        icon = Icons.done_all;
+        color = const Color(0xFF60A5FA);
+        break;
+    }
+
+    return Icon(icon, size: 14, color: color);
   }
 
   Widget _avatar() {
