@@ -2,14 +2,21 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/message_model.dart';
 
-class ChatBubble extends StatelessWidget {
+class ChatBubble extends StatefulWidget {
   final Message message;
 
   const ChatBubble({super.key, required this.message});
 
   @override
+  State<ChatBubble> createState() => _ChatBubbleState();
+}
+
+class _ChatBubbleState extends State<ChatBubble> {
+  bool isPlaying = false;
+
+  @override
   Widget build(BuildContext context) {
-    final isMe = message.isMe;
+    final isMe = widget.message.isMe;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -47,6 +54,8 @@ class ChatBubble extends StatelessWidget {
   }
 
   Widget _bubble(bool isMe) {
+    final message = widget.message;
+
     final time =
         "${message.time.hour}:${message.time.minute.toString().padLeft(2, '0')}";
 
@@ -90,34 +99,17 @@ class ChatBubble extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                /// 🔥 محتوى الرسالة
+                /// 🔥 المحتوى
                 if (message.type == MessageType.image)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
-                    child: Image.network(
-                      message.imageUrl!,
-                      height: 140,
-                      width: 200,
-                      fit: BoxFit.cover,
-                    ),
-                  )
+                  _image()
+                else if (message.type == MessageType.voice)
+                  _voice()
                 else
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 4),
-                    child: Text(
-                      message.text,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
+                  _text(),
 
                 const SizedBox(height: 6),
 
-                /// ⏱️ time + ✓✓
+                /// time + ✓✓
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -137,6 +129,94 @@ class ChatBubble extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  /// 📝 نص
+  Widget _text() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      child: Text(
+        widget.message.text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 15,
+          height: 1.4,
+        ),
+      ),
+    );
+  }
+
+  /// 🖼️ صورة
+  Widget _image() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: Image.network(
+        widget.message.imageUrl!,
+        height: 140,
+        width: 200,
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+
+  /// 🎧 فويس
+  Widget _voice() {
+    return Row(
+      children: [
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              isPlaying = !isPlaying;
+            });
+          },
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white24,
+            ),
+            child: Icon(
+              isPlaying ? Icons.pause : Icons.play_arrow,
+              color: Colors.white,
+            ),
+          ),
+        ),
+
+        const SizedBox(width: 10),
+
+        /// wave fake
+        Expanded(
+          child: Container(
+            height: 30,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              children: List.generate(
+                20,
+                (index) => Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 1),
+                  width: 3,
+                  height: (index % 5 + 1) * 5,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(width: 6),
+
+        const Text(
+          "0:12",
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 11,
+          ),
+        ),
+      ],
     );
   }
 
@@ -168,7 +248,7 @@ class ChatBubble extends StatelessWidget {
     IconData icon;
     Color color;
 
-    switch (message.status) {
+    switch (widget.message.status) {
       case MessageStatus.sent:
         icon = Icons.check;
         color = Colors.white38;
