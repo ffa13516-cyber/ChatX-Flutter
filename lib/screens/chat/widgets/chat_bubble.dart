@@ -23,7 +23,20 @@ class ChatBubble extends StatelessWidget {
             const SizedBox(width: 8),
           ],
 
-          _bubble(isMe),
+          /// 💬 Bubble + Tail
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              _bubble(isMe),
+
+              Positioned(
+                bottom: 8,
+                left: isMe ? null : -16,
+                right: isMe ? -16 : null,
+                child: _tail(),
+              ),
+            ],
+          ),
 
           if (isMe) ...[
             const SizedBox(width: 8),
@@ -81,7 +94,7 @@ class ChatBubble extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                /// 💬 النص
+                /// النص
                 Text(
                   message.text,
                   style: const TextStyle(
@@ -93,7 +106,7 @@ class ChatBubble extends StatelessWidget {
 
                 const SizedBox(height: 6),
 
-                /// ⏱️ الوقت + ✓✓
+                /// الوقت + ✓✓
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -105,7 +118,6 @@ class ChatBubble extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-
                     if (message.isMe) _statusIcon(),
                   ],
                 ),
@@ -113,6 +125,31 @@ class ChatBubble extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// 🔥 Tail (النقط)
+  Widget _tail() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _dot(7),
+        const SizedBox(width: 3),
+        _dot(5),
+        const SizedBox(width: 3),
+        _dot(3),
+      ],
+    );
+  }
+
+  Widget _dot(double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.55),
+        shape: BoxShape.circle,
       ),
     );
   }
