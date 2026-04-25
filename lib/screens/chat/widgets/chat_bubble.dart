@@ -23,18 +23,16 @@ class ChatBubble extends StatelessWidget {
             const SizedBox(width: 6),
           ],
 
-          /// 🔥 Bubble + Tail
           Stack(
             clipBehavior: Clip.none,
             children: [
               _bubble(isMe),
 
-              /// 🔹 Tail (3 نقط)
               Positioned(
                 bottom: 6,
                 left: isMe ? null : -14,
                 right: isMe ? -14 : null,
-                child: _tail(isMe),
+                child: _tail(),
               ),
             ],
           ),
@@ -48,7 +46,6 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  /// 🧊 Bubble
   Widget _bubble(bool isMe) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(22),
@@ -58,9 +55,15 @@ class ChatBubble extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           constraints: const BoxConstraints(maxWidth: 260),
           decoration: BoxDecoration(
-            color: isMe
-                ? const Color(0xFF3B82F6).withOpacity(0.25)
-                : Colors.white.withOpacity(0.06),
+            gradient: isMe
+                ? LinearGradient(
+                    colors: [
+                      const Color(0xFF3B82F6).withOpacity(0.35),
+                      const Color(0xFF1E40AF).withOpacity(0.25),
+                    ],
+                  )
+                : null,
+            color: isMe ? null : Colors.white.withOpacity(0.05),
             borderRadius: BorderRadius.circular(22),
             border: Border.all(
               color: Colors.white.withOpacity(0.08),
@@ -72,7 +75,6 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  /// 🧠 محتوى الرسالة
   Widget _buildContent() {
     switch (message.type) {
       case MessageType.image:
@@ -93,16 +95,23 @@ class ChatBubble extends StatelessWidget {
             const Icon(Icons.play_arrow, color: Colors.white),
             const SizedBox(width: 8),
 
-            /// 🔥 waveform أحسن
+            /// 🔥 Waveform Gradient
             Row(
               children: List.generate(
-                16,
+                18,
                 (i) => Container(
                   margin: const EdgeInsets.symmetric(horizontal: 1),
                   width: 3,
-                  height: (i % 3 + 1) * 6,
+                  height: (i % 4 + 1) * 5,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.7),
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF60A5FA),
+                        Color(0xFF3B82F6),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -129,17 +138,14 @@ class ChatBubble extends StatelessWidget {
     }
   }
 
-  /// 👤 Avatar (صورة حقيقية بدل أيقونة)
   Widget _avatar() {
     return const CircleAvatar(
       radius: 18,
-      backgroundImage:
-          NetworkImage("https://i.pravatar.cc/100"), // صورة عشوائية
+      backgroundImage: NetworkImage("https://i.pravatar.cc/100"),
     );
   }
 
-  /// 🔥 Tail (النقط)
-  Widget _tail(bool isMe) {
+  Widget _tail() {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -157,7 +163,7 @@ class ChatBubble extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.3),
+        color: Colors.white.withOpacity(0.25),
         shape: BoxShape.circle,
       ),
     );
