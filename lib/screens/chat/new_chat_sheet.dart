@@ -44,9 +44,9 @@ class _NewChatSheetState extends State<NewChatSheet> {
     if (user == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('User @$username not found'),
-            backgroundColor: AppColors.bgCard,
+          const SnackBar( // أضفنا const هنا لأن المحتوى ثابت
+            content: Text('User not found'),
+            backgroundColor: Colors.red,
           ),
         );
       }
@@ -101,13 +101,13 @@ class _NewChatSheetState extends State<NewChatSheet> {
             ),
           ),
 
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
                 Text(
                   'New Chat',
-                  style: TextStyle(
+                  style: TextStyle( // شيلنا const عشان AppColors
                     color: AppColors.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -133,13 +133,13 @@ class _NewChatSheetState extends State<NewChatSheet> {
                     ),
                     child: TextField(
                       controller: _searchController,
-                      style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                      decoration: const InputDecoration(
+                      style: TextStyle(color: AppColors.textPrimary, fontSize: 14), // شيلنا const
+                      decoration: InputDecoration( // شيلنا const
                         hintText: 'Search by @username',
                         hintStyle: TextStyle(color: AppColors.textHint, fontSize: 14),
                         prefixIcon: Icon(Icons.search_rounded, color: AppColors.textHint, size: 20),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
                   ),
@@ -168,7 +168,7 @@ class _NewChatSheetState extends State<NewChatSheet> {
 
           const SizedBox(height: 8),
 
-          const Divider(color: AppColors.divider),
+          Divider(color: AppColors.divider), // شيلنا const
 
           // Users list
           SizedBox(
@@ -190,14 +190,14 @@ class _NewChatSheetState extends State<NewChatSheet> {
                             leading: AvatarWidget(name: user.displayName, size: 44),
                             title: Text(
                               user.displayName,
-                              style: const TextStyle(
+                              style: TextStyle( // شيلنا const
                                 color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             subtitle: Text(
                               user.username.isNotEmpty ? '@${user.username}' : user.phoneNumber,
-                              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                              style: TextStyle(color: AppColors.textSecondary, fontSize: 12), // شيلنا const
                             ),
                             onTap: () => _openChat(user),
                           );
