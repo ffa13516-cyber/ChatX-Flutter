@@ -16,12 +16,19 @@ class _ChatScreenState extends State<ChatScreen> {
   final List<Message> messages = [
     Message(text: "Hi 👋 It's good, yours?", isMe: false),
 
-    /// 🔥 مثال صورة
+    /// 🖼️ صورة
     Message(
       text: "",
       isMe: true,
       type: MessageType.image,
       imageUrl: "https://picsum.photos/300",
+    ),
+
+    /// 🎧 فويس
+    Message(
+      text: "",
+      isMe: false,
+      type: MessageType.voice,
     ),
 
     Message(text: "Good Concept!", isMe: true),
@@ -39,6 +46,7 @@ class _ChatScreenState extends State<ChatScreen> {
       isTyping = true;
     });
 
+    /// رد تجريبي
     Future.delayed(const Duration(seconds: 2), () {
       setState(() {
         messages.add(Message(text: "Nice 🔥", isMe: false));
@@ -60,7 +68,7 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          /// Background
+          /// 🔥 Background
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -74,7 +82,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// Glow
+          /// 🔵 Glow
           Positioned(
             top: -120,
             left: -120,
@@ -86,6 +94,7 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 _header(),
 
+                /// 💬 Messages
                 Expanded(
                   child: ListView.builder(
                     controller: _controller,
@@ -99,13 +108,14 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
 
-                /// Typing
+                /// typing
                 if (isTyping)
                   const Padding(
                     padding: EdgeInsets.only(left: 20, bottom: 8),
                     child: TypingIndicator(),
                   ),
 
+                /// input
                 ChatInput(onSend: sendMessage),
               ],
             ),
@@ -115,6 +125,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  /// 💎 Header
   Widget _header() {
     return ClipRRect(
       borderRadius:
@@ -150,6 +161,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  /// 🔵 Glow
   Widget _glow(double size) {
     return Container(
       width: size,
