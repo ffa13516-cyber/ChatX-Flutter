@@ -1,15 +1,21 @@
 enum MessageType { text, image, voice }
 
+enum MessageStatus { sending, sent, delivered, seen }
+
 class Message {
   final String text;
   final bool isMe;
   final MessageType type;
   final String? imageUrl;
+  final DateTime time;
+  MessageStatus status;
 
   Message({
     required this.text,
     required this.isMe,
     this.type = MessageType.text,
     this.imageUrl,
-  });
+    DateTime? time,
+    this.status = MessageStatus.sent,
+  }) : time = time ?? DateTime.now();
 }
