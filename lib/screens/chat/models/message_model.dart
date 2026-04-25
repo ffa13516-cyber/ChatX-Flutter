@@ -1,11 +1,15 @@
+enum MessageType { text, image, voice }
+
 class Message {
   final String text;
   final bool isMe;
-  final String? avatar;
+  final MessageType type;
+  final String? imageUrl;
 
   Message({
     required this.text,
     required this.isMe,
-    this.avatar,
+    this.type = MessageType.text,
+    this.imageUrl,
   });
 }
