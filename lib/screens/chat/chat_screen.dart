@@ -11,8 +11,7 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen>
-    with TickerProviderStateMixin {
+class _ChatScreenState extends State<ChatScreen> {
   final List<Message> messages = [
     Message(text: "Hi 👋 It's good, yours?", isMe: false),
     Message(text: "Good Concept!", isMe: true),
@@ -41,21 +40,33 @@ class _ChatScreenState extends State<ChatScreen>
     return Scaffold(
       body: Stack(
         children: [
-          /// Background
+          /// 🔥 Background غامقة جدًا
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Color(0xFF020617),
+                  Color(0xFF01030A),
                   Color(0xFF020617),
                 ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
           ),
 
-          /// Glow
-          Positioned(top: -120, left: -80, child: _glow(220)),
-          Positioned(bottom: -120, right: -80, child: _glow(260)),
+          /// 🔥 الأزرق من فوق الجنب (زي التصميم)
+          Positioned(
+            top: -120,
+            left: -120,
+            child: _glow(260),
+          ),
+
+          /// Glow خفيف جدًا تحت (تقريبًا مش باين)
+          Positioned(
+            bottom: -150,
+            right: -100,
+            child: _glowSmall(220),
+          ),
 
           SafeArea(
             child: Column(
@@ -68,7 +79,7 @@ class _ChatScreenState extends State<ChatScreen>
                     filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                     child: Container(
                       padding: const EdgeInsets.all(16),
-                      color: Colors.white.withOpacity(0.05),
+                      color: Colors.white.withOpacity(0.04),
                       child: Row(
                         children: [
                           const CircleAvatar(
@@ -108,7 +119,6 @@ class _ChatScreenState extends State<ChatScreen>
                     itemBuilder: (context, index) {
                       final msg = messages[index];
 
-                      /// 🔥 Animation دخول
                       return TweenAnimationBuilder(
                         duration: const Duration(milliseconds: 400),
                         tween: Tween<double>(
@@ -147,20 +157,33 @@ class _ChatScreenState extends State<ChatScreen>
     );
   }
 
+  /// 🔥 Glow الرئيسي (فوق)
   Widget _glow(double size) {
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: const Color(0xFF3B82F6).withOpacity(0.08),
+        color: const Color(0xFF3B82F6).withOpacity(0.06),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF3B82F6).withOpacity(0.2),
-            blurRadius: 100,
-            spreadRadius: 30,
+            color: const Color(0xFF3B82F6).withOpacity(0.25),
+            blurRadius: 160,
+            spreadRadius: 40,
           ),
         ],
+      ),
+    );
+  }
+
+  /// Glow ضعيف جدًا تحت
+  Widget _glowSmall(double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xFF3B82F6).withOpacity(0.02),
       ),
     );
   }
