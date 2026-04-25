@@ -16,7 +16,6 @@ class _ChatScreenState extends State<ChatScreen> {
   final List<Message> messages = [
     Message(text: "Hi 👋 It's good, yours?", isMe: false),
 
-    /// 🖼️ صورة
     Message(
       text: "",
       isMe: true,
@@ -24,7 +23,6 @@ class _ChatScreenState extends State<ChatScreen> {
       imageUrl: "https://picsum.photos/300",
     ),
 
-    /// 🎧 فويس
     Message(
       text: "",
       isMe: false,
@@ -46,7 +44,6 @@ class _ChatScreenState extends State<ChatScreen> {
       isTyping = true;
     });
 
-    /// رد تجريبي
     Future.delayed(const Duration(seconds: 2), () {
       setState(() {
         messages.add(Message(text: "Nice 🔥", isMe: false));
@@ -68,7 +65,7 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          /// 🔥 Background
+          /// Background
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -82,7 +79,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔵 Glow
+          /// Glow
           Positioned(
             top: -120,
             left: -120,
@@ -94,7 +91,6 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 _header(),
 
-                /// 💬 Messages
                 Expanded(
                   child: ListView.builder(
                     controller: _controller,
@@ -103,7 +99,31 @@ class _ChatScreenState extends State<ChatScreen> {
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       final msg = messages[index];
-                      return ChatBubble(message: msg);
+
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
+                        child: TweenAnimationBuilder(
+                          tween: Tween<double>(begin: 0, end: 1),
+                          duration: const Duration(milliseconds: 400),
+                          curve: Curves.easeOut,
+                          builder: (context, value, child) {
+                            return Transform.translate(
+                              offset: Offset(
+                                msg.isMe
+                                    ? (1 - value) * 50
+                                    : -(1 - value) * 50,
+                                0,
+                              ),
+                              child: Opacity(
+                                opacity: value,
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: ChatBubble(message: msg),
+                        ),
+                      );
                     },
                   ),
                 ),
@@ -115,7 +135,6 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: TypingIndicator(),
                   ),
 
-                /// input
                 ChatInput(onSend: sendMessage),
               ],
             ),
@@ -125,7 +144,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  /// 💎 Header
   Widget _header() {
     return ClipRRect(
       borderRadius:
@@ -161,7 +179,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  /// 🔵 Glow
   Widget _glow(double size) {
     return Container(
       width: size,
