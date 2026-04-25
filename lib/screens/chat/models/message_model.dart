@@ -1,6 +1,6 @@
 enum MessageType { text, image, voice }
 
-enum MessageStatus { sending, sent, delivered, seen }
+enum MessageStatus { sent, delivered, seen }
 
 class Message {
   final String text;
@@ -8,7 +8,7 @@ class Message {
   final MessageType type;
   final String? imageUrl;
   final DateTime time;
-  MessageStatus status;
+  final MessageStatus status;
 
   Message({
     required this.text,
