@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/message_model.dart';
 
 class ChatBubble extends StatefulWidget {
@@ -13,6 +14,7 @@ class ChatBubble extends StatefulWidget {
 
 class _ChatBubbleState extends State<ChatBubble> {
   bool isPlaying = false;
+  bool isPressed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +35,23 @@ class _ChatBubbleState extends State<ChatBubble> {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              _bubble(isMe),
+              GestureDetector(
+                onTapDown: (_) {
+                  setState(() => isPressed = true);
+                  HapticFeedback.lightImpact(); // 🔥 اهتزاز
+                },
+                onTapUp: (_) {
+                  setState(() => isPressed = false);
+                },
+                onTapCancel: () {
+                  setState(() => isPressed = false);
+                },
+                child: AnimatedScale(
+                  scale: isPressed ? 0.96 : 1,
+                  duration: const Duration(milliseconds: 120),
+                  child: _bubble(isMe),
+                ),
+              ),
 
               Positioned(
                 bottom: 8,
@@ -99,7 +117,7 @@ class _ChatBubbleState extends State<ChatBubble> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                /// 🔥 المحتوى
+                /// content
                 if (message.type == MessageType.image)
                   _image()
                 else if (message.type == MessageType.voice)
@@ -132,7 +150,6 @@ class _ChatBubbleState extends State<ChatBubble> {
     );
   }
 
-  /// 📝 نص
   Widget _text() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -147,7 +164,6 @@ class _ChatBubbleState extends State<ChatBubble> {
     );
   }
 
-  /// 🖼️ صورة
   Widget _image() {
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
@@ -160,15 +176,12 @@ class _ChatBubbleState extends State<ChatBubble> {
     );
   }
 
-  /// 🎧 فويس
   Widget _voice() {
     return Row(
       children: [
         GestureDetector(
           onTap: () {
-            setState(() {
-              isPlaying = !isPlaying;
-            });
+            setState(() => isPlaying = !isPlaying);
           },
           child: Container(
             padding: const EdgeInsets.all(8),
@@ -182,10 +195,7 @@ class _ChatBubbleState extends State<ChatBubble> {
             ),
           ),
         ),
-
         const SizedBox(width: 10),
-
-        /// wave fake
         Expanded(
           child: Container(
             height: 30,
@@ -206,9 +216,7 @@ class _ChatBubbleState extends State<ChatBubble> {
             ),
           ),
         ),
-
         const SizedBox(width: 6),
-
         const Text(
           "0:12",
           style: TextStyle(
