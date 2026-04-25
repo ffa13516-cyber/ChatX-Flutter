@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'screens/auth/login_screen.dart';
-import 'screens/home/home_screen.dart';
 import 'utils/app_colors.dart';
+import 'screens/chat/neon_chat_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,18 +23,14 @@ void main() async {
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: AppColors.bgDark,
     ),
   );
 
-  final prefs = await SharedPreferences.getInstance();
-  final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
-  runApp(ChatXApp(isLoggedIn: isLoggedIn));
+  runApp(const ChatXApp());
 }
 
 class ChatXApp extends StatelessWidget {
-  final bool isLoggedIn;
-  const ChatXApp({super.key, required this.isLoggedIn});
+  const ChatXApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -46,26 +40,10 @@ class ChatXApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        colorScheme: const ColorScheme.dark(
-          primary: AppColors.primary,
-          secondary: AppColors.accent,
-          background: AppColors.bgDark,
-          surface: AppColors.bgSurface,
-        ),
-        scaffoldBackgroundColor: AppColors.bgDark,
+        scaffoldBackgroundColor: const Color(0xFF0D0F14),
         textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
-        appBarTheme: AppBarTheme(
-          backgroundColor: AppColors.bgDark,
-          elevation: 0,
-          centerTitle: false,
-          titleTextStyle: GoogleFonts.inter(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
       ),
-      home: isLoggedIn ? const HomeScreen() : const LoginScreen(),
+      home: const ChatScreen(),
     );
   }
 }
