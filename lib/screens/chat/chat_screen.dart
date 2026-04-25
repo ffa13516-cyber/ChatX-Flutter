@@ -11,7 +11,8 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends State<ChatScreen>
+    with TickerProviderStateMixin {
   final List<Message> messages = [
     Message(text: "Hi 👋 It's good, yours?", isMe: false),
     Message(text: "Good Concept!", isMe: true),
@@ -26,7 +27,6 @@ class _ChatScreenState extends State<ChatScreen> {
       messages.add(Message(text: text, isMe: true));
     });
 
-    /// 🔥 Scroll لآخر رسالة
     Future.delayed(const Duration(milliseconds: 100), () {
       _controller.animateTo(
         _controller.position.maxScrollExtent,
@@ -53,39 +53,22 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// Glow خفيف
-          Positioned(
-            top: -120,
-            left: -80,
-            child: _glow(220),
-          ),
-          Positioned(
-            bottom: -120,
-            right: -80,
-            child: _glow(260),
-          ),
+          /// Glow
+          Positioned(top: -120, left: -80, child: _glow(220)),
+          Positioned(bottom: -120, right: -80, child: _glow(260)),
 
-          /// Content
           SafeArea(
             child: Column(
               children: [
-                /// 🔥 Header Glass
+                /// Header
                 ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    bottom: Radius.circular(30),
-                  ),
+                  borderRadius:
+                      const BorderRadius.vertical(bottom: Radius.circular(30)),
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                     child: Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
-                        border: Border(
-                          bottom: BorderSide(
-                            color: Colors.white.withOpacity(0.08),
-                          ),
-                        ),
-                      ),
+                      color: Colors.white.withOpacity(0.05),
                       child: Row(
                         children: [
                           const CircleAvatar(
@@ -94,29 +77,19 @@ class _ChatScreenState extends State<ChatScreen> {
                                 NetworkImage("https://i.pravatar.cc/100"),
                           ),
                           const SizedBox(width: 12),
-
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: const [
-                              Text(
-                                "Daniel Garcia",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                "Online",
-                                style: TextStyle(
-                                  color: Colors.green,
-                                  fontSize: 12,
-                                ),
-                              ),
+                              Text("Daniel Garcia",
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold)),
+                              Text("Online",
+                                  style: TextStyle(
+                                      color: Colors.green, fontSize: 12)),
                             ],
                           ),
-
                           const Spacer(),
-
                           _icon(Icons.call),
                           const SizedBox(width: 10),
                           _icon(Icons.videocam),
@@ -133,10 +106,21 @@ class _ChatScreenState extends State<ChatScreen> {
                     padding: const EdgeInsets.all(16),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
-                      return AnimatedOpacity(
-                        duration: const Duration(milliseconds: 300),
-                        opacity: 1,
-                        child: ChatBubble(message: messages[index]),
+                      final msg = messages[index];
+
+                      /// 🔥 Animation دخول
+                      return TweenAnimationBuilder(
+                        duration: const Duration(milliseconds: 400),
+                        tween: Tween<double>(
+                            begin: msg.isMe ? 50 : -50, end: 0),
+                        curve: Curves.easeOutBack,
+                        builder: (context, value, child) {
+                          return Transform.translate(
+                            offset: Offset(value, 0),
+                            child: child,
+                          );
+                        },
+                        child: ChatBubble(message: msg),
                       );
                     },
                   ),
