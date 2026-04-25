@@ -23,7 +23,6 @@ class ChatBubble extends StatelessWidget {
             const SizedBox(width: 8),
           ],
 
-          /// 💬 Bubble + Tail
           Stack(
             clipBehavior: Clip.none,
             children: [
@@ -68,10 +67,7 @@ class ChatBubble extends StatelessWidget {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 35, sigmaY: 35),
           child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(26),
               gradient: isMe
@@ -94,19 +90,34 @@ class ChatBubble extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                /// النص
-                Text(
-                  message.text,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    height: 1.4,
+                /// 🔥 محتوى الرسالة
+                if (message.type == MessageType.image)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: Image.network(
+                      message.imageUrl!,
+                      height: 140,
+                      width: 200,
+                      fit: BoxFit.cover,
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 4),
+                    child: Text(
+                      message.text,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        height: 1.4,
+                      ),
+                    ),
                   ),
-                ),
 
                 const SizedBox(height: 6),
 
-                /// الوقت + ✓✓
+                /// ⏱️ time + ✓✓
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -129,7 +140,6 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  /// 🔥 Tail (النقط)
   Widget _tail() {
     return Row(
       mainAxisSize: MainAxisSize.min,
