@@ -12,15 +12,34 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final List<Message> messages = [
-    Message(text: "Hi 👋", isMe: false),
-    Message(text: "Welcome to the new chat", isMe: true),
+    Message(text: "Hi 👋 It's good, yours?", isMe: false),
+
+    Message(
+      text: "",
+      isMe: false,
+      type: MessageType.image,
+      imageUrl: "https://picsum.photos/200",
+    ),
+
+    Message(
+      text: "Voice message",
+      isMe: true,
+      type: MessageType.voice,
+    ),
+
+    Message(text: "Good Concept!", isMe: true),
   ];
 
   void sendMessage(String text) {
     if (text.trim().isEmpty) return;
 
     setState(() {
-      messages.add(Message(text: text, isMe: true));
+      messages.add(
+        Message(
+          text: text,
+          isMe: true,
+        ),
+      );
     });
   }
 
@@ -29,7 +48,7 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          /// 🔹 Background Gradient
+          /// 🔹 Background
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
