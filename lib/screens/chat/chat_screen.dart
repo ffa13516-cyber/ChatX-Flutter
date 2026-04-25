@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'models/message_model.dart';
 import 'widgets/chat_input.dart';
 import 'widgets/chat_bubble.dart';
+import 'widgets/typing_indicator.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -19,11 +20,21 @@ class _ChatScreenState extends State<ChatScreen> {
 
   final ScrollController _controller = ScrollController();
 
+  bool isTyping = true; // 🔥 تقدر تغيرها
+
   void sendMessage(String text) {
     if (text.trim().isEmpty) return;
 
     setState(() {
       messages.add(Message(text: text, isMe: true));
+      isTyping = true;
+    });
+
+    Future.delayed(const Duration(seconds: 2), () {
+      setState(() {
+        messages.add(Message(text: "Nice 🔥", isMe: false));
+        isTyping = false;
+      });
     });
 
     Future.delayed(const Duration(milliseconds: 100), () {
@@ -40,7 +51,7 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          /// 🔥 Background
+          /// Background
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -54,7 +65,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔵 Glow
           Positioned(
             top: -120,
             left: -120,
@@ -64,34 +74,28 @@ class _ChatScreenState extends State<ChatScreen> {
           SafeArea(
             child: Column(
               children: [
-                /// 💎 HEADER PREMIUM
                 _header(),
 
-                /// 💬 Messages
                 Expanded(
                   child: ListView.builder(
                     controller: _controller,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       final msg = messages[index];
-
-                      return AnimatedSlide(
-                        offset: Offset(msg.isMe ? 0.3 : -0.3, 0),
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOut,
-                        child: AnimatedOpacity(
-                          opacity: 1,
-                          duration: const Duration(milliseconds: 300),
-                          child: ChatBubble(message: msg),
-                        ),
-                      );
+                      return ChatBubble(message: msg);
                     },
                   ),
                 ),
 
-                /// Input
+                /// 🔥 Typing Indicator
+                if (isTyping)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 20, bottom: 8),
+                    child: TypingIndicator(),
+                  ),
+
                 ChatInput(onSend: sendMessage),
               ],
             ),
@@ -101,7 +105,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  /// 💎 HEADER
   Widget _header() {
     return ClipRRect(
       borderRadius:
@@ -110,79 +113,30 @@ class _ChatScreenState extends State<ChatScreen> {
         filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
         child: Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            border: Border(
-              bottom: BorderSide(
-                color: Colors.white.withOpacity(0.08),
-              ),
-            ),
-          ),
+          color: Colors.white.withOpacity(0.05),
           child: Row(
-            children: [
-              /// avatar
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.4),
-                      blurRadius: 12,
-                    ),
-                  ],
-                ),
-                child: const CircleAvatar(
-                  radius: 22,
-                  backgroundImage:
-                      NetworkImage("https://i.pravatar.cc/100"),
+            children: const [
+              CircleAvatar(
+                radius: 22,
+                backgroundImage:
+                    NetworkImage("https://i.pravatar.cc/100"),
+              ),
+              SizedBox(width: 12),
+              Text(
+                "Daniel Garcia",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-
-              const SizedBox(width: 12),
-
-              /// name + status
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    "Daniel Garcia",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    "Online",
-                    style: TextStyle(
-                      color: Colors.green,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-
-              const Spacer(),
-
-              _icon(Icons.call),
-              const SizedBox(width: 10),
-              _icon(Icons.videocam),
+              Spacer(),
+              Icon(Icons.call, color: Colors.white),
+              SizedBox(width: 10),
+              Icon(Icons.videocam, color: Colors.white),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _icon(IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(icon, color: Colors.white, size: 20),
     );
   }
 
