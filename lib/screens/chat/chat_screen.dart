@@ -11,18 +11,16 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final List<Message> messages = [];
+  final List<Message> messages = [
+    Message(text: "Hi 👋", isMe: false),
+    Message(text: "Welcome to the new chat", isMe: true),
+  ];
 
   void sendMessage(String text) {
     if (text.trim().isEmpty) return;
 
     setState(() {
-      messages.add(
-        Message(
-          text: text,
-          isMe: true,
-        ),
-      );
+      messages.add(Message(text: text, isMe: true));
     });
   }
 
@@ -46,7 +44,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔹 Glow Circles
+          /// 🔹 Glow
           Positioned(
             top: -80,
             left: -60,
@@ -62,19 +60,53 @@ class _ChatScreenState extends State<ChatScreen> {
           SafeArea(
             child: Column(
               children: [
-                /// Messages
+                /// 🔥 Header
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      const CircleAvatar(
+                        radius: 22,
+                        backgroundColor: Colors.white24,
+                        child: Icon(Icons.person, color: Colors.white),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            "Daniel Garcia",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            "Online",
+                            style: TextStyle(
+                                color: Colors.green, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      const Icon(Icons.call, color: Colors.white),
+                      const SizedBox(width: 12),
+                      const Icon(Icons.videocam, color: Colors.white),
+                    ],
+                  ),
+                ),
+
+                /// 🔹 Messages
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
-                      final msg = messages[index];
-                      return ChatBubble(message: msg);
+                      return ChatBubble(message: messages[index]);
                     },
                   ),
                 ),
 
-                /// Input
+                /// 🔹 Input
                 ChatInput(onSend: sendMessage),
               ],
             ),
@@ -84,7 +116,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  /// 🔥 Glow Widget
   Widget _buildGlow(double size, Color color) {
     return Container(
       width: size,
