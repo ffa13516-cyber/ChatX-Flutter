@@ -23,15 +23,17 @@ class ChatBubble extends StatelessWidget {
             const SizedBox(width: 6),
           ],
 
+          /// 🔥 Bubble + Tail
           Stack(
             clipBehavior: Clip.none,
             children: [
               _bubble(isMe),
 
+              /// 🔹 Tail (النقط)
               Positioned(
                 bottom: 6,
-                left: isMe ? null : -14,
-                right: isMe ? -14 : null,
+                left: isMe ? null : -16,
+                right: isMe ? -16 : null,
                 child: _tail(),
               ),
             ],
@@ -46,6 +48,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
+  /// 🧊 شكل الرسالة
   Widget _bubble(bool isMe) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(22),
@@ -63,7 +66,7 @@ class ChatBubble extends StatelessWidget {
                     ],
                   )
                 : null,
-            color: isMe ? null : Colors.white.withOpacity(0.05),
+            color: isMe ? null : Colors.white.withOpacity(0.06),
             borderRadius: BorderRadius.circular(22),
             border: Border.all(
               color: Colors.white.withOpacity(0.08),
@@ -75,6 +78,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
+  /// 🧠 محتوى الرسالة
   Widget _buildContent() {
     switch (message.type) {
       case MessageType.image:
@@ -95,7 +99,7 @@ class ChatBubble extends StatelessWidget {
             const Icon(Icons.play_arrow, color: Colors.white),
             const SizedBox(width: 8),
 
-            /// 🔥 Waveform Gradient
+            /// 🔥 waveform
             Row(
               children: List.generate(
                 18,
@@ -138,6 +142,7 @@ class ChatBubble extends StatelessWidget {
     }
   }
 
+  /// 👤 صورة المستخدم
   Widget _avatar() {
     return const CircleAvatar(
       radius: 18,
@@ -145,6 +150,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
+  /// 🔥 Tail (النقط)
   Widget _tail() {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -158,12 +164,13 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
+  /// 💣 النقط بقت أوضح
   Widget _dot(double size) {
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.25),
+        color: Colors.white.withOpacity(0.5), // 👈 أهم تعديل
         shape: BoxShape.circle,
       ),
     );
