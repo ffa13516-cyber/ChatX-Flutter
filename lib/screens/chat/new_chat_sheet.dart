@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../repositories/firebase_repo.dart';
-import '../../utils/app_colors.dart';
+import '../../utils/app_colors.dart' as utils; 
 import '../../widgets/widgets.dart';
 import 'chat_screen.dart';
 
 class NewChatSheet extends StatefulWidget {
   final String myUid;
-
   const NewChatSheet({super.key, required this.myUid});
 
   @override
@@ -44,7 +43,7 @@ class _NewChatSheetState extends State<NewChatSheet> {
     if (user == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar( // أضفنا const هنا لأن المحتوى ثابت
+          const SnackBar(
             content: Text('User not found'),
             backgroundColor: Colors.red,
           ),
@@ -79,9 +78,9 @@ class _NewChatSheetState extends State<NewChatSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.bgSurface,
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration( // شيلنا const
+        color: utils.AppColors.bgSurface,
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(24),
           topRight: Radius.circular(24),
         ),
@@ -90,25 +89,23 @@ class _NewChatSheetState extends State<NewChatSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
           Container(
             width: 36,
             height: 4,
             margin: const EdgeInsets.only(top: 12, bottom: 16),
             decoration: BoxDecoration(
-              color: AppColors.divider,
+              color: utils.AppColors.divider,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
                 Text(
                   'New Chat',
-                  style: TextStyle( // شيلنا const عشان AppColors
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: utils.AppColors.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -116,10 +113,7 @@ class _NewChatSheetState extends State<NewChatSheet> {
               ],
             ),
           ),
-
           const SizedBox(height: 12),
-
-          // Search by username
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -128,16 +122,16 @@ class _NewChatSheetState extends State<NewChatSheet> {
                   child: Container(
                     height: 44,
                     decoration: BoxDecoration(
-                      color: AppColors.bgCard,
+                      color: utils.AppColors.bgCard,
                       borderRadius: BorderRadius.circular(22),
                     ),
                     child: TextField(
                       controller: _searchController,
-                      style: TextStyle(color: AppColors.textPrimary, fontSize: 14), // شيلنا const
-                      decoration: InputDecoration( // شيلنا const
+                      style: TextStyle(color: utils.AppColors.textPrimary, fontSize: 14),
+                      decoration: InputDecoration(
                         hintText: 'Search by @username',
-                        hintStyle: TextStyle(color: AppColors.textHint, fontSize: 14),
-                        prefixIcon: Icon(Icons.search_rounded, color: AppColors.textHint, size: 20),
+                        hintStyle: TextStyle(color: utils.AppColors.textHint, fontSize: 14),
+                        prefixIcon: Icon(Icons.search_rounded, color: utils.AppColors.textHint, size: 20),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(vertical: 12),
                       ),
@@ -151,7 +145,7 @@ class _NewChatSheetState extends State<NewChatSheet> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
+                      gradient: utils.AppColors.primaryGradient,
                       shape: BoxShape.circle,
                     ),
                     child: _isSearching
@@ -165,16 +159,12 @@ class _NewChatSheetState extends State<NewChatSheet> {
               ],
             ),
           ),
-
           const SizedBox(height: 8),
-
-          Divider(color: AppColors.divider), // شيلنا const
-
-          // Users list
+          Divider(color: utils.AppColors.divider),
           SizedBox(
             height: 300,
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                ? const Center(child: CircularProgressIndicator(color: utils.AppColors.primary))
                 : _users.isEmpty
                     ? const EmptyStateWidget(
                         icon: Icons.people_outline_rounded,
@@ -190,14 +180,14 @@ class _NewChatSheetState extends State<NewChatSheet> {
                             leading: AvatarWidget(name: user.displayName, size: 44),
                             title: Text(
                               user.displayName,
-                              style: TextStyle( // شيلنا const
-                                color: AppColors.textPrimary,
+                              style: TextStyle(
+                                color: utils.AppColors.textPrimary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             subtitle: Text(
                               user.username.isNotEmpty ? '@${user.username}' : user.phoneNumber,
-                              style: TextStyle(color: AppColors.textSecondary, fontSize: 12), // شيلنا const
+                              style: TextStyle(color: utils.AppColors.textSecondary, fontSize: 12),
                             ),
                             onTap: () => _openChat(user),
                           );
