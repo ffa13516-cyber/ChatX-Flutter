@@ -68,35 +68,30 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// ── GLOW أزرق فوق يمين ──
           Positioned(
             top: -60,
             right: -80,
             child: _glow(320, 260, const Color(0xFF1D4ED8), 0.28),
           ),
 
-          /// ── GLOW بنفسجي فوق شمال ──
           Positioned(
             top: 40,
             left: -70,
             child: _glow(220, 180, const Color(0xFF6D28D9), 0.20),
           ),
 
-          /// ── GLOW أزرق وسط ──
           Positioned(
             top: size.height * 0.35,
             right: -40,
             child: _glow(160, 160, const Color(0xFF2563EB), 0.10),
           ),
 
-          /// ── GLOW بنفسجي تحت شمال ──
           Positioned(
             bottom: -80,
             left: -60,
             child: _glow(300, 240, const Color(0xFF7C3AED), 0.22),
           ),
 
-          /// ── GLOW أزرق تحت يمين ──
           Positioned(
             bottom: 40,
             right: -50,
@@ -112,8 +107,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: ListView.builder(
                     controller: _controller,
+                    /// ✅ horizontal padding أكبر
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 12),
+                        horizontal: 20, vertical: 12),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       return ChatBubble(message: messages[index]);
@@ -148,7 +144,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   });
                 }),
 
-                const SizedBox(height: 8),
+                /// ✅ bottom padding أكبر
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -186,8 +183,10 @@ class _ChatScreenState extends State<ChatScreen> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          /// ✅ top margin أكبر
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
           decoration: BoxDecoration(
+            color: Colors.transparent,
             gradient: LinearGradient(
               colors: [
                 const Color(0xFF1D4ED8).withOpacity(0.12),
