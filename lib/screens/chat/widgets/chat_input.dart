@@ -51,97 +51,113 @@ class _ChatInputState extends State<ChatInput>
   @override
   Widget build(BuildContext context) {
     return Padding(
-      /// ✅ floating margin
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        decoration: BoxDecoration(
-          /// ✅ solid black
-          color: const Color(0xFF0A0A0A),
-          borderRadius: BorderRadius.circular(32),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.06),
-            width: 1.0,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.5),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            /// ✅ + New
-            _newButton(),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(32),
 
-            const SizedBox(width: 8),
-
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                ),
-                cursorColor: const Color(0xFF00FBFF),
-                decoration: const InputDecoration(
-                  hintText: "Type Message...",
-                  hintStyle: TextStyle(
-                    color: Colors.white30,
-                    fontSize: 14,
-                  ),
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(vertical: 8),
-                ),
+              /// 🔥 glass effect بدل اللون الأسود
+              gradient: LinearGradient(
+                colors: [
+                  Colors.white.withOpacity(0.08),
+                  Colors.white.withOpacity(0.02),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            ),
 
-            /// ✅ Mic
-            AnimatedOpacity(
-              duration: const Duration(milliseconds: 150),
-              opacity: _controller.text.isEmpty ? 1 : 0,
-              child: _iconButton(Icons.mic),
-            ),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.08),
+              ),
 
-            /// ✅ Send
-            ScaleTransition(
-              scale: _scale,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 150),
-                opacity: _controller.text.isNotEmpty ? 1 : 0,
-                child: GestureDetector(
-                  onTap: _send,
-                  child: Container(
-                    margin: const EdgeInsets.only(left: 6),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF00FBFF),
-                          Color(0xFFA600FF),
-                        ],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF00FBFF).withOpacity(0.3),
-                          blurRadius: 12,
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.send,
+              /// shadow أخف
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.18),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                _newButton(),
+                const SizedBox(width: 8),
+
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    style: const TextStyle(
                       color: Colors.white,
-                      size: 18,
+                      fontSize: 14,
+                    ),
+                    cursorColor: const Color(0xFF00E6FF),
+                    decoration: const InputDecoration(
+                      hintText: "Type Message...",
+                      hintStyle: TextStyle(
+                        color: Colors.white38,
+                        fontSize: 14,
+                      ),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(vertical: 8),
                     ),
                   ),
                 ),
-              ),
+
+                /// 🎤 Mic
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 150),
+                  opacity: _controller.text.isEmpty ? 1 : 0,
+                  child: _iconButton(Icons.mic),
+                ),
+
+                /// ✉️ Send
+                ScaleTransition(
+                  scale: _scale,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 150),
+                    opacity: _controller.text.isNotEmpty ? 1 : 0,
+                    child: GestureDetector(
+                      onTap: _send,
+                      child: Container(
+                        margin: const EdgeInsets.only(left: 6),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+
+                          /// 🔥 أزرق بس (مش بنفسجي)
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFF00E6FF),
+                              Color(0xFF3B82F6),
+                            ],
+                          ),
+
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF00E6FF).withOpacity(0.25),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.send,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -151,7 +167,7 @@ class _ChatInputState extends State<ChatInput>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
+        color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: Colors.white.withOpacity(0.06),
