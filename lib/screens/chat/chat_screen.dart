@@ -45,7 +45,7 @@ class _ChatScreenState extends State<ChatScreen> {
       backgroundColor: const Color(0xFF020617),
       body: Stack(
         children: [
-          /// ── Layer 1: Gradient Base ──
+          /// الخلفية (زي ما هي)
           Container(
             width: double.infinity,
             height: double.infinity,
@@ -61,7 +61,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// ── Light Orb 1 (Blue) ──
           Positioned(
             top: -120,
             right: -80,
@@ -82,7 +81,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// ── Light Orb 2 (Cyan بدل البنفسجي) ──
           Positioned(
             bottom: -120,
             left: -60,
@@ -103,7 +101,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// ── Blur Layer ──
           Positioned(
             top: 0,
             left: 0,
@@ -115,11 +112,11 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// ── CONTENT ──
+          /// المحتوى
           SafeArea(
             child: Column(
               children: [
-                _header(),
+                _header(), // 👈 ده اللي اتعدل
 
                 Expanded(
                   child: ListView.builder(
@@ -154,15 +151,6 @@ class _ChatScreenState extends State<ChatScreen> {
                       status: MessageStatus.sent,
                     ));
                   });
-                  Future.delayed(const Duration(milliseconds: 100), () {
-                    if (_controller.hasClients) {
-                      _controller.animateTo(
-                        _controller.position.maxScrollExtent,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOut,
-                      );
-                    }
-                  });
                 }),
 
                 const SizedBox(height: 16),
@@ -186,7 +174,6 @@ class _ChatScreenState extends State<ChatScreen> {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: Colors.white.withOpacity(0.06),
-              width: 1.0,
             ),
           ),
           child: const TypingIndicator(),
@@ -195,77 +182,98 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  /// ✅ الهيدر الجديد
   Widget _header() {
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.04),
-            border: Border(
-              bottom: BorderSide(color: Colors.white.withOpacity(0.06)),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(26),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(26),
+
+              /// Gradient خفيف
+              gradient: LinearGradient(
+                colors: [
+                  Colors.white.withOpacity(0.06),
+                  Colors.white.withOpacity(0.02),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+
+              border: Border.all(
+                color: Colors.white.withOpacity(0.06),
+              ),
+
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.25),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
-          ),
-          child: Row(
-            children: [
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: 70,
-                    height: 70,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          const Color(0xFF00E6FF).withOpacity(0.30),
-                          const Color(0xFF7C3AED).withOpacity(0.15),
-                          Colors.transparent,
-                        ],
-                        stops: const [0.0, 0.5, 1.0],
+            child: Row(
+              children: [
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: 65,
+                      height: 65,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            const Color(0xFF00E6FF).withOpacity(0.25),
+                            Colors.transparent,
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const CircleAvatar(
-                    radius: 22,
-                    backgroundImage:
-                        NetworkImage("https://i.pravatar.cc/150?img=8"),
-                  ),
-                ],
-              ),
-
-              const SizedBox(width: 12),
-
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    "Daniel Garcia",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                    const CircleAvatar(
+                      radius: 22,
+                      backgroundImage:
+                          NetworkImage("https://i.pravatar.cc/150?img=8"),
                     ),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    "Online",
-                    style: TextStyle(
-                      color: Color(0xFF22C55E),
-                      fontSize: 11,
+                  ],
+                ),
+
+                const SizedBox(width: 12),
+
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      "Daniel Garcia",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                    SizedBox(height: 2),
+                    Text(
+                      "Online",
+                      style: TextStyle(
+                        color: Color(0xFF22C55E),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
 
-              const Spacer(),
+                const Spacer(),
 
-              _headerIcon(Icons.videocam_outlined),
-              const SizedBox(width: 10),
-              _headerIcon(Icons.call_outlined),
-            ],
+                _headerIcon(Icons.videocam_outlined),
+                const SizedBox(width: 10),
+                _headerIcon(Icons.call_outlined),
+              ],
+            ),
           ),
         ),
       ),
@@ -283,7 +291,6 @@ class _ChatScreenState extends State<ChatScreen> {
             color: Colors.white.withOpacity(0.08),
             border: Border.all(
               color: Colors.white.withOpacity(0.08),
-              width: 1.0,
             ),
           ),
           child: Icon(icon, color: Colors.white70, size: 22),
