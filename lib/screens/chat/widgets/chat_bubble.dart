@@ -62,7 +62,7 @@ class _ChatBubbleState extends State<ChatBubble>
     final time =
         "${message.time.hour}:${message.time.minute.toString().padLeft(2, '0')}";
 
-    /// ✅ 3. BorderRadius 30
+    /// ✅ 4. BorderRadius 30
     final radius = BorderRadius.only(
       topLeft: const Radius.circular(30),
       topRight: const Radius.circular(30),
@@ -77,8 +77,8 @@ class _ChatBubbleState extends State<ChatBubble>
         boxShadow: [
           BoxShadow(
             color: isMe
-                ? const Color(0xFF00E6FF).withOpacity(0.15)
-                : Colors.black.withOpacity(0.25),
+                ? const Color(0xFF00E6FF).withOpacity(0.12)
+                : Colors.black.withOpacity(0.20),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -89,7 +89,7 @@ class _ChatBubbleState extends State<ChatBubble>
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
           child: Container(
-            /// ✅ 3. padding horizontal: 20, vertical: 14
+            /// ✅ 4. padding horizontal: 20, vertical: 14
             padding: message.type == MessageType.image
                 ? EdgeInsets.zero
                 : const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -112,7 +112,7 @@ class _ChatBubbleState extends State<ChatBubble>
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-              /// ✅ 3. White border 0.08
+              /// ✅ 4. White border
               border: Border.all(
                 color: Colors.white.withOpacity(0.08),
                 width: 1.0,
@@ -169,8 +169,8 @@ class _ChatBubbleState extends State<ChatBubble>
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.4),
                   borderRadius: BorderRadius.circular(10),
@@ -180,7 +180,8 @@ class _ChatBubbleState extends State<ChatBubble>
                 ),
                 child: Text(
                   time,
-                  style: const TextStyle(color: Colors.white70, fontSize: 10),
+                  style: const TextStyle(
+                      color: Colors.white70, fontSize: 10),
                 ),
               ),
             ),
@@ -224,7 +225,8 @@ class _ChatBubbleState extends State<ChatBubble>
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: List.generate(20, (i) {
-                  final phase = (_waveController.value + i * 0.06) % 1.0;
+                  final phase =
+                      (_waveController.value + i * 0.06) % 1.0;
                   final h = isPlaying
                       ? 4 + (phase < 0.5 ? phase : 1 - phase) * 24
                       : _staticHeight(i);
