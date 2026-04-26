@@ -45,7 +45,7 @@ class _ChatScreenState extends State<ChatScreen> {
       backgroundColor: const Color(0xFF020617),
       body: Stack(
         children: [
-          /// الخلفية (زي ما هي)
+          /// Background
           Container(
             width: double.infinity,
             height: double.infinity,
@@ -61,6 +61,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
+          /// Blue light
           Positioned(
             top: -120,
             right: -80,
@@ -69,7 +70,6 @@ class _ChatScreenState extends State<ChatScreen> {
               height: 320,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.transparent,
                 boxShadow: [
                   BoxShadow(
                     color: const Color(0xFF3B82F6).withOpacity(0.25),
@@ -81,6 +81,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
+          /// Cyan light
           Positioned(
             bottom: -120,
             left: -60,
@@ -89,7 +90,6 @@ class _ChatScreenState extends State<ChatScreen> {
               height: 260,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.transparent,
                 boxShadow: [
                   BoxShadow(
                     color: const Color(0xFF06B6D4).withOpacity(0.18),
@@ -101,6 +101,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
+          /// Blur layer
           Positioned(
             top: 0,
             left: 0,
@@ -112,17 +113,16 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// المحتوى
+          /// Content
           SafeArea(
             child: Column(
               children: [
-                _header(), // 👈 ده اللي اتعدل
+                _header(),
 
                 Expanded(
                   child: ListView.builder(
                     controller: _controller,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       return Column(
@@ -182,38 +182,38 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  /// ✅ الهيدر الجديد
+  /// ✅ الهيدر النهائي
   Widget _header() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(26),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
           child: Container(
             padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(26),
 
-              /// Gradient خفيف
+              /// gradient أخف
               gradient: LinearGradient(
                 colors: [
-                  Colors.white.withOpacity(0.06),
-                  Colors.white.withOpacity(0.02),
+                  Colors.white.withOpacity(0.10),
+                  Colors.white.withOpacity(0.03),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
 
               border: Border.all(
-                color: Colors.white.withOpacity(0.06),
+                color: Colors.white.withOpacity(0.08),
               ),
 
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.25),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
+                  color: Colors.black.withOpacity(0.18),
+                  blurRadius: 25,
+                  offset: const Offset(0, 12),
                 ),
               ],
             ),
@@ -223,13 +223,13 @@ class _ChatScreenState extends State<ChatScreen> {
                   alignment: Alignment.center,
                   children: [
                     Container(
-                      width: 65,
-                      height: 65,
+                      width: 60,
+                      height: 60,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: RadialGradient(
                           colors: [
-                            const Color(0xFF00E6FF).withOpacity(0.25),
+                            const Color(0xFF00E6FF).withOpacity(0.20),
                             Colors.transparent,
                           ],
                         ),
