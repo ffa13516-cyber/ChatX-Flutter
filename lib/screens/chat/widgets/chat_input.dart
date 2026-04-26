@@ -36,7 +36,7 @@ class _ChatInputState extends State<ChatInput>
       } else {
         _animController.reverse();
       }
-      setState(() {}); // مهم عشان opacity يتحدث
+      setState(() {});
     });
   }
 
@@ -49,7 +49,6 @@ class _ChatInputState extends State<ChatInput>
 
   void _send() {
     if (_controller.text.trim().isEmpty) return;
-
     widget.onSend(_controller.text.trim());
     _controller.clear();
   }
@@ -59,25 +58,23 @@ class _ChatInputState extends State<ChatInput>
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 6, 14, 10),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(28),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 35, sigmaY: 35),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.04),
-              borderRadius: BorderRadius.circular(26),
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(28),
               border: Border.all(
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withOpacity(0.07),
               ),
             ),
             child: Row(
               children: [
                 _icon(Icons.add),
+                const SizedBox(width: 8),
 
-                const SizedBox(width: 6),
-
-                /// ✍️ TextField
                 Expanded(
                   child: TextField(
                     controller: _controller,
@@ -87,24 +84,26 @@ class _ChatInputState extends State<ChatInput>
                     ),
                     cursorColor: Colors.white,
                     decoration: const InputDecoration(
-                      hintText: "Message...",
+                      hintText: "Type Message...",
                       hintStyle: TextStyle(
-                        color: Colors.white38,
+                        color: Colors.white30,
                         fontSize: 14,
                       ),
                       border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(vertical: 8),
                     ),
                   ),
                 ),
 
-                /// 🎤 mic
+                /// Mic
                 AnimatedOpacity(
                   duration: const Duration(milliseconds: 150),
                   opacity: _controller.text.isEmpty ? 1 : 0,
                   child: _icon(Icons.mic),
                 ),
 
-                /// 🚀 send
+                /// Send
                 ScaleTransition(
                   scale: _scale,
                   child: AnimatedOpacity(
@@ -125,9 +124,8 @@ class _ChatInputState extends State<ChatInput>
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF3B82F6)
-                                  .withOpacity(0.4),
-                              blurRadius: 10,
+                              color: const Color(0xFF3B82F6).withOpacity(0.45),
+                              blurRadius: 12,
                             ),
                           ],
                         ),
@@ -153,11 +151,12 @@ class _ChatInputState extends State<ChatInput>
       padding: const EdgeInsets.all(7),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withOpacity(0.06),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
       ),
       child: Icon(
         icon,
-        color: Colors.white.withOpacity(0.65),
+        color: Colors.white.withOpacity(0.6),
         size: 18,
       ),
     );
