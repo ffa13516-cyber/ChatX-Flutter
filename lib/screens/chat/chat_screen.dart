@@ -42,20 +42,29 @@ class _ChatScreenState extends State<ChatScreen> {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF050505),
+      backgroundColor: const Color(0xFF020617),
       body: Stack(
         children: [
-          /// ── Layer 1: Solid Dark Base ──
+          /// ── Layer 1: Gradient Base ──
           Container(
             width: double.infinity,
             height: double.infinity,
-            color: const Color(0xFF050505),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF020617),
+                  Color(0xFF030712),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
           ),
 
-          /// ── Layer 2: Cyan Orb - upper right ──
+          /// ── Light Orb 1 (Blue) ──
           Positioned(
-            top: -100,
-            right: -60,
+            top: -120,
+            right: -80,
             child: Container(
               width: 320,
               height: 320,
@@ -64,29 +73,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 color: Colors.transparent,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF00E6FF).withOpacity(0.28),
-                    blurRadius: 180,
-                    spreadRadius: 40,
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          /// ── Layer 2: Cyan Orb - upper center ──
-          Positioned(
-            top: -80,
-            left: size.width * 0.5 - 150,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.transparent,
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF0099BB).withOpacity(0.18),
-                    blurRadius: 180,
+                    color: const Color(0xFF3B82F6).withOpacity(0.25),
+                    blurRadius: 160,
                     spreadRadius: 30,
                   ),
                 ],
@@ -94,14 +82,35 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// ── Layer 3: BackdropFilter للـ smoothness ──
+          /// ── Light Orb 2 (Cyan بدل البنفسجي) ──
+          Positioned(
+            bottom: -120,
+            left: -60,
+            child: Container(
+              width: 260,
+              height: 260,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.transparent,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF06B6D4).withOpacity(0.18),
+                    blurRadius: 140,
+                    spreadRadius: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          /// ── Blur Layer ──
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            height: size.height * 0.45,
+            height: size.height * 0.5,
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
               child: Container(color: Colors.transparent),
             ),
           ),
@@ -201,7 +210,6 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           child: Row(
             children: [
-              /// ✅ Avatar مع radial glow
               Stack(
                 alignment: Alignment.center,
                 children: [
@@ -254,7 +262,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
               const Spacer(),
 
-              /// ✅ أيقونات أكبر
               _headerIcon(Icons.videocam_outlined),
               const SizedBox(width: 10),
               _headerIcon(Icons.call_outlined),
