@@ -62,7 +62,6 @@ class _ChatBubbleState extends State<ChatBubble>
     final time =
         "${message.time.hour}:${message.time.minute.toString().padLeft(2, '0')}";
 
-    /// ✅ 4. BorderRadius 30
     final radius = BorderRadius.only(
       topLeft: const Radius.circular(30),
       topRight: const Radius.circular(30),
@@ -76,9 +75,7 @@ class _ChatBubbleState extends State<ChatBubble>
         borderRadius: radius,
         boxShadow: [
           BoxShadow(
-            color: isMe
-                ? const Color(0xFF00E6FF).withOpacity(0.12)
-                : Colors.black.withOpacity(0.20),
+            color: Colors.black.withOpacity(0.35),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -87,34 +84,17 @@ class _ChatBubbleState extends State<ChatBubble>
       child: ClipRRect(
         borderRadius: radius,
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
-            /// ✅ 4. padding horizontal: 20, vertical: 14
             padding: message.type == MessageType.image
                 ? EdgeInsets.zero
                 : const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
               borderRadius: radius,
-              gradient: isMe
-                  ? LinearGradient(
-                      colors: [
-                        const Color(0xFF1E40AF).withOpacity(0.55),
-                        const Color(0xFF1E3A8A).withOpacity(0.38),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : LinearGradient(
-                      colors: [
-                        Colors.white.withOpacity(0.09),
-                        Colors.white.withOpacity(0.03),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-              /// ✅ 4. White border
+              /// ✅ كل البابلز لون أسود داكن
+              color: const Color(0xFF0A0A0A),
               border: Border.all(
-                color: Colors.white.withOpacity(0.08),
+                color: Colors.white.withOpacity(0.06),
                 width: 1.0,
               ),
             ),
@@ -172,10 +152,10 @@ class _ChatBubbleState extends State<ChatBubble>
                 padding: const EdgeInsets.symmetric(
                     horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.4),
+                  color: Colors.black.withOpacity(0.6),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.08),
+                    color: Colors.white.withOpacity(0.06),
                   ),
                 ),
                 child: Text(
@@ -201,9 +181,9 @@ class _ChatBubbleState extends State<ChatBubble>
             padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.10),
+              color: Colors.white.withOpacity(0.08),
               border: Border.all(
-                color: Colors.white.withOpacity(0.08),
+                color: Colors.white.withOpacity(0.06),
               ),
             ),
             child: Icon(
@@ -231,11 +211,12 @@ class _ChatBubbleState extends State<ChatBubble>
                       ? 4 + (phase < 0.5 ? phase : 1 - phase) * 24
                       : _staticHeight(i);
                   final t = i / 19;
+                  /// ✅ Neon gradient cyan to deep purple
                   final color = Color.lerp(
-                    const Color(0xFF00E6FF),
-                    const Color(0xFF818CF8),
+                    const Color(0xFF00FBFF),
+                    const Color(0xFFA600FF),
                     t,
-                  )!.withOpacity(isPlaying ? 0.95 : 0.60);
+                  )!.withOpacity(isPlaying ? 1.0 : 0.65);
 
                   return Container(
                     margin: const EdgeInsets.symmetric(horizontal: 1),
@@ -300,7 +281,7 @@ class _ChatBubbleState extends State<ChatBubble>
         break;
       case MessageStatus.seen:
         icon = Icons.done_all;
-        color = const Color(0xFF00E6FF);
+        color = const Color(0xFF00FBFF);
         break;
     }
     return Icon(icon, size: 13, color: color);
