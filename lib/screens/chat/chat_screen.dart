@@ -14,11 +14,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final List<Message> messages = [
-    Message(
-      text: "Hi 👋 It's good, yours?",
-      isMe: false,
-      status: MessageStatus.seen,
-    ),
+    Message(text: "Hi 👋 It's god. Yours", isMe: false, status: MessageStatus.seen),
     Message(
       text: "It seem we have a lot common and have a lot interest in each other 😊",
       isMe: false,
@@ -30,16 +26,8 @@ class _ChatScreenState extends State<ChatScreen> {
       type: MessageType.image,
       imageUrl: "https://picsum.photos/seed/chat/400/300",
     ),
-    Message(
-      text: "",
-      isMe: false,
-      type: MessageType.voice,
-    ),
-    Message(
-      text: "Good Concept!",
-      isMe: true,
-      status: MessageStatus.seen,
-    ),
+    Message(text: "", isMe: false, type: MessageType.voice),
+    Message(text: "Good Concepts!", isMe: true, status: MessageStatus.seen),
   ];
 
   final ScrollController _controller = ScrollController();
@@ -56,45 +44,80 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF060818),
       body: Stack(
         children: [
-          /// Background
+          /// ── BACKGROUND BASE ──
           Container(
+            width: double.infinity,
+            height: double.infinity,
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
+              gradient: RadialGradient(
+                center: Alignment(0.6, -0.8),
+                radius: 1.4,
                 colors: [
-                  Color(0xFF050D1A),
-                  Color(0xFF020617),
+                  Color(0xFF0D1233),
+                  Color(0xFF060818),
+                  Color(0xFF03040E),
                 ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
               ),
             ),
           ),
 
-          /// Glow فوق يمين
+          /// ── GLOW فوق يمين - أزرق ──
           Positioned(
             top: -100,
-            right: -60,
-            child: _glow(300, Colors.blue),
+            right: -100,
+            child: _ellipseGlow(360, 300, const Color(0xFF2563EB), 0.22),
           ),
 
-          /// Glow تحت شمال
+          /// ── GLOW فوق شمال - بنفسجي ──
+          Positioned(
+            top: 80,
+            left: -80,
+            child: _ellipseGlow(260, 200, const Color(0xFF7C3AED), 0.18),
+          ),
+
+          /// ── GLOW وسط خفيف - indigo ──
+          Positioned(
+            top: size.height * 0.38,
+            left: size.width * 0.2,
+            child: _ellipseGlow(180, 180, const Color(0xFF4F46E5), 0.10),
+          ),
+
+          /// ── GLOW تحت شمال - وردي ──
           Positioned(
             bottom: -120,
-            left: -60,
-            child: _glow(340, Colors.purple),
+            left: -80,
+            child: _ellipseGlow(340, 280, const Color(0xFF9333EA), 0.20),
           ),
 
-          /// Glow وسط خفيف
+          /// ── GLOW تحت يمين - أزرق خفيف ──
           Positioned(
-            top: MediaQuery.of(context).size.height * 0.35,
-            left: MediaQuery.of(context).size.width * 0.3,
-            child: _glow(200, Colors.indigo),
+            bottom: 60,
+            right: -60,
+            child: _ellipseGlow(200, 200, const Color(0xFF1D4ED8), 0.12),
           ),
 
+          /// ── NOISE OVERLAY ──
+          Opacity(
+            opacity: 0.03,
+            child: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: NetworkImage(
+                    "https://www.transparenttextures.com/patterns/asfalt-dark.png",
+                  ),
+                  repeat: ImageRepeat.repeat,
+                ),
+              ),
+            ),
+          ),
+
+          /// ── CONTENT ──
           SafeArea(
             child: Column(
               children: [
@@ -114,8 +137,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
                 /// Typing indicator
                 Padding(
-                  padding:
-                      const EdgeInsets.only(left: 20, bottom: 4),
+                  padding: const EdgeInsets.only(left: 16, bottom: 6),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: _typingBubble(),
@@ -150,18 +172,30 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  /// Typing bubble زي الصورة
   Widget _typingBubble() {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.06)),
+            gradient: LinearGradient(
+              colors: [
+                Colors.white.withOpacity(0.07),
+                Colors.white.withOpacity(0.03),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.08),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 12,
+              ),
+            ],
           ),
           child: const TypingIndicator(),
         ),
@@ -171,50 +205,53 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _header() {
     return ClipRRect(
-      borderRadius: const BorderRadius.vertical(
-        bottom: Radius.circular(28),
-      ),
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+        filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
         child: Container(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.04),
+            gradient: LinearGradient(
+              colors: [
+                Colors.white.withOpacity(0.06),
+                Colors.white.withOpacity(0.02),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             border: Border(
-              bottom: BorderSide(
-                color: Colors.white.withOpacity(0.06),
-              ),
+              bottom: BorderSide(color: Colors.white.withOpacity(0.07)),
             ),
           ),
           child: Row(
             children: [
-              /// Avatar مع glow
+              /// Avatar مع gradient ring
               Container(
+                padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFEC4899), Color(0xFF8B5CF6), Color(0xFF3B82F6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.purpleAccent.withOpacity(0.5),
+                      color: const Color(0xFF8B5CF6).withOpacity(0.6),
                       blurRadius: 20,
-                      spreadRadius: 1,
+                      spreadRadius: 2,
                     ),
                   ],
                 ),
-                child: CircleAvatar(
-                  radius: 22,
-                  backgroundColor: Colors.transparent,
-                  child: ClipOval(
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFFEC4899), Color(0xFF8B5CF6)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: const Icon(Icons.person,
-                          color: Colors.white, size: 24),
-                    ),
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFF060818),
+                  ),
+                  child: const CircleAvatar(
+                    radius: 20,
+                    backgroundImage: NetworkImage("https://i.pravatar.cc/150?img=8"),
                   ),
                 ),
               ),
@@ -246,11 +283,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
               const Spacer(),
 
-              /// أيقونة call
-              _headerIcon(Icons.call),
+              _headerIcon(Icons.videocam_outlined),
               const SizedBox(width: 10),
-              /// أيقونة video
-              _headerIcon(Icons.videocam),
+              _headerIcon(Icons.call_outlined),
             ],
           ),
         ),
@@ -259,27 +294,34 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _headerIcon(IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withOpacity(0.05),
-        border: Border.all(color: Colors.white.withOpacity(0.07)),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(50),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.all(9),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.07),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+          ),
+          child: Icon(icon, color: Colors.white70, size: 20),
+        ),
       ),
-      child: Icon(icon, color: Colors.white70, size: 19),
     );
   }
 
-  Widget _glow(double size, Color color) {
+  /// Ellipse glow مش دايرة كاملة
+  Widget _ellipseGlow(double w, double h, Color color, double opacity) {
     return Container(
-      width: size,
-      height: size,
+      width: w,
+      height: h,
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color.withOpacity(0.07),
+        borderRadius: BorderRadius.circular(w),
+        color: color.withOpacity(opacity),
       ),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 100, sigmaY: 100),
+        filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
         child: const SizedBox(),
       ),
     );
