@@ -65,8 +65,8 @@ class _ChatBubbleState extends State<ChatBubble>
     final radius = BorderRadius.only(
       topLeft: const Radius.circular(30),
       topRight: const Radius.circular(30),
-      bottomLeft: Radius.circular(isMe ? 30 : 8),
-      bottomRight: Radius.circular(isMe ? 8 : 30),
+      bottomLeft: Radius.circular(isMe ? 30 : 10),
+      bottomRight: Radius.circular(isMe ? 10 : 30),
     );
 
     return Container(
@@ -75,8 +75,8 @@ class _ChatBubbleState extends State<ChatBubble>
         borderRadius: radius,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.35),
-            blurRadius: 20,
+            color: Colors.black.withOpacity(0.20), // 👈 أخف
+            blurRadius: 16,
             offset: const Offset(0, 6),
           ),
         ],
@@ -84,18 +84,31 @@ class _ChatBubbleState extends State<ChatBubble>
       child: ClipRRect(
         borderRadius: radius,
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
           child: Container(
             padding: message.type == MessageType.image
                 ? EdgeInsets.zero
-                : const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                : const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
             decoration: BoxDecoration(
               borderRadius: radius,
-              /// ✅ كل البابلز لون أسود داكن
-              color: const Color(0xFF0A0A0A),
+
+              /// 🔥 gradient بدل اللون السادة
+              gradient: LinearGradient(
+                colors: isMe
+                    ? [
+                        Colors.white.withOpacity(0.10),
+                        Colors.white.withOpacity(0.03),
+                      ]
+                    : [
+                        Colors.white.withOpacity(0.07),
+                        Colors.white.withOpacity(0.02),
+                      ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+
               border: Border.all(
                 color: Colors.white.withOpacity(0.06),
-                width: 1.0,
               ),
             ),
             child: message.type == MessageType.image
@@ -211,10 +224,11 @@ class _ChatBubbleState extends State<ChatBubble>
                       ? 4 + (phase < 0.5 ? phase : 1 - phase) * 24
                       : _staticHeight(i);
                   final t = i / 19;
-                  /// ✅ Neon gradient cyan to deep purple
+
+                  /// 🔥 عدلنا الألوان تبقى أزرق/سيان بس
                   final color = Color.lerp(
-                    const Color(0xFF00FBFF),
-                    const Color(0xFFA600FF),
+                    const Color(0xFF00E6FF),
+                    const Color(0xFF3B82F6),
                     t,
                   )!.withOpacity(isPlaying ? 1.0 : 0.65);
 
@@ -281,7 +295,7 @@ class _ChatBubbleState extends State<ChatBubble>
         break;
       case MessageStatus.seen:
         icon = Icons.done_all;
-        color = const Color(0xFF00FBFF);
+        color = const Color(0xFF00E6FF);
         break;
     }
     return Icon(icon, size: 13, color: color);
