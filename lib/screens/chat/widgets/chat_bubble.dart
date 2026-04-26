@@ -21,7 +21,7 @@ class _ChatBubbleState extends State<ChatBubble> {
     final isMe = widget.message.isMe;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         mainAxisAlignment:
             isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -29,7 +29,7 @@ class _ChatBubbleState extends State<ChatBubble> {
         children: [
           if (!isMe) ...[
             _avatar(),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
           ],
 
           Stack(
@@ -38,14 +38,10 @@ class _ChatBubbleState extends State<ChatBubble> {
               GestureDetector(
                 onTapDown: (_) {
                   setState(() => isPressed = true);
-                  HapticFeedback.lightImpact(); // 🔥 اهتزاز
+                  HapticFeedback.lightImpact();
                 },
-                onTapUp: (_) {
-                  setState(() => isPressed = false);
-                },
-                onTapCancel: () {
-                  setState(() => isPressed = false);
-                },
+                onTapUp: (_) => setState(() => isPressed = false),
+                onTapCancel: () => setState(() => isPressed = false),
                 child: AnimatedScale(
                   scale: isPressed ? 0.96 : 1,
                   duration: const Duration(milliseconds: 120),
@@ -53,17 +49,18 @@ class _ChatBubbleState extends State<ChatBubble> {
                 ),
               ),
 
+              /// 💣 tail متظبط وناعم
               Positioned(
-                bottom: 8,
-                left: isMe ? null : -16,
-                right: isMe ? -16 : null,
-                child: _tail(),
+                bottom: 10,
+                left: isMe ? null : -14,
+                right: isMe ? -14 : null,
+                child: _tail(isMe),
               ),
             ],
           ),
 
           if (isMe) ...[
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
             _avatar(),
           ],
         ],
@@ -81,10 +78,12 @@ class _ChatBubbleState extends State<ChatBubble> {
       constraints: const BoxConstraints(maxWidth: 270),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(26),
+
+        /// 🔥 shadow أنعم
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.35),
-            blurRadius: 25,
+            color: Colors.black.withOpacity(0.25),
+            blurRadius: 30,
             offset: const Offset(0, 12),
           ),
         ],
@@ -92,26 +91,34 @@ class _ChatBubbleState extends State<ChatBubble> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(26),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 35, sigmaY: 35),
+          filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
           child: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(26),
+
+              /// 💣 gradient أنعم (أقرب للتصميم)
               gradient: isMe
                   ? LinearGradient(
                       colors: [
-                        const Color(0xFF3B82F6).withOpacity(0.45),
-                        const Color(0xFF1E40AF).withOpacity(0.35),
+                        const Color(0xFF3B82F6).withOpacity(0.35),
+                        const Color(0xFF1E40AF).withOpacity(0.25),
                       ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     )
                   : LinearGradient(
                       colors: [
-                        Colors.white.withOpacity(0.08),
-                        Colors.white.withOpacity(0.03),
+                        Colors.white.withOpacity(0.07),
+                        Colors.white.withOpacity(0.02),
                       ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
+
+              /// 🔥 border أخف
               border: Border.all(
-                color: Colors.white.withOpacity(0.12),
+                color: Colors.white.withOpacity(0.08),
               ),
             ),
             child: Column(
@@ -127,14 +134,13 @@ class _ChatBubbleState extends State<ChatBubble> {
 
                 const SizedBox(height: 6),
 
-                /// time + ✓✓
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       time,
-                      style: const TextStyle(
-                        color: Colors.white38,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.35),
                         fontSize: 10,
                       ),
                     ),
@@ -185,9 +191,9 @@ class _ChatBubbleState extends State<ChatBubble> {
           },
           child: Container(
             padding: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white24,
+              color: Colors.white.withOpacity(0.15),
             ),
             child: Icon(
               isPlaying ? Icons.pause : Icons.play_arrow,
@@ -196,19 +202,20 @@ class _ChatBubbleState extends State<ChatBubble> {
           ),
         ),
         const SizedBox(width: 10),
+
+        /// 💣 wave أنعم
         Expanded(
-          child: Container(
+          child: SizedBox(
             height: 30,
-            alignment: Alignment.centerLeft,
             child: Row(
               children: List.generate(
-                20,
+                22,
                 (index) => Container(
                   margin: const EdgeInsets.symmetric(horizontal: 1),
                   width: 3,
-                  height: (index % 5 + 1) * 5,
+                  height: (index % 6 + 1) * 4.5,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withOpacity(0.45),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -216,6 +223,7 @@ class _ChatBubbleState extends State<ChatBubble> {
             ),
           ),
         ),
+
         const SizedBox(width: 6),
         const Text(
           "0:12",
@@ -228,26 +236,37 @@ class _ChatBubbleState extends State<ChatBubble> {
     );
   }
 
-  Widget _tail() {
+  /// 💣 tail احترافي (gradient + شفافية)
+  Widget _tail(bool isMe) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _dot(7),
+        _dot(6, isMe),
         const SizedBox(width: 3),
-        _dot(5),
+        _dot(4.5, isMe),
         const SizedBox(width: 3),
-        _dot(3),
+        _dot(3, isMe),
       ],
     );
   }
 
-  Widget _dot(double size) {
+  Widget _dot(double size, bool isMe) {
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.55),
         shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: isMe
+              ? [
+                  Colors.blue.withOpacity(0.7),
+                  Colors.blue.withOpacity(0.2),
+                ]
+              : [
+                  Colors.white.withOpacity(0.6),
+                  Colors.white.withOpacity(0.2),
+                ],
+        ),
       ),
     );
   }
