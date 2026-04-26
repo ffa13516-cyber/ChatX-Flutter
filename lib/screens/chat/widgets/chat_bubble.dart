@@ -37,7 +37,6 @@ class _ChatBubbleState extends State<ChatBubble>
     final isMe = widget.message.isMe;
 
     return Padding(
-      /// ✅ زيادة المسافة بين الرسائل
       padding: const EdgeInsets.symmetric(vertical: 9),
       child: Row(
         mainAxisAlignment:
@@ -77,7 +76,6 @@ class _ChatBubbleState extends State<ChatBubble>
     final time =
         "${message.time.hour}:${message.time.minute.toString().padLeft(2, '0')}";
 
-    /// ✅ BorderRadius 30 ناعم
     final radius = BorderRadius.only(
       topLeft: const Radius.circular(30),
       topRight: const Radius.circular(30),
@@ -92,9 +90,9 @@ class _ChatBubbleState extends State<ChatBubble>
         boxShadow: [
           BoxShadow(
             color: isMe
-                ? const Color(0xFF2563EB).withOpacity(0.25)
+                ? const Color(0xFF0EA5E9).withOpacity(0.20)
                 : Colors.black.withOpacity(0.20),
-            blurRadius: 20,
+            blurRadius: 24,
             offset: const Offset(0, 6),
           ),
         ],
@@ -102,9 +100,9 @@ class _ChatBubbleState extends State<ChatBubble>
       child: ClipRRect(
         borderRadius: radius,
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+          /// ✅ High blur للـ frosted glass الحقيقي
+          filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
           child: Container(
-            /// ✅ Inner padding أكبر
             padding: message.type == MessageType.image
                 ? EdgeInsets.zero
                 : const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -113,23 +111,23 @@ class _ChatBubbleState extends State<ChatBubble>
               gradient: isMe
                   ? LinearGradient(
                       colors: [
-                        const Color(0xFF1E40AF).withOpacity(0.55),
-                        const Color(0xFF1E3A8A).withOpacity(0.40),
+                        const Color(0xFF1E40AF).withOpacity(0.50),
+                        const Color(0xFF1E3A8A).withOpacity(0.35),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     )
                   : LinearGradient(
                       colors: [
-                        Colors.white.withOpacity(0.10),
-                        Colors.white.withOpacity(0.04),
+                        Colors.white.withOpacity(0.09),
+                        Colors.white.withOpacity(0.03),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-              /// ✅ Glassmorphism border
+              /// ✅ White border 0.05 opacity
               border: Border.all(
-                color: Colors.white.withOpacity(0.08),
+                color: Colors.white.withOpacity(0.05),
                 width: 1.0,
               ),
             ),
@@ -179,15 +177,26 @@ class _ChatBubbleState extends State<ChatBubble>
         Positioned(
           bottom: 8,
           right: 10,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              time,
-              style: const TextStyle(color: Colors.white70, fontSize: 10),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.05),
+                  ),
+                ),
+                child: Text(
+                  time,
+                  style: const TextStyle(
+                      color: Colors.white70, fontSize: 10),
+                ),
+              ),
             ),
           ),
         ),
@@ -205,8 +214,10 @@ class _ChatBubbleState extends State<ChatBubble>
             padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.12),
-              border: Border.all(color: Colors.white.withOpacity(0.12)),
+              color: Colors.white.withOpacity(0.10),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.05),
+              ),
             ),
             child: Icon(
               isPlaying ? Icons.pause : Icons.play_arrow,
@@ -233,10 +244,10 @@ class _ChatBubbleState extends State<ChatBubble>
                       : _staticHeight(i);
                   final t = i / 19;
                   final color = Color.lerp(
-                    const Color(0xFF60A5FA),
-                    const Color(0xFF8B5CF6),
+                    const Color(0xFF38BDF8),
+                    const Color(0xFF818CF8),
                     t,
-                  )!.withOpacity(isPlaying ? 0.95 : 0.55);
+                  )!.withOpacity(isPlaying ? 0.95 : 0.60);
 
                   return Container(
                     margin: const EdgeInsets.symmetric(horizontal: 1),
@@ -275,7 +286,7 @@ class _ChatBubbleState extends State<ChatBubble>
         Text(
           time,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withOpacity(0.30),
             fontSize: 10,
           ),
         ),
@@ -301,7 +312,7 @@ class _ChatBubbleState extends State<ChatBubble>
         break;
       case MessageStatus.seen:
         icon = Icons.done_all;
-        color = const Color(0xFF60A5FA);
+        color = const Color(0xFF38BDF8);
         break;
     }
     return Icon(icon, size: 13, color: color);
@@ -333,7 +344,7 @@ class _ChatBubbleState extends State<ChatBubble>
         padding: const EdgeInsets.all(1.5),
         decoration: const BoxDecoration(
           shape: BoxShape.circle,
-          color: Color(0xFF070D1A),
+          color: Color(0xFF050505),
         ),
         child: CircleAvatar(
           radius: 17,
