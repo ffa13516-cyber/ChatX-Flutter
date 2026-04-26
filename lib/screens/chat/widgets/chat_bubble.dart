@@ -75,9 +75,9 @@ class _ChatBubbleState extends State<ChatBubble>
         borderRadius: radius,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.20), // 👈 أخف
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: Colors.black.withOpacity(0.12), // ✅ أخف
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -92,16 +92,16 @@ class _ChatBubbleState extends State<ChatBubble>
             decoration: BoxDecoration(
               borderRadius: radius,
 
-              /// 🔥 gradient بدل اللون السادة
+              /// ✅ glass gradient أخف + تمييز الرسالة بتاعتك
               gradient: LinearGradient(
                 colors: isMe
                     ? [
-                        Colors.white.withOpacity(0.10),
-                        Colors.white.withOpacity(0.03),
+                        const Color(0xFF00E6FF).withOpacity(0.12),
+                        Colors.white.withOpacity(0.02),
                       ]
                     : [
-                        Colors.white.withOpacity(0.07),
-                        Colors.white.withOpacity(0.02),
+                        Colors.white.withOpacity(0.05),
+                        Colors.white.withOpacity(0.015),
                       ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -225,7 +225,6 @@ class _ChatBubbleState extends State<ChatBubble>
                       : _staticHeight(i);
                   final t = i / 19;
 
-                  /// 🔥 عدلنا الألوان تبقى أزرق/سيان بس
                   final color = Color.lerp(
                     const Color(0xFF00E6FF),
                     const Color(0xFF3B82F6),
