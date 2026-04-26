@@ -15,75 +15,33 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final List<Message> messages = [
     Message(text: "Hi 👋 It's good, yours?", isMe: false),
-
-    Message(
-      text: "",
-      isMe: true,
-      type: MessageType.image,
-      imageUrl: "https://picsum.photos/300",
-    ),
-
-    Message(
-      text: "",
-      isMe: false,
-      type: MessageType.voice,
-    ),
-
     Message(text: "Good Concept!", isMe: true),
   ];
 
   final ScrollController _controller = ScrollController();
-
-  bool isTyping = true;
-
-  void sendMessage(String text) {
-    if (text.trim().isEmpty) return;
-
-    setState(() {
-      messages.add(Message(text: text, isMe: true));
-      isTyping = true;
-    });
-
-    Future.delayed(const Duration(seconds: 2), () {
-      setState(() {
-        messages.add(Message(text: "Nice 🔥", isMe: false));
-        isTyping = false;
-      });
-    });
-
-    Future.delayed(const Duration(milliseconds: 100), () {
-      _controller.animateTo(
-        _controller.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOut,
-      );
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          /// Background
+          /// 🔥 Background
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Color(0xFF01030A),
+                  Color(0xFF020617),
                   Color(0xFF020617),
                 ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
               ),
             ),
           ),
 
-          /// Glow
+          /// 🔵 Glow كبير
           Positioned(
-            top: -120,
-            left: -120,
-            child: _glow(260),
+            top: -200,
+            left: -150,
+            child: _glow(400),
           ),
 
           SafeArea(
@@ -98,44 +56,17 @@ class _ChatScreenState extends State<ChatScreen> {
                         horizontal: 16, vertical: 10),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
-                      final msg = messages[index];
-
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOut,
-                        child: TweenAnimationBuilder(
-                          tween: Tween<double>(begin: 0, end: 1),
-                          duration: const Duration(milliseconds: 400),
-                          curve: Curves.easeOut,
-                          builder: (context, value, child) {
-                            return Transform.translate(
-                              offset: Offset(
-                                msg.isMe
-                                    ? (1 - value) * 50
-                                    : -(1 - value) * 50,
-                                0,
-                              ),
-                              child: Opacity(
-                                opacity: value,
-                                child: child,
-                              ),
-                            );
-                          },
-                          child: ChatBubble(message: msg),
-                        ),
-                      );
+                      return ChatBubble(message: messages[index]);
                     },
                   ),
                 ),
 
-                /// typing
-                if (isTyping)
-                  const Padding(
-                    padding: EdgeInsets.only(left: 20, bottom: 8),
-                    child: TypingIndicator(),
-                  ),
+                const Padding(
+                  padding: EdgeInsets.only(left: 20, bottom: 8),
+                  child: TypingIndicator(),
+                ),
 
-                ChatInput(onSend: sendMessage),
+                ChatInput(onSend: (_) {}),
               ],
             ),
           ),
@@ -144,56 +75,128 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  /// 💣 الهيدر الجديد (المهم)
   Widget _header() {
-    return ClipRRect(
-      borderRadius:
-          const BorderRadius.vertical(bottom: Radius.circular(30)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          color: Colors.white.withOpacity(0.05),
-          child: Row(
-            children: const [
-              CircleAvatar(
-                radius: 22,
-                backgroundImage:
-                    NetworkImage("https://i.pravatar.cc/100"),
-              ),
-              SizedBox(width: 12),
-              Text(
-                "Daniel Garcia",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+    return SizedBox(
+      height: 120,
+      child: Stack(
+        children: [
+          /// 🔵 الخلفية المنحنية
+          Positioned.fill(
+            child: ClipPath(
+              clipper: HeaderClipper(),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.blue.withOpacity(0.25),
+                        Colors.transparent,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    color: Colors.white.withOpacity(0.05),
+                  ),
                 ),
               ),
-              Spacer(),
-              Icon(Icons.call, color: Colors.white),
-              SizedBox(width: 10),
-              Icon(Icons.videocam, color: Colors.white),
-            ],
+            ),
           ),
-        ),
+
+          /// 🔵 Glow فوق
+          Positioned(
+            top: -40,
+            left: -40,
+            child: _glow(200),
+          ),
+
+          /// 👤 المحتوى
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: const [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundImage:
+                      NetworkImage("https://i.pravatar.cc/100"),
+                ),
+                SizedBox(width: 12),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Daniel Garcia",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      "Online",
+                      style: TextStyle(
+                        color: Colors.greenAccent,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+                Spacer(),
+                Icon(Icons.call, color: Colors.white),
+                SizedBox(width: 10),
+                Icon(Icons.videocam, color: Colors.white),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
+  /// 🔵 Glow
   Widget _glow(double size) {
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: const Color(0xFF3B82F6).withOpacity(0.05),
+        color: Colors.blue.withOpacity(0.05),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF3B82F6).withOpacity(0.25),
-            blurRadius: 160,
-            spreadRadius: 40,
+            color: Colors.blue.withOpacity(0.3),
+            blurRadius: 200,
+            spreadRadius: 50,
           ),
         ],
       ),
     );
   }
+}
+
+/// 🔥 الشكل المنحني
+class HeaderClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    Path path = Path();
+
+    path.lineTo(0, size.height - 30);
+
+    path.quadraticBezierTo(
+      size.width / 2,
+      size.height + 40,
+      size.width,
+      size.height - 30,
+    );
+
+    path.lineTo(size.width, 0);
+    path.close();
+
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
