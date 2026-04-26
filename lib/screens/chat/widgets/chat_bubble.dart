@@ -37,7 +37,8 @@ class _ChatBubbleState extends State<ChatBubble>
     final isMe = widget.message.isMe;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      /// ✅ زيادة المسافة بين الرسائل
+      padding: const EdgeInsets.symmetric(vertical: 9),
       child: Row(
         mainAxisAlignment:
             isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -76,11 +77,12 @@ class _ChatBubbleState extends State<ChatBubble>
     final time =
         "${message.time.hour}:${message.time.minute.toString().padLeft(2, '0')}";
 
+    /// ✅ BorderRadius 30 ناعم
     final radius = BorderRadius.only(
-      topLeft: const Radius.circular(22),
-      topRight: const Radius.circular(22),
-      bottomLeft: Radius.circular(isMe ? 22 : 6),
-      bottomRight: Radius.circular(isMe ? 6 : 22),
+      topLeft: const Radius.circular(30),
+      topRight: const Radius.circular(30),
+      bottomLeft: Radius.circular(isMe ? 30 : 8),
+      bottomRight: Radius.circular(isMe ? 8 : 30),
     );
 
     return Container(
@@ -102,9 +104,10 @@ class _ChatBubbleState extends State<ChatBubble>
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
           child: Container(
+            /// ✅ Inner padding أكبر
             padding: message.type == MessageType.image
                 ? EdgeInsets.zero
-                : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                : const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
               borderRadius: radius,
               gradient: isMe
@@ -124,11 +127,10 @@ class _ChatBubbleState extends State<ChatBubble>
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
+              /// ✅ Glassmorphism border
               border: Border.all(
-                color: isMe
-                    ? const Color(0xFF3B82F6).withOpacity(0.18)
-                    : Colors.white.withOpacity(0.08),
-                width: 0.8,
+                color: Colors.white.withOpacity(0.08),
+                width: 1.0,
               ),
             ),
             child: message.type == MessageType.image
@@ -216,7 +218,6 @@ class _ChatBubbleState extends State<ChatBubble>
 
         const SizedBox(width: 10),
 
-        /// Waveform متدرج أزرق/بنفسجي
         SizedBox(
           height: 32,
           width: 110,
