@@ -36,38 +36,24 @@ class _ChatBubbleState extends State<ChatBubble>
   Widget build(BuildContext context) {
     final isMe = widget.message.isMe;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 9),
-      child: Row(
-        mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (!isMe) ...[
-            _avatar(isMe),
-            const SizedBox(width: 8),
-          ],
-
-          GestureDetector(
-            onTapDown: (_) {
-              setState(() => isPressed = true);
-              HapticFeedback.lightImpact();
-            },
-            onTapUp: (_) => setState(() => isPressed = false),
-            onTapCancel: () => setState(() => isPressed = false),
-            child: AnimatedScale(
-              scale: isPressed ? 0.97 : 1,
-              duration: const Duration(milliseconds: 100),
-              child: _bubble(isMe),
-            ),
+    return Row(
+      mainAxisAlignment:
+          isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTapDown: (_) {
+            setState(() => isPressed = true);
+            HapticFeedback.lightImpact();
+          },
+          onTapUp: (_) => setState(() => isPressed = false),
+          onTapCancel: () => setState(() => isPressed = false),
+          child: AnimatedScale(
+            scale: isPressed ? 0.97 : 1,
+            duration: const Duration(milliseconds: 100),
+            child: _bubble(isMe),
           ),
-
-          if (isMe) ...[
-            const SizedBox(width: 8),
-            _avatar(isMe),
-          ],
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -76,6 +62,7 @@ class _ChatBubbleState extends State<ChatBubble>
     final time =
         "${message.time.hour}:${message.time.minute.toString().padLeft(2, '0')}";
 
+    /// ✅ 3. BorderRadius 30
     final radius = BorderRadius.only(
       topLeft: const Radius.circular(30),
       topRight: const Radius.circular(30),
@@ -84,15 +71,15 @@ class _ChatBubbleState extends State<ChatBubble>
     );
 
     return Container(
-      constraints: const BoxConstraints(maxWidth: 265),
+      constraints: const BoxConstraints(maxWidth: 280),
       decoration: BoxDecoration(
         borderRadius: radius,
         boxShadow: [
           BoxShadow(
             color: isMe
-                ? const Color(0xFF0EA5E9).withOpacity(0.20)
-                : Colors.black.withOpacity(0.20),
-            blurRadius: 24,
+                ? const Color(0xFF00E6FF).withOpacity(0.15)
+                : Colors.black.withOpacity(0.25),
+            blurRadius: 20,
             offset: const Offset(0, 6),
           ),
         ],
@@ -100,9 +87,9 @@ class _ChatBubbleState extends State<ChatBubble>
       child: ClipRRect(
         borderRadius: radius,
         child: BackdropFilter(
-          /// ✅ High blur للـ frosted glass الحقيقي
           filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
           child: Container(
+            /// ✅ 3. padding horizontal: 20, vertical: 14
             padding: message.type == MessageType.image
                 ? EdgeInsets.zero
                 : const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -111,8 +98,8 @@ class _ChatBubbleState extends State<ChatBubble>
               gradient: isMe
                   ? LinearGradient(
                       colors: [
-                        const Color(0xFF1E40AF).withOpacity(0.50),
-                        const Color(0xFF1E3A8A).withOpacity(0.35),
+                        const Color(0xFF1E40AF).withOpacity(0.55),
+                        const Color(0xFF1E3A8A).withOpacity(0.38),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -125,9 +112,9 @@ class _ChatBubbleState extends State<ChatBubble>
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-              /// ✅ White border 0.05 opacity
+              /// ✅ 3. White border 0.08
               border: Border.all(
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withOpacity(0.08),
                 width: 1.0,
               ),
             ),
@@ -170,7 +157,7 @@ class _ChatBubbleState extends State<ChatBubble>
           child: Image.network(
             widget.message.imageUrl!,
             height: 170,
-            width: 240,
+            width: 260,
             fit: BoxFit.cover,
           ),
         ),
@@ -188,13 +175,12 @@ class _ChatBubbleState extends State<ChatBubble>
                   color: Colors.black.withOpacity(0.4),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withOpacity(0.08),
                   ),
                 ),
                 child: Text(
                   time,
-                  style: const TextStyle(
-                      color: Colors.white70, fontSize: 10),
+                  style: const TextStyle(color: Colors.white70, fontSize: 10),
                 ),
               ),
             ),
@@ -216,7 +202,7 @@ class _ChatBubbleState extends State<ChatBubble>
               shape: BoxShape.circle,
               color: Colors.white.withOpacity(0.10),
               border: Border.all(
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withOpacity(0.08),
               ),
             ),
             child: Icon(
@@ -244,7 +230,7 @@ class _ChatBubbleState extends State<ChatBubble>
                       : _staticHeight(i);
                   final t = i / 19;
                   final color = Color.lerp(
-                    const Color(0xFF38BDF8),
+                    const Color(0xFF00E6FF),
                     const Color(0xFF818CF8),
                     t,
                   )!.withOpacity(isPlaying ? 0.95 : 0.60);
@@ -312,49 +298,9 @@ class _ChatBubbleState extends State<ChatBubble>
         break;
       case MessageStatus.seen:
         icon = Icons.done_all;
-        color = const Color(0xFF38BDF8);
+        color = const Color(0xFF00E6FF);
         break;
     }
     return Icon(icon, size: 13, color: color);
-  }
-
-  Widget _avatar(bool isMe) {
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          colors: isMe
-              ? [const Color(0xFF3B82F6), const Color(0xFF8B5CF6)]
-              : [const Color(0xFFEC4899), const Color(0xFF8B5CF6)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isMe
-                ? const Color(0xFF3B82F6).withOpacity(0.45)
-                : const Color(0xFF8B5CF6).withOpacity(0.45),
-            blurRadius: 14,
-            spreadRadius: 1,
-          ),
-        ],
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(1.5),
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          color: Color(0xFF050505),
-        ),
-        child: CircleAvatar(
-          radius: 17,
-          backgroundImage: NetworkImage(
-            isMe
-                ? "https://i.pravatar.cc/150?img=12"
-                : "https://i.pravatar.cc/150?img=8",
-          ),
-        ),
-      ),
-    );
   }
 }
