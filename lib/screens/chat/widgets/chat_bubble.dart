@@ -5,7 +5,6 @@ import '../models/message_model.dart';
 
 class ChatBubble extends StatefulWidget {
   final Message message;
-
   const ChatBubble({super.key, required this.message});
 
   @override
@@ -23,7 +22,7 @@ class _ChatBubbleState extends State<ChatBubble>
     super.initState();
     _waveController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 1200),
     )..repeat();
   }
 
@@ -38,7 +37,7 @@ class _ChatBubbleState extends State<ChatBubble>
     final isMe = widget.message.isMe;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment:
             isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -46,7 +45,7 @@ class _ChatBubbleState extends State<ChatBubble>
         children: [
           if (!isMe) ...[
             _avatar(isMe),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
           ],
 
           GestureDetector(
@@ -64,7 +63,7 @@ class _ChatBubbleState extends State<ChatBubble>
           ),
 
           if (isMe) ...[
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             _avatar(isMe),
           ],
         ],
@@ -77,90 +76,74 @@ class _ChatBubbleState extends State<ChatBubble>
     final time =
         "${message.time.hour}:${message.time.minute.toString().padLeft(2, '0')}";
 
+    final radius = BorderRadius.only(
+      topLeft: const Radius.circular(22),
+      topRight: const Radius.circular(22),
+      bottomLeft: Radius.circular(isMe ? 22 : 6),
+      bottomRight: Radius.circular(isMe ? 6 : 22),
+    );
+
     return Container(
       constraints: const BoxConstraints(maxWidth: 270),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(22),
-          topRight: const Radius.circular(22),
-          bottomLeft: Radius.circular(isMe ? 22 : 6),
-          bottomRight: Radius.circular(isMe ? 6 : 22),
-        ),
+        borderRadius: radius,
         boxShadow: [
           BoxShadow(
             color: isMe
-                ? const Color(0xFF3B82F6).withOpacity(0.25)
-                : Colors.black.withOpacity(0.2),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
+                ? const Color(0xFF3B82F6).withOpacity(0.3)
+                : Colors.black.withOpacity(0.25),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(22),
-          topRight: const Radius.circular(22),
-          bottomLeft: Radius.circular(isMe ? 22 : 6),
-          bottomRight: Radius.circular(isMe ? 6 : 22),
-        ),
+        borderRadius: radius,
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+          filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: message.type == MessageType.image
+                ? EdgeInsets.zero
+                : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
+              borderRadius: radius,
               gradient: isMe
                   ? LinearGradient(
                       colors: [
-                        const Color(0xFF3B82F6).withOpacity(0.35),
-                        const Color(0xFF1E40AF).withOpacity(0.25),
+                        const Color(0xFF2563EB).withOpacity(0.45),
+                        const Color(0xFF1E3A8A).withOpacity(0.35),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     )
                   : LinearGradient(
                       colors: [
-                        Colors.white.withOpacity(0.08),
-                        Colors.white.withOpacity(0.03),
+                        Colors.white.withOpacity(0.09),
+                        Colors.white.withOpacity(0.04),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
               border: Border.all(
                 color: isMe
-                    ? Colors.blue.withOpacity(0.15)
-                    : Colors.white.withOpacity(0.07),
+                    ? const Color(0xFF3B82F6).withOpacity(0.2)
+                    : Colors.white.withOpacity(0.08),
+                width: 0.8,
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (message.type == MessageType.image)
-                  _image()
-                else if (message.type == MessageType.voice)
-                  _voice()
-                else
-                  _text(),
-
-                const SizedBox(height: 5),
-
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      time,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.3),
-                        fontSize: 10,
-                      ),
-                    ),
-                    if (message.isMe) ...[
-                      const SizedBox(width: 4),
-                      _statusIcon(),
+            child: message.type == MessageType.image
+                ? _imageWithTime(time)
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (message.type == MessageType.voice)
+                        _voice()
+                      else
+                        _text(),
+                      const SizedBox(height: 5),
+                      _timeRow(time, isMe),
                     ],
-                  ],
-                ),
-              ],
-            ),
+                  ),
           ),
         ),
       ),
@@ -173,21 +156,40 @@ class _ChatBubbleState extends State<ChatBubble>
       style: const TextStyle(
         color: Colors.white,
         fontSize: 14.5,
-        height: 1.4,
+        height: 1.45,
         letterSpacing: 0.1,
       ),
     );
   }
 
-  Widget _image() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: Image.network(
-        widget.message.imageUrl!,
-        height: 140,
-        width: 200,
-        fit: BoxFit.cover,
-      ),
+  Widget _imageWithTime(String time) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: Image.network(
+            widget.message.imageUrl!,
+            height: 160,
+            width: 230,
+            fit: BoxFit.cover,
+          ),
+        ),
+        Positioned(
+          bottom: 8,
+          right: 10,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.45),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              time,
+              style: const TextStyle(color: Colors.white70, fontSize: 10),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -195,47 +197,64 @@ class _ChatBubbleState extends State<ChatBubble>
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        /// زر Play
         GestureDetector(
           onTap: () => setState(() => isPlaying = !isPlaying),
           child: Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.15),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              gradient: LinearGradient(
+                colors: [
+                  Colors.white.withOpacity(0.18),
+                  Colors.white.withOpacity(0.08),
+                ],
+              ),
+              border: Border.all(color: Colors.white.withOpacity(0.15)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.05),
+                  blurRadius: 8,
+                ),
+              ],
             ),
             child: Icon(
               isPlaying ? Icons.pause : Icons.play_arrow,
               color: Colors.white,
-              size: 18,
+              size: 20,
             ),
           ),
         ),
+
         const SizedBox(width: 10),
 
-        /// Animated Waveform
+        /// Waveform متدرج
         SizedBox(
-          height: 28,
-          width: 100,
+          height: 32,
+          width: 110,
           child: AnimatedBuilder(
             animation: _waveController,
             builder: (_, __) {
               return Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
-                children: List.generate(16, (i) {
-                  final phase = (_waveController.value + i * 0.07) % 1.0;
-                  final height = isPlaying
-                      ? 4 + (phase < 0.5 ? phase : 1 - phase) * 20
-                      : (i % 4 + 1) * 4.0;
+                children: List.generate(20, (i) {
+                  final phase = (_waveController.value + i * 0.06) % 1.0;
+                  final animated = isPlaying
+                      ? 4 + (phase < 0.5 ? phase : 1 - phase) * 22
+                      : _staticHeight(i);
+                  final t = i / 20;
+                  final color = Color.lerp(
+                    const Color(0xFF60A5FA),
+                    const Color(0xFF8B5CF6),
+                    t,
+                  )!.withOpacity(isPlaying ? 0.9 : 0.5);
+
                   return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 1.2),
+                    margin: const EdgeInsets.symmetric(horizontal: 1),
                     width: 2.5,
-                    height: height,
+                    height: animated,
                     decoration: BoxDecoration(
-                      color: isPlaying
-                          ? Colors.white.withOpacity(0.85)
-                          : Colors.white.withOpacity(0.4),
+                      color: color,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   );
@@ -248,8 +267,33 @@ class _ChatBubbleState extends State<ChatBubble>
         const SizedBox(width: 8),
         const Text(
           "2:45",
-          style: TextStyle(color: Colors.white60, fontSize: 10),
+          style: TextStyle(color: Colors.white60, fontSize: 11),
         ),
+      ],
+    );
+  }
+
+  double _staticHeight(int i) {
+    final heights = [6, 10, 16, 8, 20, 12, 18, 6, 14, 22,
+                     10, 18, 8, 16, 6, 20, 12, 8, 16, 10];
+    return heights[i % heights.length].toDouble();
+  }
+
+  Widget _timeRow(String time, bool isMe) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          time,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.3),
+            fontSize: 10,
+          ),
+        ),
+        if (isMe) ...[
+          const SizedBox(width: 4),
+          _statusIcon(),
+        ],
       ],
     );
   }
@@ -257,7 +301,6 @@ class _ChatBubbleState extends State<ChatBubble>
   Widget _statusIcon() {
     IconData icon;
     Color color;
-
     switch (widget.message.status) {
       case MessageStatus.sent:
         icon = Icons.check;
@@ -272,39 +315,43 @@ class _ChatBubbleState extends State<ChatBubble>
         color = const Color(0xFF60A5FA);
         break;
     }
-
     return Icon(icon, size: 13, color: color);
   }
 
   Widget _avatar(bool isMe) {
     return Container(
+      padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: isMe
+              ? [const Color(0xFF3B82F6), const Color(0xFF8B5CF6)]
+              : [const Color(0xFFEC4899), const Color(0xFF8B5CF6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         boxShadow: [
           BoxShadow(
             color: isMe
-                ? Colors.blue.withOpacity(0.5)
-                : Colors.purpleAccent.withOpacity(0.4),
-            blurRadius: 14,
+                ? const Color(0xFF3B82F6).withOpacity(0.5)
+                : const Color(0xFF8B5CF6).withOpacity(0.5),
+            blurRadius: 16,
             spreadRadius: 1,
           ),
         ],
       ),
-      child: CircleAvatar(
-        radius: 20,
-        backgroundColor: Colors.transparent,
-        child: ClipOval(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isMe
-                    ? [const Color(0xFF3B82F6), const Color(0xFF8B5CF6)]
-                    : [const Color(0xFFEC4899), const Color(0xFF8B5CF6)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: const Icon(Icons.person, color: Colors.white, size: 22),
+      child: Container(
+        padding: const EdgeInsets.all(1.5),
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: Color(0xFF060818),
+        ),
+        child: CircleAvatar(
+          radius: 18,
+          backgroundImage: NetworkImage(
+            isMe
+                ? "https://i.pravatar.cc/150?img=12"
+                : "https://i.pravatar.cc/150?img=8",
           ),
         ),
       ),
