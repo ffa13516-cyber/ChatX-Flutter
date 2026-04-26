@@ -9,7 +9,7 @@ class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
   @override
- State<ChatScreen> createState() => _ChatScreenState();
+  State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
@@ -25,23 +25,71 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          /// 🔥 Background
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF020617),
-                  Color(0xFF020617),
-                ],
+          /// 💣 BACKGROUND (احترافي)
+          Stack(
+            children: [
+              /// Base gradient
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xFF01030A),
+                      Color(0xFF020617),
+                      Color(0xFF030A1A),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
               ),
-            ),
-          ),
 
-          /// 🔵 Glow كبير (يمين فوق)
-          Positioned(
-            top: -200,
-            right: -150,
-            child: _glow(400),
+              /// Glow كبير (يمين فوق)
+              Positioned(
+                top: -250,
+                right: -150,
+                child: _glow(450),
+              ),
+
+              /// Glow تحت
+              Positioned(
+                bottom: -200,
+                left: -100,
+                child: Container(
+                  width: 300,
+                  height: 300,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.blue.withOpacity(0.04),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(0.15),
+                        blurRadius: 180,
+                        spreadRadius: 40,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              /// الموجة
+              Positioned.fill(
+                child: ClipPath(
+                  clipper: BackgroundWaveClipper(),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.blue.withOpacity(0.15),
+                          Colors.transparent,
+                        ],
+                        begin: Alignment.topRight,
+                        end: Alignment.bottomLeft,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
 
           SafeArea(
@@ -75,13 +123,13 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  /// 💣 الهيدر بعد التعديل
+  /// 💣 HEADER
   Widget _header() {
     return SizedBox(
       height: 130,
       child: Stack(
         children: [
-          /// 🔥 طبقة glass
+          /// Glass layer
           Positioned.fill(
             child: ClipPath(
               clipper: HeaderClipper(),
@@ -94,7 +142,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔵 طبقة الإضاءة (من اليمين)
+          /// Light layer (يمين)
           Positioned.fill(
             child: ClipPath(
               clipper: HeaderClipper(),
@@ -113,19 +161,18 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔵 glow صغير من اليمين
+          /// Glow
           Positioned(
             top: -60,
             right: -60,
             child: _glow(250),
           ),
 
-          /// 👤 المحتوى
+          /// Content
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                /// avatar + glow
                 Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
@@ -182,7 +229,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  /// 🔵 glow
+  /// Glow
   Widget _glow(double size) {
     return Container(
       width: size,
@@ -202,7 +249,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-/// 🔥 الانحناءة
+/// Header curve
 class HeaderClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
@@ -218,6 +265,32 @@ class HeaderClipper extends CustomClipper<Path> {
     );
 
     path.lineTo(size.width, 0);
+    path.close();
+
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+/// Background wave
+class BackgroundWaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    Path path = Path();
+
+    path.moveTo(0, size.height * 0.25);
+
+    path.quadraticBezierTo(
+      size.width * 0.5,
+      size.height * 0.35,
+      size.width,
+      size.height * 0.25,
+    );
+
+    path.lineTo(size.width, 0);
+    path.lineTo(0, 0);
     path.close();
 
     return path;
