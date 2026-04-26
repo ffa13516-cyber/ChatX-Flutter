@@ -47,21 +47,20 @@ class _ChatScreenState extends State<ChatScreen> {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      /// ✅ 1. Pure Black
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          /// ✅ 1. Base - Pure Black
+          /// ── 1. Pure Black Base ──
           Container(
             width: double.infinity,
             height: double.infinity,
             color: Colors.black,
           ),
 
-          /// ✅ 1. ONE Radial Glow - Top Center فقط
+          /// ── 1. ONE Glow - Top Center فقط ──
           Positioned(
-            top: -120,
-            left: size.width * 0.5 - 200,
+            top: -150,
+            left: size.width / 2 - 200,
             child: Container(
               width: 400,
               height: 400,
@@ -69,21 +68,24 @@ class _ChatScreenState extends State<ChatScreen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFF00E6FF).withOpacity(0.45),
-                    const Color(0xFF0099CC).withOpacity(0.20),
+                    const Color(0xFF00E6FF).withOpacity(0.50),
+                    const Color(0xFF0099BB).withOpacity(0.25),
                     Colors.transparent,
                   ],
-                  stops: const [0.0, 0.5, 1.0],
+                  stops: const [0.0, 0.4, 1.0],
                 ),
-              ),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
-                child: const SizedBox(),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF00E6FF).withOpacity(0.25),
+                    blurRadius: 180,
+                    spreadRadius: 40,
+                  ),
+                ],
               ),
             ),
           ),
 
-          /// ✅ CONTENT
+          /// ── CONTENT ──
           SafeArea(
             child: Column(
               children: [
@@ -92,7 +94,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: ListView.builder(
                     controller: _controller,
-                    /// ✅ 4. horizontal padding 20
+                    /// ✅ 3. horizontal padding 20
                     padding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 12),
                     itemCount: messages.length,
@@ -100,7 +102,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       return Column(
                         children: [
                           ChatBubble(message: messages[index]),
-                          /// ✅ 4. spacing بين الرسائل
+                          /// ✅ 3. spacing 18
                           const SizedBox(height: 18),
                         ],
                       );
@@ -178,14 +180,8 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Container(
           padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.white.withOpacity(0.06),
-                Colors.white.withOpacity(0.02),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            /// ✅ هيدر شفاف بدون teal/green
+            color: Colors.white.withOpacity(0.04),
             border: Border(
               bottom: BorderSide(color: Colors.white.withOpacity(0.06)),
             ),
@@ -196,17 +192,18 @@ class _ChatScreenState extends State<ChatScreen> {
               Stack(
                 alignment: Alignment.center,
                 children: [
-                  /// Glow خلف الصورة
                   Container(
-                    width: 60,
-                    height: 60,
+                    width: 64,
+                    height: 64,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          const Color(0xFF8B5CF6).withOpacity(0.6),
+                          const Color(0xFF00E6FF).withOpacity(0.35),
+                          const Color(0xFF8B5CF6).withOpacity(0.20),
                           Colors.transparent,
                         ],
+                        stops: const [0.0, 0.5, 1.0],
                       ),
                     ),
                   ),
