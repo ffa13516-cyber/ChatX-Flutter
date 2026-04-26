@@ -20,12 +20,7 @@ class _ChatScreenState extends State<ChatScreen> {
       isMe: false,
       status: MessageStatus.seen,
     ),
-    Message(
-      text: "",
-      isMe: false,
-      type: MessageType.image,
-      imageUrl: "https://picsum.photos/seed/chat/400/300",
-    ),
+    Message(text: "", isMe: false, type: MessageType.image, imageUrl: "https://picsum.photos/seed/chat/400/300"),
     Message(text: "", isMe: false, type: MessageType.voice),
     Message(text: "Good Concepts!", isMe: true, status: MessageStatus.seen),
   ];
@@ -47,41 +42,67 @@ class _ChatScreenState extends State<ChatScreen> {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF050505),
       body: Stack(
         children: [
-          /// ── 1. Pure Black Base ──
+          /// ── Layer 1: Solid Dark Base ──
           Container(
             width: double.infinity,
             height: double.infinity,
-            color: Colors.black,
+            color: const Color(0xFF050505),
           ),
 
-          /// ── 1. ONE Glow - Top Center فقط ──
+          /// ── Layer 2: Cyan Orb - upper right ──
           Positioned(
-            top: -150,
-            left: size.width / 2 - 200,
+            top: -100,
+            right: -60,
             child: Container(
-              width: 400,
-              height: 400,
+              width: 320,
+              height: 320,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    const Color(0xFF00E6FF).withOpacity(0.50),
-                    const Color(0xFF0099BB).withOpacity(0.25),
-                    Colors.transparent,
-                  ],
-                  stops: const [0.0, 0.4, 1.0],
-                ),
+                color: Colors.transparent,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF00E6FF).withOpacity(0.25),
+                    color: const Color(0xFF00E6FF).withOpacity(0.28),
                     blurRadius: 180,
                     spreadRadius: 40,
                   ),
                 ],
               ),
+            ),
+          ),
+
+          /// ── Layer 2: Cyan Orb - upper center ──
+          Positioned(
+            top: -80,
+            left: size.width * 0.5 - 150,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.transparent,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0099BB).withOpacity(0.18),
+                    blurRadius: 180,
+                    spreadRadius: 30,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          /// ── Layer 3: BackdropFilter للـ smoothness ──
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: size.height * 0.45,
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+              child: Container(color: Colors.transparent),
             ),
           ),
 
@@ -94,7 +115,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: ListView.builder(
                     controller: _controller,
-                    /// ✅ 3. horizontal padding 20
                     padding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 12),
                     itemCount: messages.length,
@@ -102,7 +122,6 @@ class _ChatScreenState extends State<ChatScreen> {
                       return Column(
                         children: [
                           ChatBubble(message: messages[index]),
-                          /// ✅ 3. spacing 18
                           const SizedBox(height: 18),
                         ],
                       );
@@ -154,15 +173,10 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.white.withOpacity(0.06),
-                Colors.white.withOpacity(0.02),
-              ],
-            ),
+            color: const Color(0xFF0A0A0A).withOpacity(0.8),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Colors.white.withOpacity(0.08),
+              color: Colors.white.withOpacity(0.06),
               width: 1.0,
             ),
           ),
@@ -180,7 +194,6 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Container(
           padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
           decoration: BoxDecoration(
-            /// ✅ هيدر شفاف بدون teal/green
             color: Colors.white.withOpacity(0.04),
             border: Border(
               bottom: BorderSide(color: Colors.white.withOpacity(0.06)),
@@ -188,19 +201,19 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           child: Row(
             children: [
-              /// ✅ 6. Avatar مع radial glow بدل الـ ring
+              /// ✅ Avatar مع radial glow
               Stack(
                 alignment: Alignment.center,
                 children: [
                   Container(
-                    width: 64,
-                    height: 64,
+                    width: 70,
+                    height: 70,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          const Color(0xFF00E6FF).withOpacity(0.35),
-                          const Color(0xFF8B5CF6).withOpacity(0.20),
+                          const Color(0xFF00E6FF).withOpacity(0.30),
+                          const Color(0xFF7C3AED).withOpacity(0.15),
                           Colors.transparent,
                         ],
                         stops: const [0.0, 0.5, 1.0],
@@ -241,6 +254,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
               const Spacer(),
 
+              /// ✅ أيقونات أكبر
               _headerIcon(Icons.videocam_outlined),
               const SizedBox(width: 10),
               _headerIcon(Icons.call_outlined),
@@ -256,7 +270,7 @@ class _ChatScreenState extends State<ChatScreen> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          padding: const EdgeInsets.all(9),
+          padding: const EdgeInsets.all(11),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.white.withOpacity(0.08),
@@ -265,7 +279,7 @@ class _ChatScreenState extends State<ChatScreen> {
               width: 1.0,
             ),
           ),
-          child: Icon(icon, color: Colors.white70, size: 20),
+          child: Icon(icon, color: Colors.white70, size: 22),
         ),
       ),
     );
