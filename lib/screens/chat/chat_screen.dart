@@ -113,6 +113,50 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
+          /// 🔥 TOP FADE (الجديد)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 120,
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      const Color(0xFF020617),
+                      const Color(0xFF020617).withOpacity(0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          /// 🔥 BOTTOM FADE (الجديد)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 140,
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      const Color(0xFF030712),
+                      const Color(0xFF030712).withOpacity(0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
           /// Content
           SafeArea(
             child: Column(
@@ -182,7 +226,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  /// ✅ الهيدر النهائي
   Widget _header() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -194,8 +237,6 @@ class _ChatScreenState extends State<ChatScreen> {
             padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(26),
-
-              /// gradient أخف
               gradient: LinearGradient(
                 colors: [
                   Colors.white.withOpacity(0.10),
@@ -204,11 +245,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-
               border: Border.all(
                 color: Colors.white.withOpacity(0.08),
               ),
-
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.18),
