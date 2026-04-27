@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'models/message_model.dart';
 import 'widgets/chat_input.dart';
 import 'widgets/chat_bubble.dart';
-import 'widgets/typing_indicator.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -135,13 +134,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
 
-                Padding(
-                  padding: const EdgeInsets.only(left: 20, bottom: 6),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: _typingBubble(),
-                  ),
-                ),
+                /// ❌ تم حذف typing indicator
 
                 ChatInput(onSend: (text) {
                   setState(() {
@@ -202,7 +195,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// ✅ الهيدر Floating صح
+          /// HEADER (Floating)
           Positioned(
             top: 0,
             left: 0,
@@ -212,26 +205,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _typingBubble() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0A0A0A).withOpacity(0.8),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.06),
-            ),
-          ),
-          child: const TypingIndicator(),
-        ),
       ),
     );
   }
