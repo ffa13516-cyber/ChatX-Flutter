@@ -75,11 +75,20 @@ class _ChatBubbleState extends State<ChatBubble>
       decoration: BoxDecoration(
         borderRadius: radius,
         boxShadow: [
+          /// shadow عادي
           BoxShadow(
             color: Colors.black.withOpacity(0.25),
             blurRadius: 14,
             offset: const Offset(0, 6),
           ),
+
+          /// ✅ glow للرسالة بتاعتك
+          if (isMe)
+            BoxShadow(
+              color: const Color(0xFF00E6FF).withOpacity(0.25),
+              blurRadius: 20,
+              spreadRadius: -2,
+            ),
         ],
       ),
       child: ClipRRect(
@@ -95,8 +104,12 @@ class _ChatBubbleState extends State<ChatBubble>
               color: isMe
                   ? const Color(0xFF0E2230)
                   : const Color(0xFF0A0A0A),
+
+              /// ✅ border المعدل
               border: Border.all(
-                color: Colors.white.withOpacity(0.05),
+                color: isMe
+                    ? const Color(0xFF00E6FF).withOpacity(0.25)
+                    : Colors.white.withOpacity(0.05),
               ),
             ),
             child: message.type == MessageType.image
