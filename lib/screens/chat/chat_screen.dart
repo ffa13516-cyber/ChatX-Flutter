@@ -113,60 +113,16 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔥 TOP FADE (الجديد)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 120,
-            child: IgnorePointer(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      const Color(0xFF020617),
-                      const Color(0xFF020617).withOpacity(0.0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          /// 🔥 BOTTOM FADE (الجديد)
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 140,
-            child: IgnorePointer(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      const Color(0xFF030712),
-                      const Color(0xFF030712).withOpacity(0.0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          /// Content
+          /// 🔥 الرسائل + المحتوى
           SafeArea(
             child: Column(
               children: [
-                _header(),
+                const SizedBox(height: 100), // 👈 مساحة للهيدر الطافي
 
                 Expanded(
                   child: ListView.builder(
                     controller: _controller,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       return Column(
@@ -201,6 +157,58 @@ class _ChatScreenState extends State<ChatScreen> {
               ],
             ),
           ),
+
+          /// 🔥 TOP FADE
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 120,
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      const Color(0xFF020617),
+                      const Color(0xFF020617).withOpacity(0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          /// 🔥 BOTTOM FADE
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 140,
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      const Color(0xFF030712),
+                      const Color(0xFF030712).withOpacity(0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          /// 🔥 الهيدر بقى Floating
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: _header(),
+            ),
+          ),
         ],
       ),
     );
@@ -226,6 +234,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  /// الهيدر زي ما هو (مفيش تعديل)
   Widget _header() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
