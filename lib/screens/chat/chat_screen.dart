@@ -113,11 +113,11 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔥 الرسائل + المحتوى
+          /// CONTENT
           SafeArea(
             child: Column(
               children: [
-                const SizedBox(height: 100), // 👈 مساحة للهيدر الطافي
+                const SizedBox(height: 100), // مساحة للهيدر
 
                 Expanded(
                   child: ListView.builder(
@@ -158,7 +158,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔥 TOP FADE
+          /// TOP FADE
           Positioned(
             top: 0,
             left: 0,
@@ -180,7 +180,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔥 BOTTOM FADE
+          /// BOTTOM FADE
           Positioned(
             bottom: 0,
             left: 0,
@@ -202,10 +202,12 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔥 الهيدر بقى Floating
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 8),
+          /// ✅ الهيدر Floating صح
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
               child: _header(),
             ),
           ),
@@ -234,7 +236,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  /// الهيدر زي ما هو (مفيش تعديل)
+  /// الهيدر زي ما هو
   Widget _header() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
