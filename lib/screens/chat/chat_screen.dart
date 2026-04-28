@@ -39,15 +39,27 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent, // ✅ التعديل هنا بس
+      backgroundColor: Colors.black, // خلته أسود بدل شفاف كأمان للـ Layering
       body: Stack(
         children: [
 
-          /// 🔥 BACKGROUND IMAGE + BLUR
+          /// 🔥 BACKGROUND IMAGE + ERROR TRACKING
           Positioned.fill(
             child: Image.asset(
               "assets/images/bg.jpg",
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                // لو الصورة مجاتش هيطلعلك Error أحمر يقولك السبب
+                return Container(
+                  color: Colors.black,
+                  alignment: Alignment.center,
+                  child: Text(
+                    "Image Error: $error",
+                    style: const TextStyle(color: Colors.red, fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                );
+              },
             ),
           ),
 
@@ -97,7 +109,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// TOP FADE
+          /// TOP FADE (تعديل الـ Opacity عشان الصورة تبان)
           Positioned(
             top: 0,
             left: 0,
@@ -110,7 +122,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black,
+                      Colors.black.withOpacity(0.8), // بدل أسود صريح
                       Colors.black.withOpacity(0.0),
                     ],
                   ),
@@ -119,7 +131,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// BOTTOM FADE
+          /// BOTTOM FADE (تعديل الـ Opacity عشان الصورة تبان)
           Positioned(
             bottom: 0,
             left: 0,
@@ -132,7 +144,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      Colors.black,
+                      Colors.black.withOpacity(0.8), // بدل أسود صريح
                       Colors.black.withOpacity(0.0),
                     ],
                   ),
