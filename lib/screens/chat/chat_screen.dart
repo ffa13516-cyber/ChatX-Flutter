@@ -39,35 +39,26 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // خلته أسود بدل شفاف كأمان للـ Layering
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
 
-          /// 🔥 BACKGROUND IMAGE + ERROR TRACKING
+          /// 🔥 BACKGROUND IMAGE
           Positioned.fill(
             child: Image.asset(
               "assets/images/bg.jpg",
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                // لو الصورة مجاتش هيطلعلك Error أحمر يقولك السبب
-                return Container(
-                  color: Colors.black,
-                  alignment: Alignment.center,
-                  child: Text(
-                    "Image Error: $error",
-                    style: const TextStyle(color: Colors.red, fontSize: 12),
-                    textAlign: TextAlign.center,
-                  ),
-                );
-              },
             ),
           ),
 
+          /// 🔥 BLUR (FIXED)
           Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                color: Colors.black.withOpacity(0.25),
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  color: Colors.black.withOpacity(0.12),
+                ),
               ),
             ),
           ),
@@ -109,7 +100,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// TOP FADE (تعديل الـ Opacity عشان الصورة تبان)
+          /// TOP FADE
           Positioned(
             top: 0,
             left: 0,
@@ -122,7 +113,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withOpacity(0.8), // بدل أسود صريح
+                      Colors.black,
                       Colors.black.withOpacity(0.0),
                     ],
                   ),
@@ -131,7 +122,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// BOTTOM FADE (تعديل الـ Opacity عشان الصورة تبان)
+          /// BOTTOM FADE
           Positioned(
             bottom: 0,
             left: 0,
@@ -144,7 +135,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      Colors.black.withOpacity(0.8), // بدل أسود صريح
+                      Colors.black,
                       Colors.black.withOpacity(0.0),
                     ],
                   ),
