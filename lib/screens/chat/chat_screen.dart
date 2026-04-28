@@ -41,74 +41,21 @@ class _ChatScreenState extends State<ChatScreen> {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF020617),
+      backgroundColor: Colors.black,
       body: Stack(
         children: [
-          /// Background
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF020617),
-                  Color(0xFF030712),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
+
+          /// 🔥 NEW BACKGROUND (Image + Overlay)
+          Positioned.fill(
+            child: Image.asset(
+              "assets/bg.jpg",
+              fit: BoxFit.cover,
             ),
           ),
 
-          /// Blue light
-          Positioned(
-            top: -120,
-            right: -80,
+          Positioned.fill(
             child: Container(
-              width: 320,
-              height: 320,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF3B82F6).withOpacity(0.25),
-                    blurRadius: 160,
-                    spreadRadius: 30,
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          /// Cyan light
-          Positioned(
-            bottom: -120,
-            left: -60,
-            child: Container(
-              width: 260,
-              height: 260,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF06B6D4).withOpacity(0.18),
-                    blurRadius: 140,
-                    spreadRadius: 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          /// Blur layer
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: size.height * 0.5,
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-              child: Container(color: Colors.transparent),
+              color: Colors.black.withOpacity(0.25),
             ),
           ),
 
@@ -116,7 +63,7 @@ class _ChatScreenState extends State<ChatScreen> {
           SafeArea(
             child: Column(
               children: [
-                const SizedBox(height: 100), // مساحة للهيدر
+                const SizedBox(height: 100),
 
                 Expanded(
                   child: ListView.builder(
@@ -133,8 +80,6 @@ class _ChatScreenState extends State<ChatScreen> {
                     },
                   ),
                 ),
-
-                /// ❌ تم حذف typing indicator
 
                 ChatInput(onSend: (text) {
                   setState(() {
@@ -164,8 +109,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      const Color(0xFF020617),
-                      const Color(0xFF020617).withOpacity(0.0),
+                      Colors.black,
+                      Colors.black.withOpacity(0.0),
                     ],
                   ),
                 ),
@@ -186,8 +131,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      const Color(0xFF030712),
-                      const Color(0xFF030712).withOpacity(0.0),
+                      Colors.black,
+                      Colors.black.withOpacity(0.0),
                     ],
                   ),
                 ),
@@ -195,7 +140,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// HEADER (Floating)
+          /// HEADER
           Positioned(
             top: 0,
             left: 0,
@@ -209,7 +154,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  /// الهيدر زي ما هو
   Widget _header() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
