@@ -38,24 +38,25 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
 
-          /// 🔥 NEW BACKGROUND (Image + Overlay)
+          /// 🔥 BACKGROUND IMAGE + BLUR
           Positioned.fill(
             child: Image.asset(
-              "assets/bg.jpg",
+              "assets/images/bg.jpg",
               fit: BoxFit.cover,
             ),
           ),
 
           Positioned.fill(
-            child: Container(
-              color: Colors.black.withOpacity(0.25),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                color: Colors.black.withOpacity(0.25),
+              ),
             ),
           ),
 
