@@ -51,13 +51,13 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔥 BLUR (FIXED)
+          /// 🔥 BLUR (خففناه)
           Positioned.fill(
             child: ClipRect(
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Container(
-                  color: Colors.black.withOpacity(0.12),
+                  color: Colors.black.withOpacity(0.05), // 👈 كان 0.12
                 ),
               ),
             ),
@@ -100,7 +100,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// TOP FADE
+          /// TOP FADE (خففناه)
           Positioned(
             top: 0,
             left: 0,
@@ -113,8 +113,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black,
-                      Colors.black.withOpacity(0.0),
+                      Colors.black.withOpacity(0.4), // 👈 كان أسود تقيل
+                      Colors.transparent,
                     ],
                   ),
                 ),
@@ -122,7 +122,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// BOTTOM FADE
+          /// BOTTOM FADE (خففناه)
           Positioned(
             bottom: 0,
             left: 0,
@@ -135,8 +135,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      Colors.black,
-                      Colors.black.withOpacity(0.0),
+                      Colors.black.withOpacity(0.4), // 👈 كان أسود تقيل
+                      Colors.transparent,
                     ],
                   ),
                 ),
