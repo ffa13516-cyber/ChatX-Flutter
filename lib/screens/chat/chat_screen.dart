@@ -39,7 +39,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.transparent, // ✅ التعديل هنا بس
       body: Stack(
         children: [
 
