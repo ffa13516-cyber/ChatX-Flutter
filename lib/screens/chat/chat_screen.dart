@@ -8,7 +8,7 @@ class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+ State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
@@ -43,21 +43,29 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Stack(
         children: [
 
-          /// 🔥 BACKGROUND IMAGE
+          /// 🔥 BACKGROUND IMAGE (مع test)
           Positioned.fill(
             child: Image.asset(
               "assets/images/bg.jpg",
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return const Center(
+                  child: Text(
+                    "IMAGE NOT FOUND",
+                    style: TextStyle(color: Colors.red),
+                  ),
+                );
+              },
             ),
           ),
 
-          /// 🔥 BLUR (خففناه)
+          /// 🔥 BLUR
           Positioned.fill(
             child: ClipRect(
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Container(
-                  color: Colors.black.withOpacity(0.05), // 👈 كان 0.12
+                  color: Colors.black.withOpacity(0.05),
                 ),
               ),
             ),
@@ -100,7 +108,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// TOP FADE (خففناه)
+          /// TOP FADE
           Positioned(
             top: 0,
             left: 0,
@@ -113,7 +121,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withOpacity(0.4), // 👈 كان أسود تقيل
+                      Colors.black.withOpacity(0.4),
                       Colors.transparent,
                     ],
                   ),
@@ -122,7 +130,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// BOTTOM FADE (خففناه)
+          /// BOTTOM FADE
           Positioned(
             bottom: 0,
             left: 0,
@@ -135,7 +143,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      Colors.black.withOpacity(0.4), // 👈 كان أسود تقيل
+                      Colors.black.withOpacity(0.4),
                       Colors.transparent,
                     ],
                   ),
