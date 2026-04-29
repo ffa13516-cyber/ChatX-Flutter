@@ -4,7 +4,15 @@ import '../models/message_model.dart';
 
 class ChatBubble extends StatefulWidget {
   final Message message;
-  const ChatBubble({super.key, required this.message});
+
+  /// 🔥 NEW
+  final Function(Message)? onReply;
+
+  const ChatBubble({
+    super.key,
+    required this.message,
+    this.onReply, // 🔥 NEW
+  });
 
   @override
   State<ChatBubble> createState() => _ChatBubbleState();
@@ -57,6 +65,13 @@ class _ChatBubbleState extends State<ChatBubble>
           },
           onTapUp: (_) => setState(() => isPressed = false),
           onTapCancel: () => setState(() => isPressed = false),
+
+          /// 🔥 NEW: long press للريبلاي
+          onLongPress: () {
+            HapticFeedback.mediumImpact();
+            widget.onReply?.call(widget.message);
+          },
+
           child: AnimatedScale(
             scale: isPressed ? 0.97 : 1,
             duration: const Duration(milliseconds: 100),
@@ -120,7 +135,7 @@ class _ChatBubbleState extends State<ChatBubble>
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    // 🆕 Reply UI
+                    /// 🆕 Reply UI (موجود أصلاً عندك ✔️)
                     if (message.replyTo != null) _replyPreview(),
 
                     if (message.type == MessageType.voice)
@@ -137,7 +152,6 @@ class _ChatBubbleState extends State<ChatBubble>
     );
   }
 
-  // 🆕 ويدجت الريپلای
   Widget _replyPreview() {
     final reply = widget.message.replyTo!;
 
@@ -171,6 +185,8 @@ class _ChatBubbleState extends State<ChatBubble>
       ),
     );
   }
+
+  // باقي الكود زي ما هو 👇 (مفيش أي تغيير)
 
   Widget _imageWithTime(String time, BorderRadius radius) {
     return Stack(
