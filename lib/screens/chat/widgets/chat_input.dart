@@ -1,9 +1,19 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../models/message_model.dart'; // 🆕 NEW
 
 class ChatInput extends StatefulWidget {
-  final Function(String) onSend;
-  const ChatInput({super.key, required this.onSend});
+  final Function(String, Message?) onSend; // 🆕 تعديل
+
+  final Message? replyMessage; // 🆕 NEW
+  final VoidCallback? onCancelReply; // 🆕 NEW
+
+  const ChatInput({
+    super.key,
+    required this.onSend,
+    this.replyMessage,
+    this.onCancelReply,
+  });
 
   @override
   State<ChatInput> createState() => _ChatInputState();
@@ -49,121 +59,190 @@ class _ChatInputState extends State<ChatInput>
 
   void _send() {
     if (!_hasText) return;
-    widget.onSend(_controller.text.trim());
+
+    widget.onSend(
+      _controller.text.trim(),
+      widget.replyMessage, // 🆕 نبعته مع الرسالة
+    );
+
     _controller.clear();
+
+    widget.onCancelReply?.call(); // 🆕 يمسح الريبلـي بعد الإرسال
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
-
-              /// نفس vibe الهيدر
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white.withOpacity(0.08),
-                  Colors.white.withOpacity(0.02),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-
-              border: Border.all(
-                color: Colors.white.withOpacity(0.08),
-              ),
-
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.30),
-                  blurRadius: 25,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                _newButton(),
-
-                const SizedBox(width: 8),
-
-                /// INPUT
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                    ),
-                    cursorColor: const Color(0xFF00FBFF),
-                    decoration: const InputDecoration(
-                      hintText: "Type Message...",
-                      hintStyle: TextStyle(
-                        color: Colors.white38,
-                        fontSize: 14,
-                      ),
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding:
-                          EdgeInsets.symmetric(vertical: 8),
+    return Column(
+      children: [
+        /// 🆕 REPLY BAR
+        if (widget.replyMessage != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 6),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: Colors.white.withOpacity(0.05),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.06),
                     ),
                   ),
-                ),
+                  child: Row(
+                    children: [
+                      /// خط جانبي neon
+                      Container(
+                        width: 3,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00E6FF),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
 
-                const SizedBox(width: 6),
+                      const SizedBox(width: 10),
 
-                /// 🎤 / SEND (نفس المكان)
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  transitionBuilder: (child, anim) =>
-                      ScaleTransition(scale: anim, child: child),
-                  child: _hasText
-                      ? GestureDetector(
-                          key: const ValueKey("send"),
-                          onTap: _send,
-                          child: ScaleTransition(
-                            scale: _scale,
-                            child: Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFF00E6FF),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF00E6FF)
-                                        .withOpacity(0.4),
-                                    blurRadius: 14,
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.send,
-                                color: Colors.black,
-                                size: 18,
-                              ),
-                            ),
+                      /// النص
+                      Expanded(
+                        child: Text(
+                          widget.replyMessage!.text,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
                           ),
-                        )
-                      : _iconButton(Icons.mic, key: const ValueKey("mic")),
+                        ),
+                      ),
+
+                      /// زرار الغاء
+                      GestureDetector(
+                        onTap: widget.onCancelReply,
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.white54,
+                          size: 18,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
+            ),
+          ),
+
+        /// 🔽 INPUT الأساسي (زي ما هو)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white.withOpacity(0.08),
+                      Colors.white.withOpacity(0.02),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.08),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.30),
+                      blurRadius: 25,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    _newButton(),
+                    const SizedBox(width: 8),
+
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                        ),
+                        cursorColor: const Color(0xFF00FBFF),
+                        decoration: const InputDecoration(
+                          hintText: "Type Message...",
+                          hintStyle: TextStyle(
+                            color: Colors.white38,
+                            fontSize: 14,
+                          ),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding:
+                              EdgeInsets.symmetric(vertical: 8),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 6),
+
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 180),
+                      transitionBuilder: (child, anim) =>
+                          ScaleTransition(scale: anim, child: child),
+                      child: _hasText
+                          ? GestureDetector(
+                              key: const ValueKey("send"),
+                              onTap: _send,
+                              child: ScaleTransition(
+                                scale: _scale,
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: const Color(0xFF00E6FF),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF00E6FF)
+                                            .withOpacity(0.4),
+                                        blurRadius: 14,
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.send,
+                                    color: Colors.black,
+                                    size: 18,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : _iconButton(Icons.mic,
+                              key: const ValueKey("mic")),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 
   Widget _newButton() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding:
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(20),
@@ -177,7 +256,8 @@ class _ChatInputState extends State<ChatInput>
           SizedBox(width: 4),
           Text(
             "New",
-            style: TextStyle(color: Colors.white60, fontSize: 12),
+            style:
+                TextStyle(color: Colors.white60, fontSize: 12),
           ),
         ],
       ),
