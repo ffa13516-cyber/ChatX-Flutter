@@ -120,14 +120,41 @@ class _ChatBubbleState extends State<ChatBubble>
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
+                    // 🆕 Reply UI
+                    if (message.replyTo != null) _replyPreview(),
+
                     if (message.type == MessageType.voice)
                       _voice()
                     else
                       _text(),
+
                     const SizedBox(height: 4),
                     _timeRow(time, isMe),
                   ],
                 ),
+        ),
+      ),
+    );
+  }
+
+  // 🆕 ويدجت الريپلای
+  Widget _replyPreview() {
+    final reply = widget.message.replyTo!;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.25),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        reply.text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Colors.white70,
+          fontSize: 12,
         ),
       ),
     );
