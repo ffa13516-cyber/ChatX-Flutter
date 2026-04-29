@@ -43,23 +43,20 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Stack(
         children: [
 
-          /// 🔥 BACKGROUND IMAGE (اختبار)
+          /// 🔥 BACKGROUND IMAGE
           Positioned.fill(
             child: Image.asset(
               "assets/images/bg.jpg",
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return const Center(
-                  child: Text(
-                    "IMAGE NOT FOUND",
-                    style: TextStyle(color: Colors.red),
-                  ),
-                );
-              },
             ),
           ),
 
-          /// ❌ تم حذف الـ BackdropFilter هنا
+          /// 🔥 OVERLAY
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(0.30),
+            ),
+          ),
 
           /// CONTENT
           SafeArea(
@@ -111,7 +108,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withOpacity(0.4),
+                      Colors.black.withOpacity(0.35),
                       Colors.transparent,
                     ],
                   ),
@@ -133,7 +130,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      Colors.black.withOpacity(0.4),
+                      Colors.black.withOpacity(0.35),
                       Colors.transparent,
                     ],
                   ),
