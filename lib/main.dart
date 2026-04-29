@@ -19,7 +19,8 @@ class MyApp extends StatelessWidget {
       title: 'Chat App',
       theme: ThemeData.dark(),
       home: openChatDirectly
-          ? const ChatScreen()
+          // 🆕 التعديل هنا: تمرير البيانات الإجبارية لحل إيرور "Required named parameter"
+          ? const ChatScreen(chatId: "test_chat", myUid: "my_uid_123")
           : const HomeScreen(),
     );
   }
