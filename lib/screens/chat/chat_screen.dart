@@ -26,6 +26,16 @@ class _ChatScreenState extends State<ChatScreen> {
 
   final ScrollController _controller = ScrollController();
 
+  /// 🔥 NEW: حالة الريبلـي
+  Message? replyingTo;
+
+  /// 🔥 NEW: تحديد رسالة للرد
+  void setReply(Message message) {
+    setState(() {
+      replyingTo = message;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -72,7 +82,10 @@ class _ChatScreenState extends State<ChatScreen> {
                     itemBuilder: (context, index) {
                       return Column(
                         children: [
-                          ChatBubble(message: messages[index]),
+                          ChatBubble(
+                            message: messages[index],
+                            onReply: setReply, // 🔥 NEW
+                          ),
                           const SizedBox(height: 18),
                         ],
                       );
@@ -80,15 +93,25 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
 
-                ChatInput(onSend: (text) {
-                  setState(() {
-                    messages.add(Message(
-                      text: text,
-                      isMe: true,
-                      status: MessageStatus.sent,
-                    ));
-                  });
-                }),
+                ChatInput(
+                  replyingTo: replyingTo, // 🔥 NEW
+                  onCancelReply: () {
+                    setState(() => replyingTo = null);
+                  },
+                  onSend: (text) {
+                    setState(() {
+                      messages.add(
+                        Message(
+                          text: text,
+                          isMe: true,
+                          status: MessageStatus.sent,
+                          replyTo: replyingTo, // 🔥 NEW
+                        ),
+                      );
+                      replyingTo = null; // 🔥 NEW
+                    });
+                  },
+                ),
 
                 const SizedBox(height: 16),
               ],
