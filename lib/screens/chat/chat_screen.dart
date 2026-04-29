@@ -26,10 +26,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   final ScrollController _controller = ScrollController();
 
-  /// 🔥 NEW: حالة الريبلـي
   Message? replyingTo;
 
-  /// 🔥 NEW: تحديد رسالة للرد
   void setReply(Message message) {
     setState(() {
       replyingTo = message;
@@ -53,7 +51,7 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Stack(
         children: [
 
-          /// 🔥 BACKGROUND IMAGE
+          /// 🔥 BACKGROUND
           Positioned.fill(
             child: Image.asset(
               "assets/images/bg.jpg",
@@ -68,7 +66,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// CONTENT
+          /// 🔥 CONTENT (الشات بس)
           SafeArea(
             child: Column(
               children: [
@@ -77,7 +75,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: ListView.builder(
                     controller: _controller,
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+
+                    /// ✅ مهم: نزود padding تحت عشان الرسائل متستخباش
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       return Column(
@@ -92,34 +93,73 @@ class _ChatScreenState extends State<ChatScreen> {
                     },
                   ),
                 ),
-
-                /// ✅ التعديل هنا فقط
-                ChatInput(
-                  replyMessage: replyingTo, // ✅ الاسم الصح
-                  onCancelReply: () {
-                    setState(() => replyingTo = null);
-                  },
-                  onSend: (text, reply) { // ✅ استقبلنا الريبلـي
-                    setState(() {
-                      messages.add(
-                        Message(
-                          text: text,
-                          isMe: true,
-                          status: MessageStatus.sent,
-                          replyTo: reply, // ✅ استخدمناه
-                        ),
-                      );
-                      replyingTo = null;
-                    });
-                  },
-                ),
-
-                const SizedBox(height: 16),
               ],
             ),
           ),
 
-          /// TOP FADE
+          /// 🔥 INPUT FLOATING (زي الهيدر)
+          Positioned(
+            bottom: 10,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: ChatInput(
+                replyMessage: replyingTo,
+                onCancelReply: () {
+                  setState(() => replyingTo = null);
+                },
+                onSend: (text, reply) {
+                  setState(() {
+                    messages.add(
+                      Message(
+                        text: text,
+                        isMe: true,
+                        status: MessageStatus.sent,
+                        replyTo: reply,
+                      ),
+                    );
+                    replyingTo = null;
+                  });
+
+                  /// 🔥 scroll لتحت بعد الإرسال
+                  Future.delayed(const Duration(milliseconds: 100), () {
+                    if (_controller.hasClients) {
+                      _controller.animateTo(
+                        _controller.position.maxScrollExtent,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
+                      );
+                    }
+                  });
+                },
+              ),
+            ),
+          ),
+
+          /// 🔥 BOTTOM FADE (ناعم فوق الـ input)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 120,
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.45),
+                      Colors.black.withOpacity(0.20),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          /// 🔥 TOP FADE
           Positioned(
             top: 0,
             left: 0,
@@ -141,29 +181,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// BOTTOM FADE
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 140,
-            child: IgnorePointer(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Colors.black.withOpacity(0.35),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          /// HEADER
+          /// 🔥 HEADER
           Positioned(
             top: 0,
             left: 0,
