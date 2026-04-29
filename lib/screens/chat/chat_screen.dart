@@ -1,66 +1,46 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../../models/models.dart';
-import '../../repositories/firebase_repo.dart';
-import '../../widgets/chat_input.dart';
-import '../../widgets/chat_bubble.dart';
+import 'models/message_model.dart';
+import 'widgets/chat_input.dart';
+import 'widgets/chat_bubble.dart';
 
 class ChatScreen extends StatefulWidget {
-  final String? chatId;
-  final String? otherUserId;
-  final String? otherUserName;
-  final String? myUid;
-  final String? myName;
-
-  const ChatScreen({
-    super.key,
-    this.chatId,
-    this.otherUserId,
-    this.otherUserName,
-    this.myUid,
-    this.myName,
-  });
+  const ChatScreen({super.key});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  final List<Message> messages = [
+    Message(text: "Hi 👋 It's god. Yours", isMe: false, status: MessageStatus.seen),
+    Message(
+      text: "It seem we have a lot common and have a lot interest in each other 😊",
+      isMe: false,
+      status: MessageStatus.seen,
+    ),
+    Message(text: "", isMe: false, type: MessageType.image, imageUrl: "https://picsum.photos/seed/chat/400/300"),
+    Message(text: "", isMe: false, type: MessageType.voice),
+    Message(text: "Good Concepts!", isMe: true, status: MessageStatus.seen),
+  ];
+
   final ScrollController _controller = ScrollController();
 
-  MessageModel? replyingTo;
+  Message? replyingTo;
 
-  void setReply(MessageModel message) {
+  void setReply(Message message) {
     setState(() {
       replyingTo = message;
     });
   }
 
-  void _sendMessage(String text, MessageModel? reply) async {
-    if (widget.chatId == null || widget.myUid == null) return;
-
-    final msg = MessageModel(
-      messageId: '',
-      senderId: widget.myUid!,
-      senderName: widget.myName ?? '',
-      text: text,
-      timestamp: DateTime.now().millisecondsSinceEpoch,
-    );
-
-    await FirebaseRepo.sendMessage(widget.chatId!, msg);
-
-    Future.delayed(const Duration(milliseconds: 100), () {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_controller.hasClients) {
-        _controller.animateTo(
-          _controller.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+        _controller.jumpTo(_controller.position.maxScrollExtent);
       }
-    });
-
-    setState(() {
-      replyingTo = null;
     });
   }
 
@@ -86,54 +66,62 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔥 🔥 MESSAGES (REAL DATA)
+          /// 🔥 🆕 LIST FULL SCREEN (اتعدل هنا)
           Positioned.fill(
             child: SafeArea(
-              child: StreamBuilder<List<MessageModel>>(
-                stream: widget.chatId != null
-                    ? FirebaseRepo.observeMessages(widget.chatId!)
-                    : null,
-                builder: (context, snapshot) {
-                  final messages = snapshot.data ?? [];
-
-                  return ListView.builder(
-                    controller: _controller,
-                    padding: const EdgeInsets.fromLTRB(20, 120, 20, 140),
-                    itemCount: messages.length,
-                    itemBuilder: (context, index) {
-                      final msg = messages[index];
-
-                      return Column(
-                        children: [
-                          ChatBubble(
-                            message: Message(
-                              text: msg.text,
-                              isMe: msg.senderId == widget.myUid,
-                              time: DateTime.fromMillisecondsSinceEpoch(msg.timestamp),
-                              senderName: msg.senderName,
-                            ),
-                            onReply: (m) {},
-                          ),
-                          const SizedBox(height: 18),
-                        ],
-                      );
-                    },
+              child: ListView.builder(
+                controller: _controller,
+                padding: const EdgeInsets.fromLTRB(20, 120, 20, 140),
+                itemCount: messages.length,
+                itemBuilder: (context, index) {
+                  return Column(
+                    children: [
+                      ChatBubble(
+                        message: messages[index],
+                        onReply: setReply,
+                      ),
+                      const SizedBox(height: 18),
+                    ],
                   );
                 },
               ),
             ),
           ),
 
-          /// 🔥 INPUT
+          /// 🔥 INPUT FLOATING
           Positioned(
             bottom: 10,
             left: 0,
             right: 0,
             child: SafeArea(
               child: ChatInput(
-                replyMessage: null,
-                onCancelReply: () {},
-                onSend: (text, reply) => _sendMessage(text, null),
+                replyMessage: replyingTo,
+                onCancelReply: () {
+                  setState(() => replyingTo = null);
+                },
+                onSend: (text, reply) {
+                  setState(() {
+                    messages.add(
+                      Message(
+                        text: text,
+                        isMe: true,
+                        status: MessageStatus.sent,
+                        replyTo: reply,
+                      ),
+                    );
+                    replyingTo = null;
+                  });
+
+                  Future.delayed(const Duration(milliseconds: 100), () {
+                    if (_controller.hasClients) {
+                      _controller.animateTo(
+                        _controller.position.maxScrollExtent,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
+                      );
+                    }
+                  });
+                },
               ),
             ),
           ),
@@ -183,7 +171,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔥 HEADER (خد الاسم الحقيقي)
+          /// 🔥 HEADER
           Positioned(
             top: 0,
             left: 0,
@@ -219,28 +207,53 @@ class _ChatScreenState extends State<ChatScreen> {
               border: Border.all(
                 color: Colors.white.withOpacity(0.08),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.18),
+                  blurRadius: 25,
+                  offset: const Offset(0, 12),
+                ),
+              ],
             ),
             child: Row(
               children: [
-                const CircleAvatar(
-                  radius: 22,
-                  backgroundImage:
-                      NetworkImage("https://i.pravatar.cc/150?img=8"),
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            const Color(0xFF00E6FF).withOpacity(0.20),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                    const CircleAvatar(
+                      radius: 22,
+                      backgroundImage:
+                          NetworkImage("https://i.pravatar.cc/150?img=8"),
+                    ),
+                  ],
                 ),
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  children: const [
                     Text(
-                      widget.otherUserName ?? "Chat",
-                      style: const TextStyle(
+                      "Daniel Garcia",
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    const Text(
+                    SizedBox(height: 2),
+                    Text(
                       "Online",
                       style: TextStyle(
                         color: Color(0xFF22C55E),
