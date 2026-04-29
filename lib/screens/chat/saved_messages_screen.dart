@@ -4,7 +4,7 @@ import '../../models/models.dart';
 import '../../repositories/firebase_repo.dart';
 import '../../utils/app_colors.dart';
 import '../../widgets/widgets.dart';
-import '../chat/models/message_model.dart'; // ✅ أضفنا
+import '../chat/models/message_model.dart';
 
 class SavedMessagesScreen extends StatefulWidget {
   final String myUid;
@@ -27,7 +27,6 @@ class _SavedMessagesScreenState extends State<SavedMessagesScreen> {
     if (text.isEmpty) return;
     _msgController.clear();
 
-    // ✅ تعديل: Message بدل MessageModel
     final message = Message(
       text: text,
       isMe: true,
@@ -82,7 +81,6 @@ class _SavedMessagesScreenState extends State<SavedMessagesScreen> {
       body: Column(
         children: [
           Expanded(
-            // ✅ تعديل: Stream<List<Message>> مع myUid
             child: StreamBuilder<List<Message>>(
               stream: FirebaseRepo.observeMessages(_savedChatId, widget.myUid),
               builder: (context, snapshot) {
@@ -102,9 +100,9 @@ class _SavedMessagesScreenState extends State<SavedMessagesScreen> {
                     final msg = messages[i];
                     return MessageBubble(
                       text: msg.text,
-                      time: DateFormat('HH:mm').format(msg.time), // ✅ msg.time بدل timestamp
+                      time: DateFormat('HH:mm').format(msg.time),
                       isSent: true,
-                      senderName: msg.senderName,
+                      senderName: msg.senderName ?? '', // ✅ التعديل
                     );
                   },
                 );
