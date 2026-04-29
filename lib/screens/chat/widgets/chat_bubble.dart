@@ -11,7 +11,7 @@ class ChatBubble extends StatefulWidget {
   const ChatBubble({
     super.key,
     required this.message,
-    this.onReply, // 🔥 NEW
+    this.onReply,
   });
 
   @override
@@ -135,7 +135,7 @@ class _ChatBubbleState extends State<ChatBubble>
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    /// 🆕 Reply UI (موجود أصلاً عندك ✔️)
+                    /// 🆕 Reply UI
                     if (message.replyTo != null) _replyPreview(),
 
                     if (message.type == MessageType.voice)
@@ -152,8 +152,20 @@ class _ChatBubbleState extends State<ChatBubble>
     );
   }
 
+  /// ✅ التعديل هنا فقط
   Widget _replyPreview() {
     final reply = widget.message.replyTo!;
+    final isMe = reply.isMe;
+
+    String previewText;
+
+    if (reply.type == MessageType.image) {
+      previewText = "📷 Photo";
+    } else if (reply.type == MessageType.voice) {
+      previewText = "🎤 Voice message";
+    } else {
+      previewText = reply.text;
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
@@ -162,14 +174,50 @@ class _ChatBubbleState extends State<ChatBubble>
         color: Colors.black.withOpacity(0.25),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(
-        reply.text,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Colors.white70,
-          fontSize: 12,
-        ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          /// 🔥 الخط الجانبي
+          Container(
+            width: 3,
+            height: 34,
+            margin: const EdgeInsets.only(right: 6),
+            decoration: BoxDecoration(
+              color: isMe ? const Color(0xFF0A84FF) : Colors.grey,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                /// 🔥 اسم المرسل
+                if (reply.senderName != null)
+                  Text(
+                    reply.senderName!,
+                    style: TextStyle(
+                      color:
+                          isMe ? const Color(0xFF5AC8FA) : Colors.white70,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                /// 🔥 محتوى الرسالة
+                Text(
+                  previewText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -185,8 +233,6 @@ class _ChatBubbleState extends State<ChatBubble>
       ),
     );
   }
-
-  // باقي الكود زي ما هو 👇 (مفيش أي تغيير)
 
   Widget _imageWithTime(String time, BorderRadius radius) {
     return Stack(
