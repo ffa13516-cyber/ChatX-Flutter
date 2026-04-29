@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:uuid/uuid.dart';
 import '../models/models.dart';
+import 'screens/chat/models/message_model.dart'; // ✅ أضف الاستيراد ده
 
 class FirebaseRepo {
   static final _db = FirebaseDatabase.instanceFor(
