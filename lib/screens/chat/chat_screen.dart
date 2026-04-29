@@ -66,38 +66,29 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔥 CONTENT (الشات بس)
-          SafeArea(
-            child: Column(
-              children: [
-                const SizedBox(height: 100),
-
-                Expanded(
-                  child: ListView.builder(
-                    controller: _controller,
-
-                    /// ✅ مهم: نزود padding تحت عشان الرسائل متستخباش
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
-
-                    itemCount: messages.length,
-                    itemBuilder: (context, index) {
-                      return Column(
-                        children: [
-                          ChatBubble(
-                            message: messages[index],
-                            onReply: setReply,
-                          ),
-                          const SizedBox(height: 18),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ],
+          /// 🔥 🆕 LIST FULL SCREEN (اتعدل هنا)
+          Positioned.fill(
+            child: SafeArea(
+              child: ListView.builder(
+                controller: _controller,
+                padding: const EdgeInsets.fromLTRB(20, 120, 20, 140),
+                itemCount: messages.length,
+                itemBuilder: (context, index) {
+                  return Column(
+                    children: [
+                      ChatBubble(
+                        message: messages[index],
+                        onReply: setReply,
+                      ),
+                      const SizedBox(height: 18),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
 
-          /// 🔥 INPUT FLOATING (زي الهيدر)
+          /// 🔥 INPUT FLOATING
           Positioned(
             bottom: 10,
             left: 0,
@@ -121,7 +112,6 @@ class _ChatScreenState extends State<ChatScreen> {
                     replyingTo = null;
                   });
 
-                  /// 🔥 scroll لتحت بعد الإرسال
                   Future.delayed(const Duration(milliseconds: 100), () {
                     if (_controller.hasClients) {
                       _controller.animateTo(
@@ -136,7 +126,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔥 BOTTOM FADE (ناعم فوق الـ input)
+          /// 🔥 BOTTOM FADE
           Positioned(
             bottom: 0,
             left: 0,
@@ -250,9 +240,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ],
                 ),
-
                 const SizedBox(width: 12),
-
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: const [
@@ -274,9 +262,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ],
                 ),
-
                 const Spacer(),
-
                 _headerIcon(Icons.videocam_outlined),
                 const SizedBox(width: 10),
                 _headerIcon(Icons.call_outlined),
