@@ -22,7 +22,6 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _controller = ScrollController();
 
-  // 🆕 تم التعديل من MessageModel إلى Message ليتطابق مع الموديل الخاص بك
   Message? replyingTo;
 
   void setReply(Message message) {
@@ -52,12 +51,11 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔥 🆕 LIST (مربوطة بـ Firebase)
+          /// 🔥 LIST
           Positioned.fill(
             child: SafeArea(
-              // 🆕 تم التعديل لـ StreamBuilder<List<Message>>
               child: StreamBuilder<List<Message>>(
-                stream: FirebaseRepo.observeMessages(widget.chatId),
+                stream: FirebaseRepo.observeMessages(widget.chatId, widget.myUid), // ✅ التعديل الوحيد
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
@@ -65,7 +63,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
                   final messages = snapshot.data!;
 
-                  /// 🔥 auto scroll
                   if (_controller.hasClients) {
                     Future.delayed(const Duration(milliseconds: 100), () {
                       _controller.jumpTo(
@@ -82,7 +79,6 @@ class _ChatScreenState extends State<ChatScreen> {
                       return Column(
                         children: [
                           ChatBubble(
-                            // 🆕 تمرير الرسالة بشكل مباشر ليتطابق مع ChatBubble
                             message: messages[index],
                             onReply: setReply,
                           ),
@@ -110,10 +106,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 onSend: (text, reply) async {
                   await FirebaseRepo.sendMessage(
                     widget.chatId,
-                    // 🆕 استخدام كلاس Message وتمرير isMe الإجباري
                     Message(
                       text: text,
-                      isMe: true, 
+                      isMe: true,
                       senderId: widget.myUid,
                       senderName: 'Me',
                     ),
