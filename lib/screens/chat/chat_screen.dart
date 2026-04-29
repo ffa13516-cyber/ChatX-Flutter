@@ -8,7 +8,7 @@ class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
   @override
- State<ChatScreen> createState() => _ChatScreenState();
+  State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
@@ -43,7 +43,7 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Stack(
         children: [
 
-          /// 🔥 BACKGROUND IMAGE (مع test)
+          /// 🔥 BACKGROUND IMAGE (اختبار)
           Positioned.fill(
             child: Image.asset(
               "assets/images/bg.jpg",
@@ -59,17 +59,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔥 BLUR
-          Positioned.fill(
-            child: ClipRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  color: Colors.black.withOpacity(0.05),
-                ),
-              ),
-            ),
-          ),
+          /// ❌ تم حذف الـ BackdropFilter هنا
 
           /// CONTENT
           SafeArea(
