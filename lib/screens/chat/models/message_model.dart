@@ -10,6 +10,9 @@ class Message {
   final DateTime time;
   final MessageStatus status;
 
+  // 🆕 الجديد
+  final Message? replyTo;
+
   Message({
     required this.text,
     required this.isMe,
@@ -17,5 +20,8 @@ class Message {
     this.imageUrl,
     DateTime? time,
     this.status = MessageStatus.sent,
+
+    // 🆕 الجديد
+    this.replyTo,
   }) : time = time ?? DateTime.now();
 }
