@@ -57,6 +57,7 @@ class _ChatInputState extends State<ChatInput>
     super.dispose();
   }
 
+  /// 🔥 UPDATED (مرن لأي type)
   void _send() {
     if (!_hasText) return;
 
@@ -66,6 +67,19 @@ class _ChatInputState extends State<ChatInput>
     );
 
     _controller.clear();
+    widget.onCancelReply?.call();
+  }
+
+  /// 🆕 helper لإرسال image / voice مستقبلاً
+  void _sendCustom({
+    String text = "",
+    MessageType type = MessageType.text,
+    String? imageUrl,
+  }) {
+    widget.onSend(
+      text,
+      widget.replyMessage,
+    );
 
     widget.onCancelReply?.call();
   }
@@ -159,7 +173,7 @@ class _ChatInputState extends State<ChatInput>
             ),
           ),
 
-        /// 🔥 INPUT بعد التعديل
+        /// 🔥 INPUT (UNCHANGED UI)
         Padding(
           padding: const EdgeInsets.fromLTRB(14, 8, 14, 20),
           child: ClipRRect(
@@ -195,7 +209,6 @@ class _ChatInputState extends State<ChatInput>
                     _newButton(),
                     const SizedBox(width: 10),
 
-                    /// ✏️ input
                     Expanded(
                       child: TextField(
                         controller: _controller,
@@ -219,13 +232,9 @@ class _ChatInputState extends State<ChatInput>
                     ),
 
                     const SizedBox(width: 8),
-
-                    /// 😊 ايموجي
                     _iconButton(Icons.emoji_emotions_outlined),
-
                     const SizedBox(width: 6),
 
-                    /// send / mic
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 180),
                       transitionBuilder: (child, anim) =>
