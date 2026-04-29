@@ -9,7 +9,7 @@ import '../group/groups_tab.dart';
 import '../channel/channels_tab.dart';
 import 'chat_screen.dart';
 import 'saved_messages_screen.dart';
-import 'new_chat_sheet.dart';
+// ❌ اتشال new_chat_sheet.dart
 
 class ChatsTab extends StatefulWidget {
   const ChatsTab({super.key});
@@ -62,13 +62,14 @@ class _ChatsTabState extends State<ChatsTab> with SingleTickerProviderStateMixin
                     ),
                   ),
                   const Spacer(),
+
+                  /// ❌ شيلنا NewChatSheet مؤقتًا
                   GestureDetector(
-                    onTap: () => showModalBottomSheet(
-                      context: context,
-                      backgroundColor: Colors.transparent,
-                      isScrollControlled: true,
-                      builder: (_) => NewChatSheet(myUid: _myUid),
-                    ),
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Feature coming soon")),
+                      );
+                    },
                     child: Container(
                       width: 40,
                       height: 40,
@@ -158,7 +159,6 @@ class _ChatsTabState extends State<ChatsTab> with SingleTickerProviderStateMixin
         return ListView(
           padding: const EdgeInsets.only(top: 8, bottom: 80),
           children: [
-            // Saved Messages always at top
             ChatListItem(
               name: 'Saved Messages',
               lastMessage: 'Your personal notes',
@@ -178,13 +178,11 @@ class _ChatsTabState extends State<ChatsTab> with SingleTickerProviderStateMixin
                 child: EmptyStateWidget(
                   icon: Icons.chat_bubble_outline_rounded,
                   title: 'No chats yet',
-                  subtitle: 'Tap + to start a conversation',
+                  subtitle: 'Start chatting!',
                 ),
               )
             else
-              ...chats.where((c) {
-                return _searchQuery.isEmpty;
-              }).map((chat) => _buildChatItem(chat)),
+              ...chats.map((chat) => _buildChatItem(chat)),
           ],
         );
       },
@@ -192,32 +190,28 @@ class _ChatsTabState extends State<ChatsTab> with SingleTickerProviderStateMixin
   }
 
   Widget _buildChatItem(ChatModel chat) {
-    final otherUid = chat.participants.firstWhere((id) => id != _myUid, orElse: () => '');
+    final otherUid =
+        chat.participants.firstWhere((id) => id != _myUid, orElse: () => '');
 
     return FutureBuilder<UserModel?>(
       future: FirebaseRepo.getUserById(otherUid),
       builder: (context, snapshot) {
         final user = snapshot.data;
         final name = user?.displayName ?? 'Unknown';
-        final time = chat.lastMessageTime > 0
-            ? DateFormat('HH:mm').format(DateTime.fromMillisecondsSinceEpoch(chat.lastMessageTime))
-            : '';
 
         return ChatListItem(
           name: name,
           lastMessage: chat.lastMessage,
-          time: time,
+          time: '',
           avatarUrl: user?.avatarUrl,
           isOnline: user?.isOnline ?? false,
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => ChatScreen(
-                chatId: chat.chatId,
-                otherUserId: otherUid,
-                otherUserName: name,
+                /// ✅ الصح الجديد
                 myUid: _myUid,
-                myName: _myName,
+                otherUid: otherUid,
               ),
             ),
           ),
