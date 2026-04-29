@@ -32,7 +32,7 @@ jobs:
           # 2. نقل ملفاتك (الكود الخاص بيك) للمشروع الجديد
           cp -r lib temp_project/
           cp pubspec.yaml temp_project/
-          mkdir -p temp_project/assets/images
+          cp -r assets temp_project/   # ✅ ده التعديل المهم
           
           cd temp_project/android
           
