@@ -13,6 +13,9 @@ class Message {
   // 🆕 الجديد
   final Message? replyTo;
 
+  // 🆕 NEW (اسم المرسل)
+  final String? senderName;
+
   Message({
     required this.text,
     required this.isMe,
@@ -23,5 +26,8 @@ class Message {
 
     // 🆕 الجديد
     this.replyTo,
+
+    // 🆕 NEW
+    this.senderName,
   }) : time = time ?? DateTime.now();
 }
