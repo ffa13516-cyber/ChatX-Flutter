@@ -84,7 +84,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         children: [
                           ChatBubble(
                             message: messages[index],
-                            onReply: setReply, // 🔥 NEW
+                            onReply: setReply,
                           ),
                           const SizedBox(height: 18),
                         ],
@@ -93,22 +93,23 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
 
+                /// ✅ التعديل هنا فقط
                 ChatInput(
-                  replyingTo: replyingTo, // 🔥 NEW
+                  replyMessage: replyingTo, // ✅ الاسم الصح
                   onCancelReply: () {
                     setState(() => replyingTo = null);
                   },
-                  onSend: (text) {
+                  onSend: (text, reply) { // ✅ استقبلنا الريبلـي
                     setState(() {
                       messages.add(
                         Message(
                           text: text,
                           isMe: true,
                           status: MessageStatus.sent,
-                          replyTo: replyingTo, // 🔥 NEW
+                          replyTo: reply, // ✅ استخدمناه
                         ),
                       );
-                      replyingTo = null; // 🔥 NEW
+                      replyingTo = null;
                     });
                   },
                 ),
