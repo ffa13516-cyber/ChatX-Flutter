@@ -74,7 +74,7 @@ class _ChatInputState extends State<ChatInput>
   Widget build(BuildContext context) {
     return Column(
       children: [
-        /// 🆕 REPLY BAR (تم التعديل هنا فقط)
+        /// 🆕 REPLY BAR (بدون تغيير)
         if (widget.replyMessage != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 6),
@@ -107,7 +107,6 @@ class _ChatInputState extends State<ChatInput>
                       ),
                       child: Row(
                         children: [
-                          /// الخط الجانبي
                           Container(
                             width: 3,
                             height: 36,
@@ -116,10 +115,7 @@ class _ChatInputState extends State<ChatInput>
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
-
                           const SizedBox(width: 10),
-
-                          /// النص + الاسم
                           Expanded(
                             child: Column(
                               crossAxisAlignment:
@@ -134,7 +130,6 @@ class _ChatInputState extends State<ChatInput>
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-
                                 Text(
                                   previewText,
                                   maxLines: 1,
@@ -147,8 +142,6 @@ class _ChatInputState extends State<ChatInput>
                               ],
                             ),
                           ),
-
-                          /// زرار الغاء
                           GestureDetector(
                             onTap: widget.onCancelReply,
                             child: const Icon(
@@ -166,41 +159,43 @@ class _ChatInputState extends State<ChatInput>
             ),
           ),
 
-        /// 🔽 INPUT الأساسي (مفيش تغيير)
+        /// 🔥 INPUT بعد التعديل
         Padding(
-          padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 20),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(32),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+              filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(32),
                   gradient: LinearGradient(
                     colors: [
-                      Colors.white.withOpacity(0.08),
-                      Colors.white.withOpacity(0.02),
+                      Colors.white.withOpacity(0.10),
+                      Colors.white.withOpacity(0.03),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.08),
+                    color: Colors.white.withOpacity(0.15),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.30),
-                      blurRadius: 25,
-                      offset: const Offset(0, 10),
+                      color: Colors.black.withOpacity(0.35),
+                      blurRadius: 30,
+                      offset: const Offset(0, 12),
                     ),
                   ],
                 ),
                 child: Row(
                   children: [
                     _newButton(),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
+
+                    /// ✏️ input
                     Expanded(
                       child: TextField(
                         controller: _controller,
@@ -218,11 +213,19 @@ class _ChatInputState extends State<ChatInput>
                           border: InputBorder.none,
                           isDense: true,
                           contentPadding:
-                              EdgeInsets.symmetric(vertical: 8),
+                              EdgeInsets.symmetric(vertical: 10),
                         ),
                       ),
                     ),
+
+                    const SizedBox(width: 8),
+
+                    /// 😊 ايموجي
+                    _iconButton(Icons.emoji_emotions_outlined),
+
                     const SizedBox(width: 6),
+
+                    /// send / mic
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 180),
                       transitionBuilder: (child, anim) =>
@@ -296,7 +299,7 @@ class _ChatInputState extends State<ChatInput>
     return Container(
       key: key,
       padding: const EdgeInsets.all(8),
-      child: Icon(icon, color: Colors.white38, size: 20),
+      child: Icon(icon, color: Colors.white54, size: 20),
     );
   }
 }
