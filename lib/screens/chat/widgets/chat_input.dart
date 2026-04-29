@@ -1,12 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../models/message_model.dart'; // 🆕 NEW
+import '../models/message_model.dart';
 
 class ChatInput extends StatefulWidget {
-  final Function(String, Message?) onSend; // 🆕 تعديل
+  final Function(String, Message?) onSend;
 
-  final Message? replyMessage; // 🆕 NEW
-  final VoidCallback? onCancelReply; // 🆕 NEW
+  final Message? replyMessage;
+  final VoidCallback? onCancelReply;
 
   const ChatInput({
     super.key,
@@ -62,19 +62,19 @@ class _ChatInputState extends State<ChatInput>
 
     widget.onSend(
       _controller.text.trim(),
-      widget.replyMessage, // 🆕 نبعته مع الرسالة
+      widget.replyMessage,
     );
 
     _controller.clear();
 
-    widget.onCancelReply?.call(); // 🆕 يمسح الريبلـي بعد الإرسال
+    widget.onCancelReply?.call();
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        /// 🆕 REPLY BAR
+        /// 🆕 REPLY BAR (تم التعديل هنا فقط)
         if (widget.replyMessage != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 6),
@@ -82,60 +82,91 @@ class _ChatInputState extends State<ChatInput>
               borderRadius: BorderRadius.circular(16),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: Colors.white.withOpacity(0.05),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.06),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      /// خط جانبي neon
-                      Container(
-                        width: 3,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF00E6FF),
-                          borderRadius: BorderRadius.circular(4),
+                child: Builder(
+                  builder: (context) {
+                    final reply = widget.replyMessage!;
+
+                    String previewText;
+                    if (reply.type == MessageType.image) {
+                      previewText = "📷 Photo";
+                    } else if (reply.type == MessageType.voice) {
+                      previewText = "🎤 Voice message";
+                    } else {
+                      previewText = reply.text;
+                    }
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.white.withOpacity(0.05),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.06),
                         ),
                       ),
-
-                      const SizedBox(width: 10),
-
-                      /// النص
-                      Expanded(
-                        child: Text(
-                          widget.replyMessage!.text,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
+                      child: Row(
+                        children: [
+                          /// الخط الجانبي
+                          Container(
+                            width: 3,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00E6FF),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
                           ),
-                        ),
-                      ),
 
-                      /// زرار الغاء
-                      GestureDetector(
-                        onTap: widget.onCancelReply,
-                        child: const Icon(
-                          Icons.close,
-                          color: Colors.white54,
-                          size: 18,
-                        ),
+                          const SizedBox(width: 10),
+
+                          /// النص + الاسم
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                if (reply.senderName != null)
+                                  Text(
+                                    reply.senderName!,
+                                    style: const TextStyle(
+                                      color: Color(0xFF00E6FF),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+
+                                Text(
+                                  previewText,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          /// زرار الغاء
+                          GestureDetector(
+                            onTap: widget.onCancelReply,
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.white54,
+                              size: 18,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
             ),
           ),
 
-        /// 🔽 INPUT الأساسي (زي ما هو)
+        /// 🔽 INPUT الأساسي (مفيش تغيير)
         Padding(
           padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
           child: ClipRRect(
@@ -170,7 +201,6 @@ class _ChatInputState extends State<ChatInput>
                   children: [
                     _newButton(),
                     const SizedBox(width: 8),
-
                     Expanded(
                       child: TextField(
                         controller: _controller,
@@ -192,9 +222,7 @@ class _ChatInputState extends State<ChatInput>
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 6),
-
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 180),
                       transitionBuilder: (child, anim) =>
