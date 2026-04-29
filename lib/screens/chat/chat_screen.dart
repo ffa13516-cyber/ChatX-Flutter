@@ -3,27 +3,23 @@ import 'package:flutter/material.dart';
 import 'models/message_model.dart';
 import 'widgets/chat_input.dart';
 import 'widgets/chat_bubble.dart';
+import '../../repositories/firebase_repo.dart'; // 🆕 إضافة
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+  final String chatId; // 🆕
+  final String myUid;  // 🆕
+
+  const ChatScreen({
+    super.key,
+    required this.chatId,
+    required this.myUid,
+  });
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final List<Message> messages = [
-    Message(text: "Hi 👋 It's god. Yours", isMe: false, status: MessageStatus.seen),
-    Message(
-      text: "It seem we have a lot common and have a lot interest in each other 😊",
-      isMe: false,
-      status: MessageStatus.seen,
-    ),
-    Message(text: "", isMe: false, type: MessageType.image, imageUrl: "https://picsum.photos/seed/chat/400/300"),
-    Message(text: "", isMe: false, type: MessageType.voice),
-    Message(text: "Good Concepts!", isMe: true, status: MessageStatus.seen),
-  ];
-
   final ScrollController _controller = ScrollController();
 
   Message? replyingTo;
@@ -31,16 +27,6 @@ class _ChatScreenState extends State<ChatScreen> {
   void setReply(Message message) {
     setState(() {
       replyingTo = message;
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_controller.hasClients) {
-        _controller.jumpTo(_controller.position.maxScrollExtent);
-      }
     });
   }
 
@@ -66,22 +52,51 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔥 🆕 LIST FULL SCREEN (اتعدل هنا)
+          /// 🔥 🆕 LIST (مربوطة بـ Firebase)
           Positioned.fill(
             child: SafeArea(
-              child: ListView.builder(
-                controller: _controller,
-                padding: const EdgeInsets.fromLTRB(20, 120, 20, 140),
-                itemCount: messages.length,
-                itemBuilder: (context, index) {
-                  return Column(
-                    children: [
-                      ChatBubble(
-                        message: messages[index],
-                        onReply: setReply,
-                      ),
-                      const SizedBox(height: 18),
-                    ],
+              child: StreamBuilder<List<MessageModel>>(
+                stream: FirebaseRepo.observeMessages(widget.chatId),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final firebaseMessages = snapshot.data!;
+
+                  final messages = firebaseMessages.map((m) {
+                    return Message(
+                      text: m.text,
+                      isMe: m.senderId == widget.myUid,
+                      status: MessageStatus.sent,
+                      time: DateTime.fromMillisecondsSinceEpoch(m.timestamp),
+                    );
+                  }).toList();
+
+                  /// 🔥 auto scroll
+                  if (_controller.hasClients) {
+                    Future.delayed(const Duration(milliseconds: 100), () {
+                      _controller.jumpTo(
+                        _controller.position.maxScrollExtent,
+                      );
+                    });
+                  }
+
+                  return ListView.builder(
+                    controller: _controller,
+                    padding: const EdgeInsets.fromLTRB(20, 120, 20, 140),
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      return Column(
+                        children: [
+                          ChatBubble(
+                            message: messages[index],
+                            onReply: setReply,
+                          ),
+                          const SizedBox(height: 18),
+                        ],
+                      );
+                    },
                   );
                 },
               ),
@@ -99,27 +114,20 @@ class _ChatScreenState extends State<ChatScreen> {
                 onCancelReply: () {
                   setState(() => replyingTo = null);
                 },
-                onSend: (text, reply) {
-                  setState(() {
-                    messages.add(
-                      Message(
-                        text: text,
-                        isMe: true,
-                        status: MessageStatus.sent,
-                        replyTo: reply,
-                      ),
-                    );
-                    replyingTo = null;
-                  });
+                onSend: (text, reply) async {
+                  await FirebaseRepo.sendMessage(
+                    widget.chatId,
+                    MessageModel(
+                      messageId: '',
+                      senderId: widget.myUid,
+                      senderName: 'Me',
+                      text: text,
+                      timestamp: DateTime.now().millisecondsSinceEpoch,
+                    ),
+                  );
 
-                  Future.delayed(const Duration(milliseconds: 100), () {
-                    if (_controller.hasClients) {
-                      _controller.animateTo(
-                        _controller.position.maxScrollExtent,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOut,
-                      );
-                    }
+                  setState(() {
+                    replyingTo = null;
                   });
                 },
               ),
