@@ -9,7 +9,7 @@ import '../group/groups_tab.dart';
 import '../channel/channels_tab.dart';
 import 'chat_screen.dart';
 import 'saved_messages_screen.dart';
-// ❌ اتشال new_chat_sheet.dart
+import 'new_chat_sheet.dart'; // 🆕 رجعناه
 
 class ChatsTab extends StatefulWidget {
   const ChatsTab({super.key});
@@ -18,7 +18,8 @@ class ChatsTab extends StatefulWidget {
   State<ChatsTab> createState() => _ChatsTabState();
 }
 
-class _ChatsTabState extends State<ChatsTab> with SingleTickerProviderStateMixin {
+class _ChatsTabState extends State<ChatsTab>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String _myUid = '';
   String _myName = '';
@@ -48,7 +49,7 @@ class _ChatsTabState extends State<ChatsTab> with SingleTickerProviderStateMixin
       body: SafeArea(
         child: Column(
           children: [
-            // Header
+            /// HEADER
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
@@ -63,11 +64,14 @@ class _ChatsTabState extends State<ChatsTab> with SingleTickerProviderStateMixin
                   ),
                   const Spacer(),
 
-                  /// ❌ شيلنا NewChatSheet مؤقتًا
+                  /// ✏️ NEW CHAT
                   GestureDetector(
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Feature coming soon")),
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => NewChatSheet(myUid: _myUid),
                       );
                     },
                     child: Container(
@@ -77,16 +81,18 @@ class _ChatsTabState extends State<ChatsTab> with SingleTickerProviderStateMixin
                         gradient: AppColors.primaryGradient,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.edit_rounded, color: Colors.white, size: 20),
+                      child: const Icon(Icons.edit_rounded,
+                          color: Colors.white, size: 20),
                     ),
                   ),
                 ],
               ),
             ),
 
-            // Search bar
+            /// SEARCH BAR
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Container(
                 height: 40,
                 decoration: BoxDecoration(
@@ -95,20 +101,25 @@ class _ChatsTabState extends State<ChatsTab> with SingleTickerProviderStateMixin
                 ),
                 child: TextField(
                   controller: _searchController,
-                  onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
-                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                  onChanged: (v) =>
+                      setState(() => _searchQuery = v.toLowerCase()),
+                  style: const TextStyle(
+                      color: AppColors.textPrimary, fontSize: 14),
                   decoration: const InputDecoration(
                     hintText: 'Search chats...',
-                    hintStyle: TextStyle(color: AppColors.textHint, fontSize: 14),
-                    prefixIcon: Icon(Icons.search_rounded, color: AppColors.textHint, size: 20),
+                    hintStyle: TextStyle(
+                        color: AppColors.textHint, fontSize: 14),
+                    prefixIcon: Icon(Icons.search_rounded,
+                        color: AppColors.textHint, size: 20),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 10),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 10),
                   ),
                 ),
               ),
             ),
 
-            // Tabs
+            /// TABS
             TabBar(
               controller: _tabController,
               isScrollable: true,
@@ -120,8 +131,10 @@ class _ChatsTabState extends State<ChatsTab> with SingleTickerProviderStateMixin
               ),
               labelColor: AppColors.primary,
               unselectedLabelColor: AppColors.textSecondary,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              labelStyle: const TextStyle(
+                  fontWeight: FontWeight.bold, fontSize: 13),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               tabs: const [
                 Tab(text: '💬  Chats'),
                 Tab(text: '👥  Groups'),
@@ -129,7 +142,7 @@ class _ChatsTabState extends State<ChatsTab> with SingleTickerProviderStateMixin
               ],
             ),
 
-            // Tab content
+            /// CONTENT
             Expanded(
               child: TabBarView(
                 controller: _tabController,
@@ -148,7 +161,8 @@ class _ChatsTabState extends State<ChatsTab> with SingleTickerProviderStateMixin
 
   Widget _buildChatsList() {
     if (_myUid.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return const Center(
+          child: CircularProgressIndicator(color: AppColors.primary));
     }
 
     return StreamBuilder<List<ChatModel>>(
@@ -167,7 +181,8 @@ class _ChatsTabState extends State<ChatsTab> with SingleTickerProviderStateMixin
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => SavedMessagesScreen(myUid: _myUid, myName: _myName),
+                  builder: (_) => SavedMessagesScreen(
+                      myUid: _myUid, myName: _myName),
                 ),
               ),
             ),
@@ -205,16 +220,26 @@ class _ChatsTabState extends State<ChatsTab> with SingleTickerProviderStateMixin
           time: '',
           avatarUrl: user?.avatarUrl,
           isOnline: user?.isOnline ?? false,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ChatScreen(
-                /// ✅ الصح الجديد
-                myUid: _myUid,
-                otherUid: otherUid,
+
+          /// 🔥 FIXED HERE
+          onTap: () async {
+            final chat = await FirebaseRepo.getOrCreateChat(
+              _myUid,
+              otherUid,
+            );
+
+            if (!mounted) return;
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ChatScreen(
+                  chatId: chat.chatId,
+                  myUid: _myUid,
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
