@@ -8,7 +8,6 @@ class ChatBubble extends StatefulWidget {
   final Function(Message)? onReply;
   final Function(String)? onTapReply;
 
-  // 🔥 NEW
   final bool isHighlighted;
 
   const ChatBubble({
@@ -16,7 +15,7 @@ class ChatBubble extends StatefulWidget {
     required this.message,
     this.onReply,
     this.onTapReply,
-    this.isHighlighted = false, // 🔥
+    this.isHighlighted = false,
   });
 
   @override
@@ -105,8 +104,6 @@ class _ChatBubbleState extends State<ChatBubble>
       margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
         borderRadius: radius,
-
-        // 🔥 highlight glow خفيف
         boxShadow: [
           if (widget.isHighlighted)
             BoxShadow(
@@ -114,7 +111,6 @@ class _ChatBubbleState extends State<ChatBubble>
               blurRadius: 18,
               spreadRadius: 2,
             ),
-
           BoxShadow(
             color: Colors.black.withOpacity(0.22),
             blurRadius: 10,
@@ -131,9 +127,14 @@ class _ChatBubbleState extends State<ChatBubble>
           decoration: BoxDecoration(
             borderRadius: radius,
 
-            // 🔥 overlay highlight (خفيف جدًا)
-            color: widget.isHighlighted
-                ? Colors.white.withOpacity(0.08)
+            // ✅ التعديل الوحيد هنا 👇
+            color: isMe ? null : const Color(0xFF2A2A2A),
+
+            // 🔥 overlay highlight
+            foregroundDecoration: widget.isHighlighted
+                ? BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                  )
                 : null,
 
             gradient: isMe
@@ -146,10 +147,6 @@ class _ChatBubbleState extends State<ChatBubble>
                     end: Alignment.bottomRight,
                   )
                 : null,
-
-            // مهم عشان منبوّظش لون البابل
-            // لو highlighted → اللون الأساسي يفضل زي ما هو
-            // overlay بس فوقه
           ),
           child: message.type == MessageType.image
               ? _imageWithTime(time, radius)
@@ -169,6 +166,8 @@ class _ChatBubbleState extends State<ChatBubble>
       ),
     );
   }
+
+  // 👇 كل اللي تحت زي ما هو بدون أي تغيير
 
   Widget _replyPreview() {
     final reply = widget.message.replyTo!;
