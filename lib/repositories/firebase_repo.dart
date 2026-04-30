@@ -94,7 +94,11 @@ class FirebaseRepo {
       if (!event.snapshot.exists) return [];
       final map = event.snapshot.value as Map;
       return map.entries
-          .map((e) => Message.fromMap(e.value as Map, myUid))
+          .map((e) => Message.fromMap(
+                e.value as Map,
+                myUid,
+                id: e.value['messageId'], // 🔥 التعديل الوحيد
+              ))
           .toList()
         ..sort((a, b) => a.time.compareTo(b.time));
     });
