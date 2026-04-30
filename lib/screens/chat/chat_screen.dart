@@ -28,7 +28,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   List<Message> _messages = [];
 
-  // 🔥 NEW (للهايلايت)
   String? highlightedMessageId;
 
   void setReply(Message message) {
@@ -37,28 +36,32 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  // 🔥🔥🔥 UPDATED
+  /// 🔥🔥🔥 FIX النهائي
   void scrollToMessage(String id) {
-    final index = _messages.indexWhere((m) => m.id == id);
+    final key = _messageKeys[id];
 
-    if (index == -1) return;
+    if (key == null) return;
 
-    setState(() {
-      highlightedMessageId = id;
-    });
+    final context = key.currentContext;
 
-    _controller.animateTo(
-      index * 90.0,
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOut,
-    );
+    if (context != null) {
+      setState(() {
+        highlightedMessageId = id;
+      });
 
-    // 🔥 إزالة الهايلايت بعد شوية
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() => highlightedMessageId = null);
-      }
-    });
+      Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+        alignment: 0.3,
+      );
+
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          setState(() => highlightedMessageId = null);
+        }
+      });
+    }
   }
 
   @override
@@ -111,7 +114,11 @@ class _ChatScreenState extends State<ChatScreen> {
                       final msg = _messages[index];
 
                       final key = GlobalKey();
-                      _messageKeys[msg.id ?? index.toString()] = key;
+
+                      /// 🔥 FIX مهم
+                      if (msg.id != null) {
+                        _messageKeys[msg.id!] = key;
+                      }
 
                       return Column(
                         key: key,
@@ -122,8 +129,6 @@ class _ChatScreenState extends State<ChatScreen> {
                             onTapReply: (replyId) {
                               scrollToMessage(replyId);
                             },
-
-                            // 🔥 NEW
                             isHighlighted:
                                 msg.id == highlightedMessageId,
                           ),
