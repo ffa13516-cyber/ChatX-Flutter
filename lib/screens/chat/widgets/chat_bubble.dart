@@ -6,14 +6,17 @@ class ChatBubble extends StatefulWidget {
   final Message message;
 
   final Function(Message)? onReply;
-
   final Function(String)? onTapReply;
+
+  // 🔥 NEW
+  final bool isHighlighted;
 
   const ChatBubble({
     super.key,
     required this.message,
     this.onReply,
     this.onTapReply,
+    this.isHighlighted = false, // 🔥
   });
 
   @override
@@ -67,12 +70,10 @@ class _ChatBubbleState extends State<ChatBubble>
           },
           onTapUp: (_) => setState(() => isPressed = false),
           onTapCancel: () => setState(() => isPressed = false),
-
           onLongPress: () {
             HapticFeedback.mediumImpact();
             widget.onReply?.call(widget.message);
           },
-
           child: AnimatedScale(
             scale: isPressed ? 0.97 : 1,
             duration: const Duration(milliseconds: 100),
@@ -96,14 +97,24 @@ class _ChatBubbleState extends State<ChatBubble>
       bottomRight: Radius.circular(isMe ? 10 : 22),
     );
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
       constraints: BoxConstraints(
         maxWidth: MediaQuery.of(context).size.width * 0.72,
       ),
       margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
         borderRadius: radius,
+
+        // 🔥 highlight glow خفيف
         boxShadow: [
+          if (widget.isHighlighted)
+            BoxShadow(
+              color: const Color(0xFF00E6FF).withOpacity(0.35),
+              blurRadius: 18,
+              spreadRadius: 2,
+            ),
+
           BoxShadow(
             color: Colors.black.withOpacity(0.22),
             blurRadius: 10,
@@ -119,6 +130,12 @@ class _ChatBubbleState extends State<ChatBubble>
               : const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           decoration: BoxDecoration(
             borderRadius: radius,
+
+            // 🔥 overlay highlight (خفيف جدًا)
+            color: widget.isHighlighted
+                ? Colors.white.withOpacity(0.08)
+                : null,
+
             gradient: isMe
                 ? const LinearGradient(
                     colors: [
@@ -129,7 +146,10 @@ class _ChatBubbleState extends State<ChatBubble>
                     end: Alignment.bottomRight,
                   )
                 : null,
-            color: isMe ? null : const Color(0xFF2A2A2D),
+
+            // مهم عشان منبوّظش لون البابل
+            // لو highlighted → اللون الأساسي يفضل زي ما هو
+            // overlay بس فوقه
           ),
           child: message.type == MessageType.image
               ? _imageWithTime(time, radius)
@@ -137,12 +157,10 @@ class _ChatBubbleState extends State<ChatBubble>
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     if (message.replyTo != null) _replyPreview(),
-
                     if (message.type == MessageType.voice)
                       _voice()
                     else
                       _text(),
-
                     const SizedBox(height: 4),
                     _timeRow(time, isMe),
                   ],
@@ -152,7 +170,6 @@ class _ChatBubbleState extends State<ChatBubble>
     );
   }
 
-  /// ✅ التعديل هنا فقط
   Widget _replyPreview() {
     final reply = widget.message.replyTo!;
     final isMe = reply.isMe;
