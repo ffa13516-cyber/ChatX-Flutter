@@ -4,7 +4,7 @@ import '../models/message_model.dart';
 
 // 🆕🔥
 import '../services/emoji_service.dart';
-import '../pickers/emoji_sticker_picker.dart'; // 🆕
+import '../pickers/emoji_sticker_picker.dart';
 
 class ChatInput extends StatefulWidget {
   final Function(String, String?) onSend;
@@ -92,9 +92,10 @@ class _ChatInputState extends State<ChatInput>
     );
   }
 
+  /// 🔥🔥🔥 التعديل الوحيد الحقيقي
   void sendSticker(String path) {
     widget.onSend(
-      "",
+      "[sticker]$path", // 👈 هنا السحر
       widget.replyMessage?.id,
     );
 
@@ -259,7 +260,7 @@ class _ChatInputState extends State<ChatInput>
                     ),
                     const SizedBox(width: 8),
 
-                    // 🔥🔥🔥 الربط الحقيقي
+                    // 🔥 picker
                     GestureDetector(
                       onTap: () {
                         showModalBottomSheet(
