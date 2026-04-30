@@ -80,9 +80,8 @@ class FirebaseRepo {
     final msgRef = messagesRef.child(chatId).push();
 
     final data = message.toMap();
-    data['messageId'] = msgRef.key ?? _uuid.v4();
+    data['messageId'] = msgRef.key ?? _uuid.v4(); // سيبناه عادي
 
-    // 🔥 status يبدأ sent
     data['status'] = 'sent';
 
     await msgRef.set(data);
@@ -112,7 +111,7 @@ class FirebaseRepo {
     }
   }
 
-  // 🔥 Seen (التعديل هنا بس)
+  // 🔥 Seen
   static Future<void> markAsSeen(String chatId, String myUid) async {
     final ref = messagesRef.child(chatId);
 
@@ -125,14 +124,13 @@ class FirebaseRepo {
     for (var e in map.entries) {
       final msg = e.value as Map;
 
-      // ✅ التعديل: بس لو delivered
       if (msg['senderId'] != myUid && msg['status'] == 'delivered') {
         ref.child(e.key).update({'status': 'seen'});
       }
     }
   }
 
-  // ✅ Stream Messages
+  // ✅ Stream Messages (🔥🔥🔥 التعديل هنا)
   static Stream<List<Message>> observeMessages(String chatId, String myUid) {
     return messagesRef.child(chatId).onValue.map((event) {
       if (!event.snapshot.exists) return [];
@@ -143,7 +141,9 @@ class FirebaseRepo {
           .map((e) => Message.fromMap(
                 e.value as Map,
                 myUid,
-                id: e.value['messageId'],
+
+                // 🔥🔥🔥 ده أهم تعديل
+                id: e.key,
               ))
           .toList()
         ..sort((a, b) => a.time.compareTo(b.time));
@@ -159,7 +159,7 @@ class FirebaseRepo {
     });
   }
 
-  // باقي الملف بدون أي تغيير 👇
+  // باقي الملف زي ما هو 👇
 
   static Future<void> sendGroupMessage(String groupId, MessageModel message) async {
     final msgRef = groupMsgsRef.child(groupId).push();
