@@ -13,6 +13,9 @@ class Message {
 
   final Message? replyTo;
 
+  // 🔥 NEW (الجزء الأساسي)
+  final String? replyToId;
+
   final String? senderName;
   final String? senderId;
 
@@ -25,6 +28,10 @@ class Message {
     DateTime? time,
     this.status = MessageStatus.sent,
     this.replyTo,
+
+    // 🔥 NEW
+    this.replyToId,
+
     this.senderName,
     this.senderId,
   }) : time = time ?? DateTime.now();
@@ -39,7 +46,10 @@ class Message {
       'time': time.millisecondsSinceEpoch,
       'status': status.name,
 
-      // 🔥 NEW تخزين الريپلای بشكل احترافي
+      // 🔥 NEW تخزين ID
+      'replyToId': replyToId,
+
+      // 🔥 القديم (سيبناه للـ preview)
       'replyTo': replyTo == null
           ? null
           : {
@@ -73,7 +83,10 @@ class Message {
         orElse: () => MessageStatus.sent,
       ),
 
-      // 🔥 NEW قراءة الريپلای
+      // 🔥 NEW قراءة ID
+      replyToId: map['replyToId'],
+
+      // 🔥 القديم (لسه موجود)
       replyTo: map['replyTo'] == null
           ? null
           : Message(
