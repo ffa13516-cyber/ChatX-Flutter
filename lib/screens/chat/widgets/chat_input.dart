@@ -4,6 +4,7 @@ import '../models/message_model.dart';
 
 // 🆕🔥
 import '../services/emoji_service.dart';
+import '../pickers/emoji_sticker_picker.dart'; // 🆕
 
 class ChatInput extends StatefulWidget {
   final Function(String, String?) onSend;
@@ -30,7 +31,7 @@ class _ChatInputState extends State<ChatInput>
 
   bool get _hasText => _controller.text.trim().isNotEmpty;
 
-  final emojiService = EmojiService(); // 🆕
+  final emojiService = EmojiService();
 
   @override
   void initState() {
@@ -62,7 +63,6 @@ class _ChatInputState extends State<ChatInput>
     super.dispose();
   }
 
-  /// 🔥 UPDATED
   void _send() {
     if (!_hasText) return;
 
@@ -75,7 +75,6 @@ class _ChatInputState extends State<ChatInput>
     widget.onCancelReply?.call();
   }
 
-  /// 🆕 إدخال emoji في النص
   void insertEmoji(String code) {
     final text = _controller.text;
     final selection = _controller.selection;
@@ -93,17 +92,15 @@ class _ChatInputState extends State<ChatInput>
     );
   }
 
-  /// 🆕 إرسال Sticker
   void sendSticker(String path) {
     widget.onSend(
-      "", // مفيش نص
+      "",
       widget.replyMessage?.id,
     );
 
     widget.onCancelReply?.call();
   }
 
-  /// 🆕 helper (مستقبلي)
   void _sendCustom({
     String text = "",
     MessageType type = MessageType.text,
@@ -262,10 +259,23 @@ class _ChatInputState extends State<ChatInput>
                     ),
                     const SizedBox(width: 8),
 
-                    // 🆕🔥 زرار الإيموجي (هنربطه بالـ picker بعدين)
+                    // 🔥🔥🔥 الربط الحقيقي
                     GestureDetector(
                       onTap: () {
-                        // TODO: open picker
+                        showModalBottomSheet(
+                          context: context,
+                          backgroundColor: Colors.transparent,
+                          builder: (_) {
+                            return EmojiStickerPicker(
+                              onEmojiSelected: (emoji) {
+                                insertEmoji(emoji.code);
+                              },
+                              onStickerSelected: (sticker) {
+                                sendSticker(sticker.path);
+                              },
+                            );
+                          },
+                        );
                       },
                       child: const Icon(
                         Icons.emoji_emotions_outlined,
