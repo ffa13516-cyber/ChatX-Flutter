@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../models/models.dart'; // ✅ أضفنا
+import '../../models/models.dart';
 import '../../repositories/firebase_repo.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/session_manager.dart';
@@ -56,30 +56,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     setState(() => _isSaving = true);
 
-    final currentUser = await FirebaseRepo.getUserById(_myUid);
-    if (currentUser?.username != username) {
-      final existing = await FirebaseRepo.getUserByUsername(username);
-      if (existing != null) {
-        _showSnack('Username @$username is already taken!');
-        setState(() => _isSaving = false);
-        return;
+    try {
+      final currentUser = await FirebaseRepo.getUserById(_myUid);
+      if (currentUser?.username != username) {
+        final existing = await FirebaseRepo.getUserByUsername(username);
+        if (existing != null) {
+          _showSnack('Username @$username is already taken!');
+          return;
+        }
       }
-    }
 
-    if (currentUser != null) {
-      // ✅ copyWith شغال دلوقتي
-      await FirebaseRepo.saveUser(
-        currentUser.copyWith(displayName: name, username: username),
-      );
-      await SessionManager.instance.saveSession(
-        uid: _myUid,
-        phone: _phone,
-        name: name,
-      );
-      _showSnack('Profile saved! @$username');
+      if (currentUser != null) {
+        await FirebaseRepo.saveUser(
+          currentUser.copyWith(displayName: name, username: username),
+        );
+        await SessionManager.instance.saveSession(
+          uid: _myUid,
+          phone: _phone,
+          name: name,
+        );
+        _showSnack('Profile saved! @$username');
+      } else {
+        _showSnack('User not found!');
+      }
+    } catch (e) {
+      _showSnack('Error: ${e.toString()}');
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
-
-    setState(() => _isSaving = false);
   }
 
   void _showSnack(String msg) {
