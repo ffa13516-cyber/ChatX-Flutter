@@ -75,25 +75,41 @@ class FirebaseRepo {
     return chat;
   }
 
-  // ✅ Send Message
+  // ✅ Send Message (🔥 دعم الاستيكر)
   static Future<void> sendMessage(String chatId, Message message) async {
     final msgRef = messagesRef.child(chatId).push();
 
     final data = message.toMap();
-    data['messageId'] = msgRef.key ?? _uuid.v4(); // سيبناه عادي
+    data['messageId'] = msgRef.key ?? _uuid.v4();
 
     data['status'] = 'sent';
 
     await msgRef.set(data);
 
+    // 🔥 تحديد نوع الرسالة لآخر رسالة
+    String lastMessageText;
+
+    switch (message.type) {
+      case MessageType.sticker:
+        lastMessageText = "📦 Sticker";
+        break;
+      case MessageType.image:
+        lastMessageText = "📷 Photo";
+        break;
+      case MessageType.voice:
+        lastMessageText = "🎤 Voice message";
+        break;
+      default:
+        lastMessageText = message.text;
+    }
+
     await chatsRef.child(chatId).update({
-      'lastMessage': message.text,
+      'lastMessage': lastMessageText,
       'lastMessageTime': message.time.millisecondsSinceEpoch,
       'lastMessageSenderId': message.senderId ?? '',
     });
   }
 
-  // 🔥 Delivered
   static Future<void> markAsDelivered(String chatId, String messageId) async {
     final ref = messagesRef.child(chatId);
 
@@ -111,7 +127,6 @@ class FirebaseRepo {
     }
   }
 
-  // 🔥 Seen
   static Future<void> markAsSeen(String chatId, String myUid) async {
     final ref = messagesRef.child(chatId);
 
@@ -130,7 +145,6 @@ class FirebaseRepo {
     }
   }
 
-  // ✅ Stream Messages (🔥🔥🔥 التعديل هنا)
   static Stream<List<Message>> observeMessages(String chatId, String myUid) {
     return messagesRef.child(chatId).onValue.map((event) {
       if (!event.snapshot.exists) return [];
@@ -141,8 +155,6 @@ class FirebaseRepo {
           .map((e) => Message.fromMap(
                 e.value as Map,
                 myUid,
-
-                // 🔥🔥🔥 ده أهم تعديل
                 id: e.key,
               ))
           .toList()
