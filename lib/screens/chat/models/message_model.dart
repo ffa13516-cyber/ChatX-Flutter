@@ -1,8 +1,9 @@
-enum MessageType { text, image, voice, sticker } // 🆕 ضفنا sticker
+enum MessageType { text, image, voice, sticker }
 
 enum MessageStatus { sent, delivered, seen }
 
 class Message {
+  final String? id; // 🔥 NEW مهم للـ scroll
   final String text;
   final bool isMe;
   final MessageType type;
@@ -10,16 +11,13 @@ class Message {
   final DateTime time;
   final MessageStatus status;
 
-  // 🆕 الجديد
   final Message? replyTo;
 
-  // 🆕 NEW (اسم المرسل)
   final String? senderName;
-
-  // 🆕 NEW (مهم للفirebase)
   final String? senderId;
 
   Message({
+    this.id, // 🔥
     required this.text,
     required this.isMe,
     this.type = MessageType.text,
@@ -28,10 +26,9 @@ class Message {
     this.status = MessageStatus.sent,
     this.replyTo,
     this.senderName,
-    this.senderId, // 🆕
+    this.senderId,
   }) : time = time ?? DateTime.now();
 
-  // 🆕 تحويل لـ Map (للفirebase)
   Map<String, dynamic> toMap() {
     return {
       'text': text,
@@ -41,27 +38,51 @@ class Message {
       'imageUrl': imageUrl,
       'time': time.millisecondsSinceEpoch,
       'status': status.name,
-      'replyTo': replyTo?.text, // مبدئيًا بنخزن النص بس
+
+      // 🔥 NEW تخزين الريپلای بشكل احترافي
+      'replyTo': replyTo == null
+          ? null
+          : {
+              'id': replyTo!.id,
+              'text': replyTo!.text,
+              'senderName': replyTo!.senderName,
+            },
     };
   }
 
-  // 🆕 من Map
-  factory Message.fromMap(Map map, String myUid) {
+  factory Message.fromMap(Map map, String myUid, {String? id}) {
     return Message(
+      id: id, // 🔥 مهم
+
       text: map['text'] ?? '',
       isMe: map['senderId'] == myUid,
       senderId: map['senderId'],
       senderName: map['senderName'],
+
       type: MessageType.values.firstWhere(
         (e) => e.name == map['type'],
         orElse: () => MessageType.text,
       ),
+
       imageUrl: map['imageUrl'],
+
       time: DateTime.fromMillisecondsSinceEpoch(map['time'] ?? 0),
+
       status: MessageStatus.values.firstWhere(
         (e) => e.name == map['status'],
         orElse: () => MessageStatus.sent,
       ),
+
+      // 🔥 NEW قراءة الريپلای
+      replyTo: map['replyTo'] == null
+          ? null
+          : Message(
+              id: map['replyTo']['id'],
+              text: map['replyTo']['text'] ?? '',
+              isMe: false,
+              senderName: map['replyTo']['senderName'],
+              senderId: null,
+            ),
     );
   }
 }
