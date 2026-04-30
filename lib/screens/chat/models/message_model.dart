@@ -23,6 +23,10 @@ class Message {
   final String? senderName;
   final String? senderId;
 
+  // 🆕🔥 NEW (من غير ما نكسر حاجة)
+  final String? stickerPath;
+  final String? rawText;
+
   Message({
     this.id,
     required this.text,
@@ -35,6 +39,10 @@ class Message {
     this.replyToId,
     this.senderName,
     this.senderId,
+
+    // 🆕
+    this.stickerPath,
+    this.rawText,
   }) : time = time ?? DateTime.now();
 
   Map<String, dynamic> toMap() {
@@ -58,6 +66,10 @@ class Message {
               'text': replyTo!.text,
               'senderName': replyTo!.senderName,
             },
+
+      // 🆕🔥
+      'stickerPath': stickerPath,
+      'rawText': rawText,
     };
   }
 
@@ -98,6 +110,10 @@ class Message {
               senderName: map['replyTo']['senderName'],
               senderId: null,
             ),
+
+      // 🆕🔥
+      stickerPath: map['stickerPath'],
+      rawText: map['rawText'],
     );
   }
 }
