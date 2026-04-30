@@ -24,10 +24,24 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Message? replyingTo;
 
+  // 🔥 NEW: حفظ index عشان نعمل scroll للرسالة
+  final Map<String, GlobalKey> _messageKeys = {};
+
   void setReply(Message message) {
     setState(() {
       replyingTo = message;
     });
+  }
+
+  // 🔥 NEW: scroll للرسالة الأصلية
+  void scrollToMessage(String id) {
+    final key = _messageKeys[id];
+    if (key != null && key.currentContext != null) {
+      Scrollable.ensureVisible(
+        key.currentContext!,
+        duration: const Duration(milliseconds: 300),
+      );
+    }
   }
 
   @override
@@ -36,7 +50,6 @@ class _ChatScreenState extends State<ChatScreen> {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          /// 🔥 BACKGROUND
           Positioned.fill(
             child: Image.asset(
               "assets/images/bg.jpg",
@@ -44,18 +57,16 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔥 OVERLAY
           Positioned.fill(
             child: Container(
               color: Colors.black.withOpacity(0.30),
             ),
           ),
 
-          /// 🔥 LIST
           Positioned.fill(
             child: SafeArea(
               child: StreamBuilder<List<Message>>(
-                stream: FirebaseRepo.observeMessages(widget.chatId, widget.myUid), // ✅ التعديل الوحيد
+                stream: FirebaseRepo.observeMessages(widget.chatId, widget.myUid),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
@@ -76,11 +87,23 @@ class _ChatScreenState extends State<ChatScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 120, 20, 140),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
+                      final msg = messages[index];
+
+                      // 🔥 NEW: assign key لكل رسالة
+                      final key = GlobalKey();
+                      _messageKeys[msg.id ?? index.toString()] = key;
+
                       return Column(
+                        key: key, // 🔥 مهم
                         children: [
                           ChatBubble(
-                            message: messages[index],
+                            message: msg,
                             onReply: setReply,
+
+                            // 🔥 NEW: لما تضغط على reply
+                            onTapReply: (replyId) {
+                              scrollToMessage(replyId);
+                            },
                           ),
                           const SizedBox(height: 18),
                         ],
@@ -92,7 +115,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔥 INPUT FLOATING
           Positioned(
             bottom: 10,
             left: 0,
@@ -111,6 +133,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       isMe: true,
                       senderId: widget.myUid,
                       senderName: 'Me',
+
+                      // 🔥 NEW: ربط الريپلای
+                      replyTo: reply,
                     ),
                   );
 
@@ -122,7 +147,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔥 BOTTOM FADE
           Positioned(
             bottom: 0,
             left: 0,
@@ -145,7 +169,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔥 TOP FADE
           Positioned(
             top: 0,
             left: 0,
@@ -167,7 +190,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          /// 🔥 HEADER
           Positioned(
             top: 0,
             left: 0,
