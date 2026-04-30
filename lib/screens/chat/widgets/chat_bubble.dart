@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/message_model.dart';
 
+// 🆕🔥
+import 'inline_emoji_text.dart';
+import '../services/emoji_service.dart';
+import 'sticker_view.dart';
+
 class ChatBubble extends StatefulWidget {
   final Message message;
   final Function(Message)? onReply;
@@ -25,6 +30,8 @@ class _ChatBubbleState extends State<ChatBubble>
   bool isPlaying = false;
   bool isPressed = false;
   late AnimationController _waveController;
+
+  final emojiMap = EmojiService().emojiMap; // 🆕
 
   @override
   void initState() {
@@ -144,10 +151,15 @@ class _ChatBubbleState extends State<ChatBubble>
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           if (message.replyTo != null) _replyPreview(),
-                          if (message.type == MessageType.voice)
+
+                          // 🆕🔥 Sticker
+                          if (message.type == MessageType.sticker)
+                            StickerView(path: message.stickerPath ?? "")
+                          else if (message.type == MessageType.voice)
                             _voice()
                           else
                             _text(),
+
                           const SizedBox(height: 4),
                           _timeRow(time, isMe),
                         ],
@@ -231,8 +243,9 @@ class _ChatBubbleState extends State<ChatBubble>
   }
 
   Widget _text() {
-    return Text(
-      widget.message.text,
+    return InlineEmojiText(
+      text: widget.message.rawText ?? widget.message.text,
+      emojiMap: emojiMap,
       style: const TextStyle(
         color: Colors.white,
         fontSize: 15.5,
