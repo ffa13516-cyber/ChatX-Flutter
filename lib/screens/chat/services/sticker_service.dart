@@ -1,4 +1,5 @@
 import '../models/sticker_model.dart';
+import '../models/sticker_pack.dart'; // 🆕🔥 مهم
 
 class StickerService {
   // 🔥 Singleton
@@ -14,14 +15,17 @@ class StickerService {
       stickers: [
         StickerModel(
           id: "1",
+          packId: "default", // 🆕🔥
           path: "assets/stickers/1.png",
         ),
         StickerModel(
           id: "2",
+          packId: "default", // 🆕🔥
           path: "assets/stickers/2.png",
         ),
         StickerModel(
           id: "3",
+          packId: "default", // 🆕🔥
           path: "assets/stickers/3.png",
         ),
       ],
@@ -30,7 +34,7 @@ class StickerService {
 
   List<StickerPack> get packs => _packs;
 
-  // 🔥 كل الاستيكرز (لو احتجتهم)
+  // 🔥 كل الاستيكرز
   List<StickerModel> get allStickers =>
       _packs.expand((p) => p.stickers).toList();
 
