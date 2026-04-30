@@ -78,9 +78,15 @@ class FirebaseRepo {
   // ✅ Chat - يقبل Message المحلي
   static Future<void> sendMessage(String chatId, Message message) async {
     final msgRef = messagesRef.child(chatId).push();
+
     final data = message.toMap();
     data['messageId'] = msgRef.key ?? _uuid.v4();
+
+    // 🔥 NEW: الحالة تبدأ sent
+    data['status'] = 'sent';
+
     await msgRef.set(data);
+
     await chatsRef.child(chatId).update({
       'lastMessage': message.text,
       'lastMessageTime': message.time.millisecondsSinceEpoch,
@@ -88,23 +94,72 @@ class FirebaseRepo {
     });
   }
 
-  // ✅ Chat - يرجع Stream<List<Message>> مع myUid
+  // 🔥 NEW: Delivered
+  static Future<void> markAsDelivered(String chatId, String messageId) async {
+    final ref = messagesRef.child(chatId);
+
+    final snap = await ref
+        .orderByChild('messageId')
+        .equalTo(messageId)
+        .get();
+
+    if (!snap.exists) return;
+
+    final map = snap.value as Map;
+
+    for (var e in map.entries) {
+      ref.child(e.key).update({'status': 'delivered'});
+    }
+  }
+
+  // 🔥 NEW: Seen
+  static Future<void> markAsSeen(String chatId, String myUid) async {
+    final ref = messagesRef.child(chatId);
+
+    final snap = await ref.get();
+
+    if (!snap.exists) return;
+
+    final map = snap.value as Map;
+
+    for (var e in map.entries) {
+      final msg = e.value as Map;
+
+      if (msg['senderId'] != myUid && msg['status'] != 'seen') {
+        ref.child(e.key).update({'status': 'seen'});
+      }
+    }
+  }
+
+  // ✅ Chat - Stream
   static Stream<List<Message>> observeMessages(String chatId, String myUid) {
     return messagesRef.child(chatId).onValue.map((event) {
       if (!event.snapshot.exists) return [];
+
       final map = event.snapshot.value as Map;
-      return map.entries
+
+      final list = map.entries
           .map((e) => Message.fromMap(
                 e.value as Map,
                 myUid,
-                id: e.value['messageId'], // 🔥 التعديل الوحيد
+                id: e.value['messageId'],
               ))
           .toList()
         ..sort((a, b) => a.time.compareTo(b.time));
+
+      // 🔥 NEW: auto delivered
+      for (var msg in list) {
+        if (!msg.isMe && msg.status == MessageStatus.sent) {
+          markAsDelivered(chatId, msg.id!);
+        }
+      }
+
+      return list;
     });
   }
 
-  // ✅ Group - MessageModel
+  // باقي الملف زي ما هو بدون تغيير 👇
+
   static Future<void> sendGroupMessage(String groupId, MessageModel message) async {
     final msgRef = groupMsgsRef.child(groupId).push();
     final msgWithId = MessageModel(
@@ -121,7 +176,6 @@ class FirebaseRepo {
     });
   }
 
-  // ✅ Group - Stream<List<MessageModel>>
   static Stream<List<MessageModel>> observeGroupMessages(String groupId) {
     return groupMsgsRef.child(groupId).onValue.map((event) {
       if (!event.snapshot.exists) return [];
@@ -159,7 +213,6 @@ class FirebaseRepo {
     return groupWithId;
   }
 
-  // ✅ Channel - MessageModel
   static Future<void> sendChannelMessage(String channelId, MessageModel message, String adminId) async {
     final channel = await channelsRef.child(channelId).get();
     if (!channel.exists) return;
@@ -180,7 +233,6 @@ class FirebaseRepo {
     });
   }
 
-  // ✅ Channel - Stream<List<MessageModel>>
   static Stream<List<MessageModel>> observeChannelMessages(String channelId) {
     return channelMsgsRef.child(channelId).onValue.map((event) {
       if (!event.snapshot.exists) return [];
