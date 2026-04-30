@@ -3,24 +3,28 @@ enum MessageType { text, image, voice, sticker }
 enum MessageStatus { sent, delivered, seen }
 
 class Message {
-  final String? id; // 🔥 NEW مهم للـ scroll
+  final String? id; // 🔥 مهم للـ scroll
+
   final String text;
   final bool isMe;
+
   final MessageType type;
   final String? imageUrl;
+
   final DateTime time;
   final MessageStatus status;
 
+  /// 🔥 Preview فقط
   final Message? replyTo;
 
-  // 🔥 NEW (الجزء الأساسي)
+  /// 🔥 الأساس
   final String? replyToId;
 
   final String? senderName;
   final String? senderId;
 
   Message({
-    this.id, // 🔥
+    this.id,
     required this.text,
     required this.isMe,
     this.type = MessageType.text,
@@ -28,10 +32,7 @@ class Message {
     DateTime? time,
     this.status = MessageStatus.sent,
     this.replyTo,
-
-    // 🔥 NEW
     this.replyToId,
-
     this.senderName,
     this.senderId,
   }) : time = time ?? DateTime.now();
@@ -46,10 +47,10 @@ class Message {
       'time': time.millisecondsSinceEpoch,
       'status': status.name,
 
-      // 🔥 NEW تخزين ID
+      // 🔥 المهم
       'replyToId': replyToId,
 
-      // 🔥 القديم (سيبناه للـ preview)
+      // 🔥 preview خفيف
       'replyTo': replyTo == null
           ? null
           : {
@@ -62,10 +63,11 @@ class Message {
 
   factory Message.fromMap(Map map, String myUid, {String? id}) {
     return Message(
-      id: id, // 🔥 مهم
+      id: id, // 🔥 مهم جدًا
 
       text: map['text'] ?? '',
       isMe: map['senderId'] == myUid,
+
       senderId: map['senderId'],
       senderName: map['senderName'],
 
@@ -83,10 +85,10 @@ class Message {
         orElse: () => MessageStatus.sent,
       ),
 
-      // 🔥 NEW قراءة ID
+      /// 🔥 الأساس
       replyToId: map['replyToId'],
 
-      // 🔥 القديم (لسه موجود)
+      /// 🔥 preview
       replyTo: map['replyTo'] == null
           ? null
           : Message(
