@@ -5,10 +5,8 @@ import '../models/message_model.dart';
 class ChatBubble extends StatefulWidget {
   final Message message;
 
-  /// 🔥 NEW
   final Function(Message)? onReply;
 
-  /// 🔥 NEW (للـ scroll)
   final Function(String)? onTapReply;
 
   const ChatBubble({
@@ -70,7 +68,6 @@ class _ChatBubbleState extends State<ChatBubble>
           onTapUp: (_) => setState(() => isPressed = false),
           onTapCancel: () => setState(() => isPressed = false),
 
-          /// 🔥 NEW: long press للريبلاي
           onLongPress: () {
             HapticFeedback.mediumImpact();
             widget.onReply?.call(widget.message);
@@ -139,7 +136,6 @@ class _ChatBubbleState extends State<ChatBubble>
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    /// 🆕 Reply UI
                     if (message.replyTo != null) _replyPreview(),
 
                     if (message.type == MessageType.voice)
@@ -173,8 +169,9 @@ class _ChatBubbleState extends State<ChatBubble>
 
     return GestureDetector(
       onTap: () {
-        if (reply.id != null) {
-          widget.onTapReply?.call(reply.id!);
+        final replyId = widget.message.replyToId;
+        if (replyId != null) {
+          widget.onTapReply?.call(replyId);
         }
       },
       child: Container(
@@ -187,7 +184,6 @@ class _ChatBubbleState extends State<ChatBubble>
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// 🔥 الخط الجانبي
             Container(
               width: 3,
               height: 34,
@@ -197,12 +193,10 @@ class _ChatBubbleState extends State<ChatBubble>
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  /// 🔥 اسم المرسل
                   if (reply.senderName != null)
                     Text(
                       reply.senderName!,
@@ -213,8 +207,6 @@ class _ChatBubbleState extends State<ChatBubble>
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
-                  /// 🔥 محتوى الرسالة
                   Text(
                     previewText,
                     maxLines: 1,
