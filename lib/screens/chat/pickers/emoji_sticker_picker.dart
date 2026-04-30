@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/emoji_model.dart';
 import '../models/sticker_model.dart';
 import '../services/emoji_service.dart';
+import '../services/sticker_service.dart'; // 🆕
 
 class EmojiStickerPicker extends StatefulWidget {
   final Function(EmojiModel) onEmojiSelected;
@@ -41,7 +42,7 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
         children: [
           const SizedBox(height: 8),
 
-          // 🔥 Tabs
+          // 🔥 Tabs الرئيسية
           TabBar(
             controller: _tabController,
             indicatorColor: Colors.white,
@@ -56,7 +57,7 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
               controller: _tabController,
               children: [
                 _emojiGrid(),
-                _stickerPlaceholder(),
+                _stickerView(), // 🆕 بدل placeholder
               ],
             ),
           ),
@@ -97,12 +98,57 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
     );
   }
 
-  // 🖼️ مؤقت (هنبدله بالـ packs بعدين)
-  Widget _stickerPlaceholder() {
-    return const Center(
-      child: Text(
-        "No Stickers Yet 😢",
-        style: TextStyle(color: Colors.white54),
+  // 🖼️ Sticker Packs UI
+  Widget _stickerView() {
+    final packs = StickerService().packs;
+
+    if (packs.isEmpty) {
+      return const Center(
+        child: Text(
+          "No Stickers 😢",
+          style: TextStyle(color: Colors.white54),
+        ),
+      );
+    }
+
+    return DefaultTabController(
+      length: packs.length,
+      child: Column(
+        children: [
+          TabBar(
+            isScrollable: true,
+            indicatorColor: Colors.white,
+            tabs: packs.map((p) => Tab(text: p.name)).toList(),
+          ),
+          Expanded(
+            child: TabBarView(
+              children: packs.map((pack) {
+                return GridView.builder(
+                  padding: const EdgeInsets.all(10),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                  ),
+                  itemCount: pack.stickers.length,
+                  itemBuilder: (context, index) {
+                    final sticker = pack.stickers[index];
+
+                    return GestureDetector(
+                      onTap: () =>
+                          widget.onStickerSelected(sticker),
+                      child: Image.asset(
+                        sticker.path,
+                        fit: BoxFit.contain,
+                      ),
+                    );
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+        ],
       ),
     );
   }
