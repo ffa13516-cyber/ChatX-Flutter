@@ -3,7 +3,7 @@ enum MessageType { text, image, voice, sticker }
 enum MessageStatus { sent, delivered, seen }
 
 class Message {
-  final String? id; // 🔥 مهم للـ scroll
+  final String? id;
 
   final String text;
   final bool isMe;
@@ -14,16 +14,12 @@ class Message {
   final DateTime time;
   final MessageStatus status;
 
-  /// 🔥 Preview فقط
   final Message? replyTo;
-
-  /// 🔥 الأساس
   final String? replyToId;
 
   final String? senderName;
   final String? senderId;
 
-  // 🆕🔥 NEW (من غير ما نكسر حاجة)
   final String? stickerPath;
   final String? rawText;
 
@@ -31,7 +27,7 @@ class Message {
     this.id,
     required this.text,
     required this.isMe,
-    this.type = MessageType.text,
+    MessageType? type,
     this.imageUrl,
     DateTime? time,
     this.status = MessageStatus.sent,
@@ -39,11 +35,12 @@ class Message {
     this.replyToId,
     this.senderName,
     this.senderId,
-
-    // 🆕
     this.stickerPath,
     this.rawText,
-  }) : time = time ?? DateTime.now();
+  })  : type = stickerPath != null
+            ? MessageType.sticker
+            : (type ?? MessageType.text),
+        time = time ?? DateTime.now();
 
   Map<String, dynamic> toMap() {
     return {
@@ -55,10 +52,8 @@ class Message {
       'time': time.millisecondsSinceEpoch,
       'status': status.name,
 
-      // 🔥 المهم
       'replyToId': replyToId,
 
-      // 🔥 preview خفيف
       'replyTo': replyTo == null
           ? null
           : {
@@ -67,15 +62,16 @@ class Message {
               'senderName': replyTo!.senderName,
             },
 
-      // 🆕🔥
       'stickerPath': stickerPath,
       'rawText': rawText,
     };
   }
 
   factory Message.fromMap(Map map, String myUid, {String? id}) {
+    final stickerPath = map['stickerPath'];
+
     return Message(
-      id: id, // 🔥 مهم جدًا
+      id: id,
 
       text: map['text'] ?? '',
       isMe: map['senderId'] == myUid,
@@ -83,10 +79,13 @@ class Message {
       senderId: map['senderId'],
       senderName: map['senderName'],
 
-      type: MessageType.values.firstWhere(
-        (e) => e.name == map['type'],
-        orElse: () => MessageType.text,
-      ),
+      // 🔥 أهم تعديل هنا
+      type: stickerPath != null
+          ? MessageType.sticker
+          : MessageType.values.firstWhere(
+              (e) => e.name == map['type'],
+              orElse: () => MessageType.text,
+            ),
 
       imageUrl: map['imageUrl'],
 
@@ -97,10 +96,8 @@ class Message {
         orElse: () => MessageStatus.sent,
       ),
 
-      /// 🔥 الأساس
       replyToId: map['replyToId'],
 
-      /// 🔥 preview
       replyTo: map['replyTo'] == null
           ? null
           : Message(
@@ -111,8 +108,7 @@ class Message {
               senderId: null,
             ),
 
-      // 🆕🔥
-      stickerPath: map['stickerPath'],
+      stickerPath: stickerPath,
       rawText: map['rawText'],
     );
   }
