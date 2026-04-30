@@ -42,12 +42,9 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  // 🔥🔥🔥 التعديل الوحيد هنا
   @override
   void initState() {
     super.initState();
-
-    // ✅ أول ما تفتح الشات → كل الرسائل تبقى seen
     FirebaseRepo.markAsSeen(widget.chatId, widget.myUid);
   }
 
@@ -129,7 +126,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 onCancelReply: () {
                   setState(() => replyingTo = null);
                 },
-                onSend: (text, reply) async {
+                onSend: (text, replyId) async {
                   await FirebaseRepo.sendMessage(
                     widget.chatId,
                     Message(
@@ -137,7 +134,12 @@ class _ChatScreenState extends State<ChatScreen> {
                       isMe: true,
                       senderId: widget.myUid,
                       senderName: 'Me',
-                      replyTo: reply,
+
+                      // 🔥 الجديد
+                      replyToId: replyId,
+
+                      // 🔥 للـ preview
+                      replyTo: replyingTo,
                     ),
                   );
 
