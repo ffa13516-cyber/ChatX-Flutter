@@ -2,6 +2,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/message_model.dart';
 
+// 🆕🔥
+import '../services/emoji_service.dart';
+
 class ChatInput extends StatefulWidget {
   final Function(String, String?) onSend;
 
@@ -26,6 +29,8 @@ class _ChatInputState extends State<ChatInput>
   late Animation<double> _scale;
 
   bool get _hasText => _controller.text.trim().isNotEmpty;
+
+  final emojiService = EmojiService(); // 🆕
 
   @override
   void initState() {
@@ -70,7 +75,35 @@ class _ChatInputState extends State<ChatInput>
     widget.onCancelReply?.call();
   }
 
-  /// 🆕 helper
+  /// 🆕 إدخال emoji في النص
+  void insertEmoji(String code) {
+    final text = _controller.text;
+    final selection = _controller.selection;
+
+    final newText = text.replaceRange(
+      selection.start,
+      selection.end,
+      "$code ",
+    );
+
+    _controller.text = newText;
+
+    _controller.selection = TextSelection.collapsed(
+      offset: selection.start + code.length + 1,
+    );
+  }
+
+  /// 🆕 إرسال Sticker
+  void sendSticker(String path) {
+    widget.onSend(
+      "", // مفيش نص
+      widget.replyMessage?.id,
+    );
+
+    widget.onCancelReply?.call();
+  }
+
+  /// 🆕 helper (مستقبلي)
   void _sendCustom({
     String text = "",
     MessageType type = MessageType.text,
@@ -228,7 +261,19 @@ class _ChatInputState extends State<ChatInput>
                       ),
                     ),
                     const SizedBox(width: 8),
-                    _iconButton(Icons.emoji_emotions_outlined),
+
+                    // 🆕🔥 زرار الإيموجي (هنربطه بالـ picker بعدين)
+                    GestureDetector(
+                      onTap: () {
+                        // TODO: open picker
+                      },
+                      child: const Icon(
+                        Icons.emoji_emotions_outlined,
+                        color: Colors.white54,
+                        size: 20,
+                      ),
+                    ),
+
                     const SizedBox(width: 6),
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 180),
