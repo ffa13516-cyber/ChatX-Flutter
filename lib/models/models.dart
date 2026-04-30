@@ -40,6 +40,24 @@ class UserModel {
     'lastSeen': lastSeen,
   };
 
+  // ✅ أضفنا copyWith
+  UserModel copyWith({
+    String? displayName,
+    String? username,
+    String? avatarUrl,
+    bool? isOnline,
+  }) {
+    return UserModel(
+      uid: uid,
+      phoneNumber: phoneNumber,
+      displayName: displayName ?? this.displayName,
+      username: username ?? this.username,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      isOnline: isOnline ?? this.isOnline,
+      lastSeen: lastSeen,
+    );
+  }
+
   String get initials {
     final parts = displayName.trim().split(' ');
     if (parts.length >= 2) {
