@@ -119,7 +119,7 @@ class _ChatBubbleState extends State<ChatBubble>
         child: Container(
           decoration: BoxDecoration(
             borderRadius: radius,
-            color: isMe ? null : Colors.white.withOpacity(0.12),
+            color: isMe ? null : const Color(0xFF2B2C2F).withOpacity(0.85),
             gradient: isMe
                 ? const LinearGradient(
                     colors: [Color(0xFF007AFF), Color(0xFF00C6FF)],
