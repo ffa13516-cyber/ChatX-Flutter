@@ -26,8 +26,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   final Map<String, GlobalKey> _messageKeys = {};
 
-  // 🔥 NEW
   List<Message> _messages = [];
+
+  // 🔥 NEW (للهايلايت)
+  String? highlightedMessageId;
 
   void setReply(Message message) {
     setState(() {
@@ -35,17 +37,28 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  // 🔥🔥🔥 UPDATED (scroll صح)
+  // 🔥🔥🔥 UPDATED
   void scrollToMessage(String id) {
     final index = _messages.indexWhere((m) => m.id == id);
 
     if (index == -1) return;
+
+    setState(() {
+      highlightedMessageId = id;
+    });
 
     _controller.animateTo(
       index * 90.0,
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOut,
     );
+
+    // 🔥 إزالة الهايلايت بعد شوية
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() => highlightedMessageId = null);
+      }
+    });
   }
 
   @override
@@ -66,13 +79,11 @@ class _ChatScreenState extends State<ChatScreen> {
               fit: BoxFit.cover,
             ),
           ),
-
           Positioned.fill(
             child: Container(
               color: Colors.black.withOpacity(0.30),
             ),
           ),
-
           Positioned.fill(
             child: SafeArea(
               child: StreamBuilder<List<Message>>(
@@ -82,7 +93,6 @@ class _ChatScreenState extends State<ChatScreen> {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  // 🔥 UPDATED
                   _messages = snapshot.data!;
 
                   if (_controller.hasClients) {
@@ -112,6 +122,10 @@ class _ChatScreenState extends State<ChatScreen> {
                             onTapReply: (replyId) {
                               scrollToMessage(replyId);
                             },
+
+                            // 🔥 NEW
+                            isHighlighted:
+                                msg.id == highlightedMessageId,
                           ),
                           const SizedBox(height: 18),
                         ],
