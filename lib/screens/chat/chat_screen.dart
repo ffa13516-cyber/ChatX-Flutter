@@ -24,7 +24,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Message? replyingTo;
 
-  // 🔥 NEW: حفظ index عشان نعمل scroll للرسالة
   final Map<String, GlobalKey> _messageKeys = {};
 
   void setReply(Message message) {
@@ -33,7 +32,6 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  // 🔥 NEW: scroll للرسالة الأصلية
   void scrollToMessage(String id) {
     final key = _messageKeys[id];
     if (key != null && key.currentContext != null) {
@@ -42,6 +40,15 @@ class _ChatScreenState extends State<ChatScreen> {
         duration: const Duration(milliseconds: 300),
       );
     }
+  }
+
+  // 🔥🔥🔥 التعديل الوحيد هنا
+  @override
+  void initState() {
+    super.initState();
+
+    // ✅ أول ما تفتح الشات → كل الرسائل تبقى seen
+    FirebaseRepo.markAsSeen(widget.chatId, widget.myUid);
   }
 
   @override
@@ -89,18 +96,15 @@ class _ChatScreenState extends State<ChatScreen> {
                     itemBuilder: (context, index) {
                       final msg = messages[index];
 
-                      // 🔥 NEW: assign key لكل رسالة
                       final key = GlobalKey();
                       _messageKeys[msg.id ?? index.toString()] = key;
 
                       return Column(
-                        key: key, // 🔥 مهم
+                        key: key,
                         children: [
                           ChatBubble(
                             message: msg,
                             onReply: setReply,
-
-                            // 🔥 NEW: لما تضغط على reply
                             onTapReply: (replyId) {
                               scrollToMessage(replyId);
                             },
@@ -133,8 +137,6 @@ class _ChatScreenState extends State<ChatScreen> {
                       isMe: true,
                       senderId: widget.myUid,
                       senderName: 'Me',
-
-                      // 🔥 NEW: ربط الريپلای
                       replyTo: reply,
                     ),
                   );
