@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/emoji_model.dart';
 import '../models/sticker_model.dart';
+import '../models/sticker_pack.dart'; // 🆕🔥 مهم
 import '../services/emoji_service.dart';
-import '../services/sticker_service.dart'; // 🆕
+import '../services/sticker_service.dart';
 
 class EmojiStickerPicker extends StatefulWidget {
   final Function(EmojiModel) onEmojiSelected;
@@ -42,7 +43,6 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
         children: [
           const SizedBox(height: 8),
 
-          // 🔥 Tabs الرئيسية
           TabBar(
             controller: _tabController,
             indicatorColor: Colors.white,
@@ -57,7 +57,7 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
               controller: _tabController,
               children: [
                 _emojiGrid(),
-                _stickerView(), // 🆕 بدل placeholder
+                _stickerView(),
               ],
             ),
           ),
@@ -66,7 +66,6 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
     );
   }
 
-  // 😀 Emoji Grid
   Widget _emojiGrid() {
     return GridView.builder(
       padding: const EdgeInsets.all(10),
@@ -98,9 +97,8 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
     );
   }
 
-  // 🖼️ Sticker Packs UI
   Widget _stickerView() {
-    final packs = StickerService().packs;
+    final List<StickerPack> packs = StickerService().packs; // 🔥 FIX
 
     if (packs.isEmpty) {
       return const Center(
