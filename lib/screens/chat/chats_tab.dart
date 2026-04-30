@@ -9,7 +9,7 @@ import '../group/groups_tab.dart';
 import '../channel/channels_tab.dart';
 import 'chat_screen.dart';
 import 'saved_messages_screen.dart';
-import 'new_chat_sheet.dart'; // 🆕 رجعناه
+import 'new_chat_sheet.dart';
 
 class ChatsTab extends StatefulWidget {
   const ChatsTab({super.key});
@@ -63,8 +63,6 @@ class _ChatsTabState extends State<ChatsTab>
                     ),
                   ),
                   const Spacer(),
-
-                  /// ✏️ NEW CHAT
                   GestureDetector(
                     onTap: () {
                       showModalBottomSheet(
@@ -148,8 +146,8 @@ class _ChatsTabState extends State<ChatsTab>
                 controller: _tabController,
                 children: [
                   _buildChatsList(),
-                  GroupsTab(myUid: _myUid),
-                  ChannelsTab(myUid: _myUid),
+                  GroupsTab(myUid: _myUid, key: ValueKey(_myUid)), // ✅ التعديل
+                  ChannelsTab(myUid: _myUid, key: ValueKey(_myUid)), // ✅ التعديل
                 ],
               ),
             ),
@@ -220,8 +218,6 @@ class _ChatsTabState extends State<ChatsTab>
           time: '',
           avatarUrl: user?.avatarUrl,
           isOnline: user?.isOnline ?? false,
-
-          /// 🔥 FIXED HERE
           onTap: () async {
             final chat = await FirebaseRepo.getOrCreateChat(
               _myUid,
