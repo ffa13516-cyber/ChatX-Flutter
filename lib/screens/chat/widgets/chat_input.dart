@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/message_model.dart';
 
 class ChatInput extends StatefulWidget {
-  final Function(String, Message?) onSend;
+  final Function(String, String?) onSend;
 
   final Message? replyMessage;
   final VoidCallback? onCancelReply;
@@ -57,20 +57,20 @@ class _ChatInputState extends State<ChatInput>
     super.dispose();
   }
 
-  /// 🔥 UPDATED (مرن لأي type)
+  /// 🔥 UPDATED
   void _send() {
     if (!_hasText) return;
 
     widget.onSend(
       _controller.text.trim(),
-      widget.replyMessage,
+      widget.replyMessage?.id,
     );
 
     _controller.clear();
     widget.onCancelReply?.call();
   }
 
-  /// 🆕 helper لإرسال image / voice مستقبلاً
+  /// 🆕 helper
   void _sendCustom({
     String text = "",
     MessageType type = MessageType.text,
@@ -78,7 +78,7 @@ class _ChatInputState extends State<ChatInput>
   }) {
     widget.onSend(
       text,
-      widget.replyMessage,
+      widget.replyMessage?.id,
     );
 
     widget.onCancelReply?.call();
@@ -88,7 +88,6 @@ class _ChatInputState extends State<ChatInput>
   Widget build(BuildContext context) {
     return Column(
       children: [
-        /// 🆕 REPLY BAR (بدون تغيير)
         if (widget.replyMessage != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 6),
@@ -173,7 +172,6 @@ class _ChatInputState extends State<ChatInput>
             ),
           ),
 
-        /// 🔥 INPUT (UNCHANGED UI)
         Padding(
           padding: const EdgeInsets.fromLTRB(14, 8, 14, 20),
           child: ClipRRect(
@@ -208,7 +206,6 @@ class _ChatInputState extends State<ChatInput>
                   children: [
                     _newButton(),
                     const SizedBox(width: 10),
-
                     Expanded(
                       child: TextField(
                         controller: _controller,
@@ -230,11 +227,9 @@ class _ChatInputState extends State<ChatInput>
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 8),
                     _iconButton(Icons.emoji_emotions_outlined),
                     const SizedBox(width: 6),
-
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 180),
                       transitionBuilder: (child, anim) =>
