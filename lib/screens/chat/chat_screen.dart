@@ -26,20 +26,26 @@ class _ChatScreenState extends State<ChatScreen> {
 
   final Map<String, GlobalKey> _messageKeys = {};
 
+  // 🔥 NEW
+  List<Message> _messages = [];
+
   void setReply(Message message) {
     setState(() {
       replyingTo = message;
     });
   }
 
+  // 🔥🔥🔥 UPDATED (scroll صح)
   void scrollToMessage(String id) {
-    final key = _messageKeys[id];
-    if (key != null && key.currentContext != null) {
-      Scrollable.ensureVisible(
-        key.currentContext!,
-        duration: const Duration(milliseconds: 300),
-      );
-    }
+    final index = _messages.indexWhere((m) => m.id == id);
+
+    if (index == -1) return;
+
+    _controller.animateTo(
+      index * 90.0,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
@@ -76,7 +82,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  final messages = snapshot.data!;
+                  // 🔥 UPDATED
+                  _messages = snapshot.data!;
 
                   if (_controller.hasClients) {
                     Future.delayed(const Duration(milliseconds: 100), () {
@@ -89,9 +96,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   return ListView.builder(
                     controller: _controller,
                     padding: const EdgeInsets.fromLTRB(20, 120, 20, 140),
-                    itemCount: messages.length,
+                    itemCount: _messages.length,
                     itemBuilder: (context, index) {
-                      final msg = messages[index];
+                      final msg = _messages[index];
 
                       final key = GlobalKey();
                       _messageKeys[msg.id ?? index.toString()] = key;
@@ -134,11 +141,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       isMe: true,
                       senderId: widget.myUid,
                       senderName: 'Me',
-
-                      // 🔥 الجديد
                       replyToId: replyId,
-
-                      // 🔥 للـ preview
                       replyTo: replyingTo,
                     ),
                   );
