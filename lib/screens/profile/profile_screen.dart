@@ -1,5 +1,5 @@
-// profile_screen.dart
 import 'package:flutter/material.dart';
+import '../../models/models.dart'; // ✅ أضفنا
 import '../../repositories/firebase_repo.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/session_manager.dart';
@@ -67,8 +67,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     if (currentUser != null) {
-      await FirebaseRepo.saveUser(currentUser.copyWith(displayName: name, username: username));
-      await SessionManager.instance.saveSession(uid: _myUid, phone: _phone, name: name);
+      // ✅ copyWith شغال دلوقتي
+      await FirebaseRepo.saveUser(
+        currentUser.copyWith(displayName: name, username: username),
+      );
+      await SessionManager.instance.saveSession(
+        uid: _myUid,
+        phone: _phone,
+        name: name,
+      );
       _showSnack('Profile saved! @$username');
     }
 
@@ -100,7 +107,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             const SizedBox(height: 16),
 
-            // Avatar
             Container(
               width: 90,
               height: 90,
@@ -117,8 +123,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               child: Center(
                 child: Text(
-                  _nameController.text.isNotEmpty ? _nameController.text[0].toUpperCase() : '?',
-                  style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold),
+                  _nameController.text.isNotEmpty
+                      ? _nameController.text[0].toUpperCase()
+                      : '?',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -127,9 +139,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             Text(
               _nameController.text,
-              style: const TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            Text(_phone, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+            Text(
+              _phone,
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            ),
 
             const SizedBox(height: 32),
 
@@ -154,14 +173,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 24),
 
-            GradientButton(text: 'Save Profile', onPressed: _saveProfile, isLoading: _isSaving),
+            GradientButton(
+              text: 'Save Profile',
+              onPressed: _saveProfile,
+              isLoading: _isSaving,
+            ),
           ],
         ),
       ),
     );
   }
-}
-
-extension UserModelCopyWith on dynamic {
-  dynamic copyWith({String? displayName, String? username}) => throw UnimplementedError();
 }
