@@ -4,10 +4,8 @@ import '../models/message_model.dart';
 
 class ChatBubble extends StatefulWidget {
   final Message message;
-
   final Function(Message)? onReply;
   final Function(String)? onTapReply;
-
   final bool isHighlighted;
 
   const ChatBubble({
@@ -85,9 +83,7 @@ class _ChatBubbleState extends State<ChatBubble>
 
   Widget _bubble(BuildContext context, bool isMe) {
     final message = widget.message;
-
-    final time =
-        "${message.time.hour}:${message.time.minute.toString().padLeft(2, '0')}";
+    final time = "${message.time.hour}:${message.time.minute.toString().padLeft(2, '0')}";
 
     final radius = BorderRadius.only(
       topLeft: const Radius.circular(22),
@@ -121,60 +117,54 @@ class _ChatBubbleState extends State<ChatBubble>
       child: ClipRRect(
         borderRadius: radius,
         child: Container(
-          padding: message.type == MessageType.image
-              ? EdgeInsets.zero
-              : const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           decoration: BoxDecoration(
             borderRadius: radius,
-
-            // ✅ التعديل الوحيد هنا 👇
-            color: isMe ? null : const Color(0xFF2A2A2A),
-
-            // 🔥 overlay highlight
-            foregroundDecoration: widget.isHighlighted
-                ? BoxDecoration(
-                    color: Colors.white.withOpacity(0.08),
-                  )
-                : null,
-
+            color: isMe ? null : Colors.white.withOpacity(0.12),
             gradient: isMe
                 ? const LinearGradient(
-                    colors: [
-                      Color(0xFF007AFF),
-                      Color(0xFF00C6FF),
-                    ],
+                    colors: [Color(0xFF007AFF), Color(0xFF00C6FF)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   )
                 : null,
           ),
-          child: message.type == MessageType.image
-              ? _imageWithTime(time, radius)
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    if (message.replyTo != null) _replyPreview(),
-                    if (message.type == MessageType.voice)
-                      _voice()
-                    else
-                      _text(),
-                    const SizedBox(height: 4),
-                    _timeRow(time, isMe),
-                  ],
+          child: Stack(
+            children: [
+              if (widget.isHighlighted)
+                Positioned.fill(
+                  child: Container(color: Colors.white.withOpacity(0.08)),
                 ),
+              Padding(
+                padding: message.type == MessageType.image
+                    ? EdgeInsets.zero
+                    : const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                child: message.type == MessageType.image
+                    ? _imageWithTime(time, radius)
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (message.replyTo != null) _replyPreview(),
+                          if (message.type == MessageType.voice)
+                            _voice()
+                          else
+                            _text(),
+                          const SizedBox(height: 4),
+                          _timeRow(time, isMe),
+                        ],
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
-
-  // 👇 كل اللي تحت زي ما هو بدون أي تغيير
 
   Widget _replyPreview() {
     final reply = widget.message.replyTo!;
     final isMe = reply.isMe;
 
     String previewText;
-
     if (reply.type == MessageType.image) {
       previewText = "📷 Photo";
     } else if (reply.type == MessageType.voice) {
@@ -217,8 +207,7 @@ class _ChatBubbleState extends State<ChatBubble>
                     Text(
                       reply.senderName!,
                       style: TextStyle(
-                        color:
-                            isMe ? const Color(0xFF5AC8FA) : Colors.white70,
+                        color: isMe ? const Color(0xFF5AC8FA) : Colors.white70,
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -256,29 +245,24 @@ class _ChatBubbleState extends State<ChatBubble>
   Widget _imageWithTime(String time, BorderRadius radius) {
     return Stack(
       children: [
-        ClipRRect(
-          borderRadius: radius,
-          child: Image.network(
-            widget.message.imageUrl!,
-            height: 160,
-            width: 240,
-            fit: BoxFit.cover,
-          ),
+        Image.network(
+          widget.message.imageUrl!,
+          height: 160,
+          width: 240,
+          fit: BoxFit.cover,
         ),
         Positioned(
           bottom: 8,
           right: 10,
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
             decoration: BoxDecoration(
               color: Colors.black.withOpacity(0.65),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
               time,
-              style: const TextStyle(
-                  color: Colors.white70, fontSize: 11),
+              style: const TextStyle(color: Colors.white70, fontSize: 11),
             ),
           ),
         ),
@@ -314,15 +298,11 @@ class _ChatBubbleState extends State<ChatBubble>
             builder: (_, __) {
               return Row(
                 children: List.generate(14, (i) {
-                  final phase =
-                      (_waveController.value + i * 0.07) % 1.0;
-
+                  final phase = (_waveController.value + i * 0.07) % 1.0;
                   final h = isPlaying
                       ? 4 + (phase < 0.5 ? phase : 1 - phase) * 18
                       : _staticHeight(i);
-
                   final t = i / 13;
-
                   final color = Color.lerp(
                     const Color(0xFF0A84FF),
                     const Color(0xFF5AC8FA),
@@ -330,8 +310,7 @@ class _ChatBubbleState extends State<ChatBubble>
                   )!.withOpacity(isPlaying ? 1.0 : 0.6);
 
                   return Container(
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 1),
+                    margin: const EdgeInsets.symmetric(horizontal: 1),
                     width: 2.3,
                     height: h,
                     decoration: BoxDecoration(
@@ -357,11 +336,7 @@ class _ChatBubbleState extends State<ChatBubble>
   }
 
   double _staticHeight(int i) {
-    final h = [
-      6, 12, 18, 8, 22,
-      14, 20, 6, 16, 24,
-      10, 20, 8, 18
-    ];
+    final h = [6, 12, 18, 8, 22, 14, 20, 6, 16, 24, 10, 20, 8, 18];
     return h[i % h.length].toDouble();
   }
 
