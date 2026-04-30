@@ -75,14 +75,14 @@ class FirebaseRepo {
     return chat;
   }
 
-  // ✅ Chat - يقبل Message المحلي
+  // ✅ Send Message
   static Future<void> sendMessage(String chatId, Message message) async {
     final msgRef = messagesRef.child(chatId).push();
 
     final data = message.toMap();
     data['messageId'] = msgRef.key ?? _uuid.v4();
 
-    // 🔥 NEW: الحالة تبدأ sent
+    // 🔥 status يبدأ sent
     data['status'] = 'sent';
 
     await msgRef.set(data);
@@ -94,7 +94,7 @@ class FirebaseRepo {
     });
   }
 
-  // 🔥 NEW: Delivered
+  // 🔥 Delivered
   static Future<void> markAsDelivered(String chatId, String messageId) async {
     final ref = messagesRef.child(chatId);
 
@@ -112,7 +112,7 @@ class FirebaseRepo {
     }
   }
 
-  // 🔥 NEW: Seen
+  // 🔥 Seen (التعديل هنا بس)
   static Future<void> markAsSeen(String chatId, String myUid) async {
     final ref = messagesRef.child(chatId);
 
@@ -125,13 +125,14 @@ class FirebaseRepo {
     for (var e in map.entries) {
       final msg = e.value as Map;
 
-      if (msg['senderId'] != myUid && msg['status'] != 'seen') {
+      // ✅ التعديل: بس لو delivered
+      if (msg['senderId'] != myUid && msg['status'] == 'delivered') {
         ref.child(e.key).update({'status': 'seen'});
       }
     }
   }
 
-  // ✅ Chat - Stream
+  // ✅ Stream Messages
   static Stream<List<Message>> observeMessages(String chatId, String myUid) {
     return messagesRef.child(chatId).onValue.map((event) {
       if (!event.snapshot.exists) return [];
@@ -147,7 +148,7 @@ class FirebaseRepo {
           .toList()
         ..sort((a, b) => a.time.compareTo(b.time));
 
-      // 🔥 NEW: auto delivered
+      // 🔥 auto delivered
       for (var msg in list) {
         if (!msg.isMe && msg.status == MessageStatus.sent) {
           markAsDelivered(chatId, msg.id!);
@@ -158,7 +159,7 @@ class FirebaseRepo {
     });
   }
 
-  // باقي الملف زي ما هو بدون تغيير 👇
+  // باقي الملف بدون أي تغيير 👇
 
   static Future<void> sendGroupMessage(String groupId, MessageModel message) async {
     final msgRef = groupMsgsRef.child(groupId).push();
