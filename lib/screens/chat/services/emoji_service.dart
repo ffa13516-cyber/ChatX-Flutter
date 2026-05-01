@@ -1,4 +1,5 @@
 import '../models/emoji_model.dart';
+import '../models/emoji_pack.dart'; // 🆕🔥
 
 class EmojiService {
   /// 🔥 Singleton
@@ -6,48 +7,71 @@ class EmojiService {
   factory EmojiService() => _instance;
   EmojiService._internal();
 
-  /// 🔹 مصدر البيانات (مؤقت - بعدين JSON / API)
-  final List<EmojiModel> _emojis = [
-    EmojiModel(id: '1', code: ':smile:', char: '😄'),
-    EmojiModel(id: '2', code: ':laugh:', char: '😂'),
-    EmojiModel(id: '3', code: ':heart:', char: '❤️'),
+  /// 🔥 Packs بدل ليست واحدة
+  final List<EmojiPack> _packs = [
+    EmojiPack(
+      name: "Default",
+      emojis: [
+        EmojiModel(id: '1', code: ':smile:', char: '😄'),
+        EmojiModel(id: '2', code: ':laugh:', char: '😂'),
+        EmojiModel(id: '3', code: ':heart:', char: '❤️'),
+      ],
+    ),
 
-    // Custom
-    EmojiModel(
-      id: '4',
-      code: ':fire_custom:',
-      assetPath: 'assets/emojis/fire.png',
+    /// 🔹 Custom Pack
+    EmojiPack(
+      name: "Custom",
+      emojis: [
+        EmojiModel(
+          id: '4',
+          code: ':fire_custom:',
+          assetPath: 'assets/emojis/fire.png',
+        ),
+      ],
     ),
   ];
 
-  /// 🔥 Cache للـ map (مهم جدًا للأداء)
+  /// 🔥 Cache للـ map
   Map<String, EmojiModel>? _emojiMapCache;
 
   Map<String, EmojiModel> get emojiMap {
     if (_emojiMapCache != null) return _emojiMapCache!;
 
     final map = <String, EmojiModel>{};
-    for (var e in _emojis) {
-      map[e.code] = e;
+
+    for (var pack in _packs) {
+      for (var e in pack.emojis) {
+        map[e.code] = e;
+      }
     }
 
     _emojiMapCache = map;
     return map;
   }
 
-  /// 🔥 get by code (مهم للـ parser)
+  /// 🔥 get by code
   EmojiModel? getByCode(String code) {
     return emojiMap[code];
   }
 
   /// 🔥 كل الإيموجي (UI)
-  List<EmojiModel> get allEmojis => _emojis;
+  List<EmojiModel> get allEmojis {
+    return _packs.expand((p) => p.emojis).toList();
+  }
+
+  /// 🔥 رجّع الـ packs (لـ UI بعدين)
+  List<EmojiPack> get packs => _packs;
 
   /// 🔥 إضافة Emoji جديد (مثلاً من pack)
   void addEmoji(EmojiModel emoji) {
-    _emojis.add(emoji);
+    _packs.first.emojis.add(emoji);
 
-    // 🧠 reset cache
+    _emojiMapCache = null;
+  }
+
+  /// 🔥 إضافة Pack كامل
+  void addPack(EmojiPack pack) {
+    _packs.add(pack);
     _emojiMapCache = null;
   }
 
@@ -58,17 +82,15 @@ class EmojiService {
   final List<String> _recentCodes = [];
   static const int _maxRecent = 24;
 
-  /// 📌 سجل استخدام emoji
   void registerUsage(EmojiModel emoji) {
-    _recentCodes.remove(emoji.code); // شيله لو موجود
-    _recentCodes.insert(0, emoji.code); // حطه في الأول
+    _recentCodes.remove(emoji.code);
+    _recentCodes.insert(0, emoji.code);
 
     if (_recentCodes.length > _maxRecent) {
       _recentCodes.removeLast();
     }
   }
 
-  /// 📌 رجّع recent emojis
   List<EmojiModel> getRecentEmojis() {
     return _recentCodes
         .map((code) => emojiMap[code])
@@ -76,7 +98,6 @@ class EmojiService {
         .toList();
   }
 
-  /// 📌 clear (لو عايز reset)
   void clearRecent() {
     _recentCodes.clear();
   }
