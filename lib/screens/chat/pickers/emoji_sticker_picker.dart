@@ -40,35 +40,22 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
     "Custom": [],
   };
 
-  // 🔥 IMPORT FUNCTION (زي ما هي)
+  // 🔥 ZIP IMPORT (زي ما هو)
   Future<void> _importEmojiPack() async {
-    print("🔥 1. زرار الامبورت اتداس");
-
     try {
-      if (!Platform.isAndroid && !Platform.isIOS) {
-        debugPrint("Import skipped: unsupported platform");
-        return;
-      }
+      if (!Platform.isAndroid && !Platform.isIOS) return;
 
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['zip'],
       );
 
-      if (result == null) {
-        print("❌ 2. المستخدم لغى الاختيار");
-        return;
-      }
-
-      print("✅ 2. الملف اتختار");
+      if (result == null) return;
 
       final file = File(result.files.single.path!);
-
       final Uint8List bytes = await file.readAsBytes();
 
       await EmojiService().importFromZip(bytes);
-
-      print("🔥 3. الامبورت خلص");
 
       setState(() {});
 
@@ -78,11 +65,39 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
         );
       }
     } catch (e) {
-      print("💥 ERROR: $e");
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('❌ Import failed: $e')),
+        );
+      }
+    }
+  }
+
+  // 🆕🔥 ADD EMOJI FROM IMAGE
+  Future<void> _addEmojiFromImage() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+      );
+
+      if (result == null) return;
+
+      final file = File(result.files.single.path!);
+      final bytes = await file.readAsBytes();
+
+      await EmojiService().addCustomEmojiFromBytes(bytes);
+
+      setState(() {});
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('🔥 Emoji added')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Failed: $e')),
         );
       }
     }
@@ -119,9 +134,7 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
                     style: TextStyle(color: Colors.white)),
                 onTap: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("🚧 Coming soon")),
-                  );
+                  _addEmojiFromImage(); // 🔥 بدل Coming Soon
                 },
               ),
 
@@ -190,9 +203,7 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
       child: Column(
         children: [
           const SizedBox(height: 8),
-
           _searchBar(),
-
           _packsBar(),
 
           TabBar(
@@ -352,7 +363,7 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
           child: Center(
             child: emoji.char != null
                 ? Text(emoji.char!, style: const TextStyle(fontSize: 22))
-                : Image.asset(emoji.assetPath!, width: 24),
+                : Image.memory(emoji.bytes!, width: 24), // 🔥 مهم
           ),
         );
       },
@@ -378,7 +389,7 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
               padding: const EdgeInsets.all(6),
               child: e.char != null
                   ? Text(e.char!, style: const TextStyle(fontSize: 22))
-                  : Image.asset(e.assetPath!, width: 24),
+                  : Image.memory(e.bytes!, width: 24),
             ),
           );
         }).toList(),
