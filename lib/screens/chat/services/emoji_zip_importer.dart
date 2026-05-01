@@ -1,54 +1,68 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
-import '../models/emoji_pack_dto.dart';
+
+import '../models/emoji_model.dart';
+import '../models/emoji_pack.dart';
 
 class EmojiZipImporter {
-  /// 🔥 فك الـ ZIP وتحويله لـ DTO + Images
-  static Future<EmojiPackDTO?> import(Uint8List bytes) async {
-    try {
-      final archive = ZipDecoder().decodeBytes(bytes);
+  Future<EmojiPack> importFromBytes(Uint8List bytes) async {
+    final archive = ZipDecoder().decodeBytes(bytes);
 
-      Map<String, dynamic>? jsonData;
+    Map<String, dynamic>? jsonData;
+    final Map<String, Uint8List> images = {};
 
-      /// 🧠 نخزن كل الملفات
-      final Map<String, Uint8List> files = {};
+    for (final file in archive) {
+      if (file.isFile) {
+        final name = file.name;
 
-      for (final file in archive) {
-        if (file.isFile) {
-          files[file.name] = Uint8List.fromList(file.content);
+        if (name.endsWith('.json')) {
+          final content = utf8.decode(file.content as List<int>);
+          jsonData = jsonDecode(content);
+        } else if (_isImage(name)) {
+          images[name] = Uint8List.fromList(file.content as List<int>);
         }
       }
-
-      /// 🔎 دور على JSON
-      for (final entry in files.entries) {
-        if (entry.key.endsWith('.json')) {
-          final content = utf8.decode(entry.value);
-          jsonData = json.decode(content);
-          break;
-        }
-      }
-
-      if (jsonData == null) return null;
-
-      /// 🔥 حوله لـ DTO
-      final dto = EmojiPackDTO.fromJson(jsonData);
-
-      /// 🔥 اربط الصور بالإيموجي
-      for (final emoji in dto.emojis) {
-        final fileName = emoji.file; // لازم يكون موجود في DTO
-
-        if (files.containsKey(fileName)) {
-          emoji.bytes = files[fileName];
-        } else {
-          print("⚠️ Missing file: $fileName");
-        }
-      }
-
-      return dto;
-    } catch (e) {
-      print("❌ ZIP IMPORT ERROR: $e");
-      return null;
     }
+
+    if (jsonData == null) {
+      throw Exception('No JSON file found in ZIP');
+    }
+
+    final packId = jsonData['id'] ?? DateTime.now().millisecondsSinceEpoch.toString();
+
+    final List emojisJson = jsonData['emojis'];
+
+    final emojis = emojisJson.map<EmojiModel>((e) {
+      final fileName = e['file'];
+
+      return EmojiModel(
+        id: e['id'],
+        code: e['code'],
+        assetPath: fileName,
+        packId: packId,
+        name: e['name'],
+        keywords: e['keywords'] != null
+            ? List<String>.from(e['keywords'])
+            : null,
+      );
+    }).toList();
+
+    return EmojiPack(
+      id: packId,
+      name: jsonData['name'] ?? 'Imported Pack',
+      iconPath: jsonData['icon'],
+      emojis: emojis,
+      isLocal: true,
+      source: 'zip',
+    );
+  }
+
+  bool _isImage(String name) {
+    final lower = name.toLowerCase();
+    return lower.endsWith('.png') ||
+        lower.endsWith('.webp') ||
+        lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg');
   }
 }
