@@ -1,11 +1,12 @@
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 
 import '../models/emoji_model.dart';
 import '../models/emoji_pack.dart';
 import '../models/emoji_pack_dto.dart';
 import 'emoji_zip_importer.dart';
 
-class EmojiService {
+class EmojiService extends ChangeNotifier {
   /// 🔥 Singleton
   static final EmojiService _instance = EmojiService._internal();
   factory EmojiService() => _instance;
@@ -70,16 +71,18 @@ class EmojiService {
   void addEmoji(EmojiModel emoji) {
     _packs.first.emojis.add(emoji);
     _emojiMapCache = null;
+    notifyListeners(); // 🔥 NEW
   }
 
   /// 🔥 إضافة Pack كامل
   void addPack(EmojiPack pack) {
     _packs.add(pack);
     _emojiMapCache = null;
+    notifyListeners(); // 🔥 NEW
   }
 
   // =====================================
-  // 🔥🔥🔥 NEW: ADD EMOJI FROM IMAGE
+  // 🔥🔥🔥 ADD EMOJI FROM IMAGE
   // =====================================
 
   int _customIdCounter = 1000;
@@ -98,7 +101,6 @@ class EmojiService {
     final id = (_customIdCounter++).toString();
     final code = ':custom_$id:';
 
-    /// ❗ حالياً مفيش تخزين فعلي → هنخزن bytes مؤقت (هنتطور بعدين)
     final emoji = EmojiModel(
       id: id,
       code: code,
@@ -108,8 +110,8 @@ class EmojiService {
 
     customPack.emojis.add(emoji);
 
-    /// 🔥 reset cache
     _emojiMapCache = null;
+    notifyListeners(); // 🔥 NEW
 
     return emoji;
   }
@@ -118,17 +120,27 @@ class EmojiService {
   // 🔥🔥🔥 ZIP IMPORT
   // =====================================
 
-  Future<bool> importFromZip(Uint8List bytes) async {
-    final dto = await EmojiZipImporter.import(bytes);
+  Future<bool> importFromZip(Uint8List zipBytes) async {
+    final EmojiPackDto? dto = await EmojiZipImporter.import(zipBytes);
 
     if (dto == null) return false;
 
+    /// 🔥 نحول DTO → Model + نتأكد إن bytes موجودة
+    final emojis = dto.emojis.map((e) {
+      return EmojiModel(
+        id: e.id,
+        code: e.code,
+        bytes: e.bytes, // 🔥 أهم حاجة
+        isCustom: true,
+      );
+    }).toList();
+
     final pack = EmojiPack(
       name: dto.name,
-      emojis: dto.emojis,
+      emojis: emojis,
     );
 
-    addPack(pack);
+    addPack(pack); // فيها notify already
 
     return true;
   }
@@ -147,6 +159,8 @@ class EmojiService {
     if (_recentCodes.length > _maxRecent) {
       _recentCodes.removeLast();
     }
+
+    notifyListeners(); // 🔥 NEW
   }
 
   List<EmojiModel> getRecentEmojis() {
@@ -158,5 +172,6 @@ class EmojiService {
 
   void clearRecent() {
     _recentCodes.clear();
+    notifyListeners(); // 🔥 NEW
   }
 }
