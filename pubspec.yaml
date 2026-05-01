@@ -23,6 +23,15 @@ dependencies:
   uuid: ^4.3.3
   timeago: ^3.6.1
 
+  # 🛠️ حل مشاكل الـ Build والـ Import
+  file_picker: ^8.0.0    # عشان تختار ملفات الـ Zip بتاعت الاستيكرات والإيموجي
+  archive: ^3.6.1        # المكتبة اللي فكت الضغط وسببت الايرور الأخير
+  path_provider: ^2.1.2  # ضرورية جداً عشان تحفظ الإيموجي في ذاكرة الموبايل بعد فكها
+
+  # ✨ ميزات الـ Premium & Modern UI
+  lottie: ^3.1.0         # عشان الرموز المتحركة (Animated Emojis) اللي هتجنن الناس
+  path: ^1.9.0           # بتساعد في تنظيم مسارات الملفات جوه السيستم
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -32,3 +41,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    # - assets/lottie/   # فك الكومنت لو هتحط ملفات Lottie محليا
