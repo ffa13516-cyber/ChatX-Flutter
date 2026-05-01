@@ -1,5 +1,9 @@
+import 'dart:typed_data';
+
 import '../models/emoji_model.dart';
-import '../models/emoji_pack.dart'; // 🆕🔥
+import '../models/emoji_pack.dart';
+import '../models/emoji_pack_dto.dart'; // 🆕🔥
+import 'emoji_zip_importer.dart';       // 🆕🔥
 
 class EmojiService {
   /// 🔥 Singleton
@@ -59,13 +63,12 @@ class EmojiService {
     return _packs.expand((p) => p.emojis).toList();
   }
 
-  /// 🔥 رجّع الـ packs (لـ UI بعدين)
+  /// 🔥 رجّع الـ packs
   List<EmojiPack> get packs => _packs;
 
-  /// 🔥 إضافة Emoji جديد (مثلاً من pack)
+  /// 🔥 إضافة Emoji جديد
   void addEmoji(EmojiModel emoji) {
     _packs.first.emojis.add(emoji);
-
     _emojiMapCache = null;
   }
 
@@ -73,6 +76,26 @@ class EmojiService {
   void addPack(EmojiPack pack) {
     _packs.add(pack);
     _emojiMapCache = null;
+  }
+
+  // =====================================
+  // 🔥🔥🔥 ZIP IMPORT (🔥 الجديد)
+  // =====================================
+
+  Future<bool> importFromZip(Uint8List bytes) async {
+    final dto = await EmojiZipImporter.import(bytes);
+
+    if (dto == null) return false;
+
+    /// 🔥 تحويل DTO ➜ Pack
+    final pack = EmojiPack(
+      name: dto.name,
+      emojis: dto.emojis,
+    );
+
+    addPack(pack);
+
+    return true;
   }
 
   // ===============================
