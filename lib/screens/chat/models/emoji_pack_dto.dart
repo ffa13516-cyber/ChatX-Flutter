@@ -1,28 +1,41 @@
-import 'emoji_model.dart';
+import 'dart:typed_data';
 
 class EmojiPackDTO {
   final String name;
-  final List<EmojiModel> emojis;
+  final List<EmojiDTO> emojis;
 
   EmojiPackDTO({
     required this.name,
     required this.emojis,
   });
 
-  /// 🔥 من JSON (جاي من ZIP)
   factory EmojiPackDTO.fromJson(Map<String, dynamic> json) {
-    final list = (json['emojis'] as List)
-        .map((e) => EmojiModel(
-              id: e['id'],
-              code: e['code'],
-              char: e['char'],
-              assetPath: e['asset'],
-            ))
-        .toList();
-
     return EmojiPackDTO(
-      name: json['name'],
-      emojis: list,
+      name: json['name'] ?? '',
+      emojis: (json['emojis'] as List)
+          .map((e) => EmojiDTO.fromJson(e))
+          .toList(),
+    );
+  }
+}
+
+class EmojiDTO {
+  final String code;
+  final String file;
+
+  /// 🔥 هيتحط بعد فك الـ ZIP
+  Uint8List? bytes;
+
+  EmojiDTO({
+    required this.code,
+    required this.file,
+    this.bytes,
+  });
+
+  factory EmojiDTO.fromJson(Map<String, dynamic> json) {
+    return EmojiDTO(
+      code: json['code'] ?? '',
+      file: json['file'] ?? '',
     );
   }
 }
