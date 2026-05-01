@@ -2,8 +2,8 @@ import 'dart:typed_data';
 
 import '../models/emoji_model.dart';
 import '../models/emoji_pack.dart';
-import '../models/emoji_pack_dto.dart'; // 🆕🔥
-import 'emoji_zip_importer.dart';       // 🆕🔥
+import '../models/emoji_pack_dto.dart';
+import 'emoji_zip_importer.dart';
 
 class EmojiService {
   /// 🔥 Singleton
@@ -66,7 +66,7 @@ class EmojiService {
   /// 🔥 رجّع الـ packs
   List<EmojiPack> get packs => _packs;
 
-  /// 🔥 إضافة Emoji جديد
+  /// 🔥 إضافة Emoji جديد (قديم)
   void addEmoji(EmojiModel emoji) {
     _packs.first.emojis.add(emoji);
     _emojiMapCache = null;
@@ -79,7 +79,43 @@ class EmojiService {
   }
 
   // =====================================
-  // 🔥🔥🔥 ZIP IMPORT (🔥 الجديد)
+  // 🔥🔥🔥 NEW: ADD EMOJI FROM IMAGE
+  // =====================================
+
+  int _customIdCounter = 1000;
+
+  Future<EmojiModel> addCustomEmojiFromBytes(Uint8List bytes) async {
+    /// 🔥 نلاقي الـ Custom pack
+    final customPack = _packs.firstWhere(
+      (p) => p.name == "Custom",
+      orElse: () {
+        final newPack = EmojiPack(name: "Custom", emojis: []);
+        _packs.add(newPack);
+        return newPack;
+      },
+    );
+
+    final id = (_customIdCounter++).toString();
+    final code = ':custom_$id:';
+
+    /// ❗ حالياً مفيش تخزين فعلي → هنخزن bytes مؤقت (هنتطور بعدين)
+    final emoji = EmojiModel(
+      id: id,
+      code: code,
+      bytes: bytes, // 🔥 مهم
+      isCustom: true,
+    );
+
+    customPack.emojis.add(emoji);
+
+    /// 🔥 reset cache
+    _emojiMapCache = null;
+
+    return emoji;
+  }
+
+  // =====================================
+  // 🔥🔥🔥 ZIP IMPORT
   // =====================================
 
   Future<bool> importFromZip(Uint8List bytes) async {
@@ -87,7 +123,6 @@ class EmojiService {
 
     if (dto == null) return false;
 
-    /// 🔥 تحويل DTO ➜ Pack
     final pack = EmojiPack(
       name: dto.name,
       emojis: dto.emojis,
