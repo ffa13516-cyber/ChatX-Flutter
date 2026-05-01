@@ -1,33 +1,53 @@
 class StickerModel {
   final String id;
-
-  /// مسار الصورة (ممكن يكون asset أو file بعد فك الـ ZIP)
-  final String path;
-
-  /// الباك اللي تابع ليه
-  final String packId;
+  final String assetPath;
+  final String? packId;
+  final String? name;
+  final List<String>? keywords;
 
   StickerModel({
     required this.id,
-    required this.path,
-    required this.packId,
+    required this.assetPath,
+    this.packId,
+    this.name,
+    this.keywords,
   });
 
-  // 🔥 من JSON (مهم للـ ZIP import)
   factory StickerModel.fromJson(Map<String, dynamic> json) {
     return StickerModel(
       id: json['id'],
-      path: json['path'],
+      assetPath: json['assetPath'],
       packId: json['packId'],
+      name: json['name'],
+      keywords: json['keywords'] != null
+          ? List<String>.from(json['keywords'])
+          : null,
     );
   }
 
-  // 🔥 إلى JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'path': path,
+      'assetPath': assetPath,
       'packId': packId,
+      'name': name,
+      'keywords': keywords,
     };
+  }
+
+  StickerModel copyWith({
+    String? id,
+    String? assetPath,
+    String? packId,
+    String? name,
+    List<String>? keywords,
+  }) {
+    return StickerModel(
+      id: id ?? this.id,
+      assetPath: assetPath ?? this.assetPath,
+      packId: packId ?? this.packId,
+      name: name ?? this.name,
+      keywords: keywords ?? this.keywords,
+    );
   }
 }
