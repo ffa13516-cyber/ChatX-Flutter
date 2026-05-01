@@ -28,8 +28,6 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
   @override
   void initState() {
     super.initState();
-
-    /// 🔥 بقوا 3 Tabs بدل 2
     _tabController = TabController(length: 3, vsync: this);
   }
 
@@ -45,7 +43,6 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
         children: [
           const SizedBox(height: 8),
 
-          /// 🔥 Tabs فوق (Emoji / GIF / Sticker)
           TabBar(
             controller: _tabController,
             indicatorColor: Colors.white,
@@ -62,16 +59,67 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
             child: TabBarView(
               controller: _tabController,
               children: [
-                _emojiGrid(),
-
-                /// 🔥 GIF Placeholder
+                _emojiView(),
                 _gifView(),
-
                 _stickerView(),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 🔥 View كامل (Recent + Grid)
+  Widget _emojiView() {
+    return Column(
+      children: [
+        _recentBar(),
+        Expanded(child: _emojiGrid()),
+      ],
+    );
+  }
+
+  /// 🔥 Recent Emojis Bar
+  Widget _recentBar() {
+    final recents = EmojiService().getRecentEmojis();
+
+    if (recents.isEmpty) {
+      return const SizedBox(); // مفيش حاجة لسه
+    }
+
+    return Container(
+      height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: recents.length,
+        itemBuilder: (context, index) {
+          final emoji = recents[index];
+
+          return GestureDetector(
+            onTap: () {
+              EmojiService().registerUsage(emoji);
+              widget.onEmojiSelected(emoji);
+              setState(() {}); // 🔥 refresh
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Center(
+                child: emoji.char != null
+                    ? Text(
+                        emoji.char!,
+                        style: const TextStyle(fontSize: 22),
+                      )
+                    : Image.asset(
+                        emoji.assetPath!,
+                        width: 24,
+                        height: 24,
+                      ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -90,7 +138,11 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
         final emoji = emojis[index];
 
         return GestureDetector(
-          onTap: () => widget.onEmojiSelected(emoji),
+          onTap: () {
+            EmojiService().registerUsage(emoji); // 🔥 مهم
+            widget.onEmojiSelected(emoji);
+            setState(() {}); // 🔥 عشان يظهر في recent فورًا
+          },
           child: Center(
             child: emoji.char != null
                 ? Text(
@@ -108,7 +160,7 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
     );
   }
 
-  /// 🔵 GIF (لسه مش متنفذ)
+  /// 🔵 GIF
   Widget _gifView() {
     return const Center(
       child: Text(
@@ -135,7 +187,6 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
       length: packs.length,
       child: Column(
         children: [
-          /// 🔥 Tabs بتاعة الـ Packs
           TabBar(
             isScrollable: true,
             indicatorColor: Colors.white,
