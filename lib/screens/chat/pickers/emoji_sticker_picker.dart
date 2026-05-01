@@ -39,9 +39,15 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
     "Custom": [],
   };
 
-  // 🆕🔥 IMPORT FUNCTION
+  // 🆕🔥 IMPORT FUNCTION (UPDATED ONLY)
   Future<void> _importEmojiPack() async {
     try {
+      // 🔥 FIX: prevent crash in CI / unsupported platforms
+      if (!Platform.isAndroid && !Platform.isIOS) {
+        debugPrint("Import skipped: unsupported platform");
+        return;
+      }
+
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['zip'],
@@ -53,7 +59,7 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
 
       await EmojiService().importFromZip(file);
 
-      setState(() {}); // 🔥 refresh packs
+      setState(() {});
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('✅ Emoji pack imported')),
