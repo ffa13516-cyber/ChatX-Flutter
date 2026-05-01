@@ -40,7 +40,7 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
     "Custom": [],
   };
 
-  // 🔥 IMPORT FUNCTION (UPDATED + DEBUG)
+  // 🔥 IMPORT FUNCTION (زي ما هي)
   Future<void> _importEmojiPack() async {
     print("🔥 1. زرار الامبورت اتداس");
 
@@ -86,6 +86,64 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
         );
       }
     }
+  }
+
+  // 🆕 MENU
+  void _showImportOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1F22),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+
+              ListTile(
+                leading: const Icon(Icons.folder_zip, color: Colors.white70),
+                title: const Text("Import Pack (ZIP)",
+                    style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _importEmojiPack();
+                },
+              ),
+
+              ListTile(
+                leading: const Icon(Icons.image, color: Colors.white70),
+                title: const Text("Add Emoji (Image)",
+                    style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("🚧 Coming soon")),
+                  );
+                },
+              ),
+
+              ListTile(
+                leading:
+                    const Icon(Icons.sticky_note_2, color: Colors.white70),
+                title: const Text("Add Sticker (Image)",
+                    style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("🚧 Coming soon")),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -224,7 +282,7 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
           ),
 
           GestureDetector(
-            onTap: _importEmojiPack,
+            onTap: _showImportOptions,
             child: Container(
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 10),
