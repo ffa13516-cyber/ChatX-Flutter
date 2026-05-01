@@ -25,16 +25,47 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
 
   final emojis = EmojiService().allEmojis;
 
+  String searchQuery = "";
+
+  final Map<String, List<EmojiModel>> categories = {
+    "Smileys": [],
+    "Love": [],
+    "Custom": [],
+  };
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _buildCategories();
+  }
+
+  void _buildCategories() {
+    for (var e in emojis) {
+      if (e.isCustom) {
+        categories["Custom"]!.add(e);
+      } else if (e.code.contains("heart")) {
+        categories["Love"]!.add(e);
+      } else {
+        categories["Smileys"]!.add(e);
+      }
+    }
+  }
+
+  List<EmojiModel> _filter(List<EmojiModel> list) {
+    if (searchQuery.isEmpty) return list;
+
+    return list.where((e) {
+      final q = searchQuery.toLowerCase();
+      return e.code.toLowerCase().contains(q) ||
+          (e.char?.contains(q) ?? false);
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 320,
+      height: 360,
       decoration: const BoxDecoration(
         color: Color(0xFF1E1F22),
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -43,15 +74,15 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
         children: [
           const SizedBox(height: 8),
 
+          _searchBar(),
+
           TabBar(
             controller: _tabController,
             indicatorColor: Colors.white,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white38,
             tabs: const [
-              Tab(icon: Icon(Icons.emoji_emotions), text: "Emoji"),
-              Tab(icon: Icon(Icons.gif_box), text: "GIF"),
-              Tab(icon: Icon(Icons.sticky_note_2), text: "Stickers"),
+              Tab(icon: Icon(Icons.emoji_emotions)),
+              Tab(icon: Icon(Icons.gif_box)),
+              Tab(icon: Icon(Icons.sticky_note_2)),
             ],
           ),
 
@@ -70,116 +101,129 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
     );
   }
 
-  /// 🔥 View كامل (Recent + Grid)
+  Widget _searchBar() {
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: TextField(
+        onChanged: (v) => setState(() => searchQuery = v),
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: "Search...",
+          hintStyle: const TextStyle(color: Colors.white38),
+          prefixIcon: const Icon(Icons.search, color: Colors.white54),
+          filled: true,
+          fillColor: const Color(0xFF2B2C2F),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _emojiView() {
-    return Column(
+    return ListView(
       children: [
-        _recentBar(),
-        Expanded(child: _emojiGrid()),
+        if (searchQuery.isEmpty) _recentBar(),
+
+        ...categories.entries.map((entry) {
+          final list = _filter(entry.value);
+
+          if (list.isEmpty) return const SizedBox();
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  entry.key,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              _emojiGrid(list),
+            ],
+          );
+        }),
       ],
     );
   }
 
-  /// 🔥 Recent Emojis Bar
-  Widget _recentBar() {
-    final recents = EmojiService().getRecentEmojis();
-
-    if (recents.isEmpty) {
-      return const SizedBox(); // مفيش حاجة لسه
-    }
-
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: recents.length,
-        itemBuilder: (context, index) {
-          final emoji = recents[index];
-
-          return GestureDetector(
-            onTap: () {
-              EmojiService().registerUsage(emoji);
-              widget.onEmojiSelected(emoji);
-              setState(() {}); // 🔥 refresh
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Center(
-                child: emoji.char != null
-                    ? Text(
-                        emoji.char!,
-                        style: const TextStyle(fontSize: 22),
-                      )
-                    : Image.asset(
-                        emoji.assetPath!,
-                        width: 24,
-                        height: 24,
-                      ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  /// 🟢 Emoji Grid
-  Widget _emojiGrid() {
+  Widget _emojiGrid(List<EmojiModel> list) {
     return GridView.builder(
-      padding: const EdgeInsets.all(10),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 8,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
       ),
-      itemCount: emojis.length,
-      itemBuilder: (context, index) {
-        final emoji = emojis[index];
+      itemCount: list.length,
+      itemBuilder: (_, i) {
+        final emoji = list[i];
 
         return GestureDetector(
           onTap: () {
-            EmojiService().registerUsage(emoji); // 🔥 مهم
+            EmojiService().registerUsage(emoji);
             widget.onEmojiSelected(emoji);
-            setState(() {}); // 🔥 عشان يظهر في recent فورًا
+            setState(() {});
           },
           child: Center(
             child: emoji.char != null
-                ? Text(
-                    emoji.char!,
-                    style: const TextStyle(fontSize: 22),
-                  )
-                : Image.asset(
-                    emoji.assetPath!,
-                    width: 24,
-                    height: 24,
-                  ),
+                ? Text(emoji.char!, style: const TextStyle(fontSize: 22))
+                : Image.asset(emoji.assetPath!, width: 24),
           ),
         );
       },
     );
   }
 
-  /// 🔵 GIF
-  Widget _gifView() {
-    return const Center(
-      child: Text(
-        "GIF Coming Soon 👀",
-        style: TextStyle(color: Colors.white54),
+  Widget _recentBar() {
+    final recents = EmojiService().getRecentEmojis();
+    if (recents.isEmpty) return const SizedBox();
+
+    return SizedBox(
+      height: 50,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: recents.map((e) {
+          return GestureDetector(
+            onTap: () {
+              EmojiService().registerUsage(e);
+              widget.onEmojiSelected(e);
+              setState(() {});
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: e.char != null
+                  ? Text(e.char!, style: const TextStyle(fontSize: 22))
+                  : Image.asset(e.assetPath!, width: 24),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
 
-  /// 🟣 Sticker Packs
+  Widget _gifView() {
+    return const Center(
+      child: Text("GIF Coming Soon 👀",
+          style: TextStyle(color: Colors.white54)),
+    );
+  }
+
   Widget _stickerView() {
-    final List<StickerPack> packs = StickerService().packs;
+    final packs = StickerService().packs;
 
     if (packs.isEmpty) {
       return const Center(
-        child: Text(
-          "No Stickers 😢",
-          style: TextStyle(color: Colors.white54),
-        ),
+        child: Text("No Stickers 😢",
+            style: TextStyle(color: Colors.white54)),
       );
     }
 
@@ -189,7 +233,6 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
         children: [
           TabBar(
             isScrollable: true,
-            indicatorColor: Colors.white,
             tabs: packs.map((p) => Tab(text: p.name)).toList(),
           ),
           Expanded(
@@ -200,20 +243,14 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
                   gridDelegate:
                       const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 4,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
                   ),
                   itemCount: pack.stickers.length,
-                  itemBuilder: (context, index) {
-                    final sticker = pack.stickers[index];
+                  itemBuilder: (_, i) {
+                    final sticker = pack.stickers[i];
 
                     return GestureDetector(
-                      onTap: () =>
-                          widget.onStickerSelected(sticker),
-                      child: Image.asset(
-                        sticker.path,
-                        fit: BoxFit.contain,
-                      ),
+                      onTap: () => widget.onStickerSelected(sticker),
+                      child: Image.asset(sticker.path),
                     );
                   },
                 );
