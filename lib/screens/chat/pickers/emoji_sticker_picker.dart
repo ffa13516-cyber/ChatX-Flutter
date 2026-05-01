@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:io'; // 🆕
+import 'package:file_picker/file_picker.dart'; // 🆕
 import '../models/emoji_model.dart';
 import '../models/sticker_model.dart';
 import '../models/sticker_pack.dart';
-import '../models/emoji_pack.dart'; // 🆕🔥
+import '../models/emoji_pack.dart';
 import '../services/emoji_service.dart';
 import '../services/sticker_service.dart';
 
@@ -25,17 +27,43 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
   late TabController _tabController;
 
   final emojis = EmojiService().allEmojis;
-  final packs = EmojiService().packs; // 🆕
+  final packs = EmojiService().packs;
 
   String searchQuery = "";
 
-  int selectedPackIndex = 0; // 🆕🔥
+  int selectedPackIndex = 0;
 
   final Map<String, List<EmojiModel>> categories = {
     "Smileys": [],
     "Love": [],
     "Custom": [],
   };
+
+  // 🆕🔥 IMPORT FUNCTION
+  Future<void> _importEmojiPack() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['zip'],
+      );
+
+      if (result == null) return;
+
+      final file = File(result.files.single.path!);
+
+      await EmojiService().importFromZip(file);
+
+      setState(() {}); // 🔥 refresh packs
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('✅ Emoji pack imported')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Import failed: $e')),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -84,7 +112,6 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
 
           _searchBar(),
 
-          /// 🔥🔥🔥 Packs Bar
           _packsBar(),
 
           TabBar(
@@ -112,7 +139,6 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
     );
   }
 
-  /// 🔍 Search
   Widget _searchBar() {
     return Padding(
       padding: const EdgeInsets.all(8),
@@ -134,41 +160,57 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
     );
   }
 
-  /// 🔥 Packs Bar
+  /// 🔥 Packs Bar + IMPORT
   Widget _packsBar() {
     return SizedBox(
       height: 42,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: packs.length,
-        itemBuilder: (context, index) {
-          final pack = packs[index];
-          final isSelected = index == selectedPackIndex;
+      child: Row(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: packs.length,
+              itemBuilder: (context, index) {
+                final pack = packs[index];
+                final isSelected = index == selectedPackIndex;
 
-          return GestureDetector(
-            onTap: () {
-              setState(() => selectedPackIndex = index);
-            },
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? Colors.white.withOpacity(0.15)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                pack.name,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.white54,
-                  fontSize: 13,
-                ),
-              ),
+                return GestureDetector(
+                  onTap: () {
+                    setState(() => selectedPackIndex = index);
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? Colors.white.withOpacity(0.15)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      pack.name,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.white54,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
-          );
-        },
+          ),
+
+          // 🆕🔥 IMPORT BUTTON
+          GestureDetector(
+            onTap: _importEmojiPack,
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: const Icon(Icons.add, color: Colors.white70),
+            ),
+          ),
+        ],
       ),
     );
   }
