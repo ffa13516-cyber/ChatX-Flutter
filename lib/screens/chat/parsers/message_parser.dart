@@ -2,24 +2,33 @@ import 'package:flutter/material.dart';
 import '../models/emoji_model.dart';
 
 class MessageParser {
-  /// 🔥 يدعم:
-  /// - Emoji عادي (❤️)
-  /// - Custom Emoji (صورة)
-  /// - Inline Sticker (صورة / GIF)
+  /// 🔥 Parser احترافي:
+  /// - سريع (skip لو مفيش :)
+  /// - non-greedy regex
+  /// - scalable emoji size
+  /// - safe fallback
+
+  static final RegExp _regex = RegExp(r':(.*?):', multiLine: true);
+
   static List<InlineSpan> parse({
     required String text,
     required Map<String, EmojiModel> emojiMap,
     TextStyle? style,
   }) {
-    final List<InlineSpan> spans = [];
+    // 🚀 تحسين الأداء: لو مفيش : خالص
+    if (!text.contains(':')) {
+      return [
+        TextSpan(text: text, style: style),
+      ];
+    }
 
-    final regex = RegExp(r':(.*?):'); // :emoji:
-    final matches = regex.allMatches(text);
+    final List<InlineSpan> spans = [];
+    final matches = _regex.allMatches(text);
 
     int lastIndex = 0;
 
     for (final match in matches) {
-      // ✏️ النص قبل العنصر
+      // ✏️ النص العادي
       if (match.start > lastIndex) {
         spans.add(
           TextSpan(
@@ -33,7 +42,7 @@ class MessageParser {
       final emoji = emojiMap[code];
 
       if (emoji != null) {
-        /// 🟢 1. Emoji عادي (Unicode)
+        /// 🟢 Unicode Emoji
         if (!emoji.isCustom && emoji.char != null) {
           spans.add(
             TextSpan(
@@ -43,22 +52,24 @@ class MessageParser {
           );
         }
 
-        /// 🔵 2. Custom Emoji / Inline Sticker
+        /// 🔵 Custom Emoji / Sticker
         else if (emoji.assetPath != null) {
+          final fontSize = style?.fontSize ?? 16;
+
           spans.add(
             WidgetSpan(
               alignment: PlaceholderAlignment.middle,
               child: Image.asset(
                 emoji.assetPath!,
-                width: 26,
-                height: 26,
+                width: fontSize * 1.4,
+                height: fontSize * 1.4,
                 fit: BoxFit.contain,
               ),
             ),
           );
         }
 
-        /// ⚠️ fallback لو الداتا ناقصة
+        /// ⚠️ fallback
         else {
           spans.add(
             TextSpan(
@@ -68,7 +79,7 @@ class MessageParser {
           );
         }
       } else {
-        /// ❌ لو الكود مش معروف
+        /// ❌ unknown code
         spans.add(
           TextSpan(
             text: code,
