@@ -5,6 +5,7 @@ import '../models/message_model.dart';
 // 🆕🔥
 import 'inline_emoji_text.dart';
 import '../services/emoji_service.dart';
+import '../models/emoji_model.dart'; // 🆕 مهم عشان static map
 import 'sticker_view.dart';
 
 class ChatBubble extends StatefulWidget {
@@ -31,7 +32,9 @@ class _ChatBubbleState extends State<ChatBubble>
   bool isPressed = false;
   late AnimationController _waveController;
 
-  final emojiMap = EmojiService().emojiMap;
+  // 🔥 FIX: يتعمل مرة واحدة بس بدل كل bubble
+  static final Map<String, EmojiModel> emojiMap =
+      EmojiService().emojiMap;
 
   @override
   void initState() {
@@ -153,7 +156,6 @@ class _ChatBubbleState extends State<ChatBubble>
                         children: [
                           if (message.replyTo != null) _replyPreview(),
 
-                          // 🔥🔥🔥 Sticker (ذكي)
                           if (message.type == MessageType.sticker ||
                               message.text.startsWith("[sticker]"))
                             StickerView(
@@ -250,9 +252,16 @@ class _ChatBubbleState extends State<ChatBubble>
     );
   }
 
+  // 🔥 FIX: حماية من null / empty
   Widget _text() {
+    final safeText = (widget.message.rawText?.isNotEmpty == true)
+        ? widget.message.rawText!
+        : (widget.message.text.isNotEmpty
+            ? widget.message.text
+            : "");
+
     return InlineEmojiText(
-      text: widget.message.rawText ?? widget.message.text,
+      text: safeText,
       emojiMap: emojiMap,
       style: const TextStyle(
         color: Colors.white,
