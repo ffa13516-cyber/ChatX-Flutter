@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:io'; // 🆕
-import 'package:file_picker/file_picker.dart'; // 🆕
+import 'dart:io'; 
+import 'dart:typed_data'; // 🆕 ضفت ده عشان الـ Uint8List
+import 'package:file_picker/file_picker.dart'; 
 import '../models/emoji_model.dart';
 import '../models/sticker_model.dart';
 import '../models/sticker_pack.dart';
@@ -39,7 +40,7 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
     "Custom": [],
   };
 
-  // 🆕🔥 IMPORT FUNCTION (UPDATED ONLY)
+  // 🆕🔥 IMPORT FUNCTION (FIXED & PROFESSIONAL)
   Future<void> _importEmojiPack() async {
     try {
       // 🔥 FIX: prevent crash in CI / unsupported platforms
@@ -55,19 +56,28 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
 
       if (result == null) return;
 
+      // تحويل المسار لملف
       final file = File(result.files.single.path!);
 
-      await EmojiService().importFromZip(file);
+      // 🔥 التعديل الجوهري: تحويل الملف لـ Bytes قبل الإرسال
+      final Uint8List bytes = await file.readAsBytes();
+
+      // إرسال الـ bytes للخدمة بدلاً من كائن الملف نفسه
+      await EmojiService().importFromZip(bytes);
 
       setState(() {});
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Emoji pack imported')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Emoji pack imported')),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ Import failed: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Import failed: $e')),
+        );
+      }
     }
   }
 
