@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/emoji_model.dart';
 import '../models/sticker_model.dart';
 import '../models/sticker_pack.dart';
+import '../models/emoji_pack.dart'; // 🆕🔥
 import '../services/emoji_service.dart';
 import '../services/sticker_service.dart';
 
@@ -24,8 +25,11 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
   late TabController _tabController;
 
   final emojis = EmojiService().allEmojis;
+  final packs = EmojiService().packs; // 🆕
 
   String searchQuery = "";
+
+  int selectedPackIndex = 0; // 🆕🔥
 
   final Map<String, List<EmojiModel>> categories = {
     "Smileys": [],
@@ -52,6 +56,10 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
     }
   }
 
+  List<EmojiModel> _currentPackEmojis() {
+    return packs[selectedPackIndex].emojis;
+  }
+
   List<EmojiModel> _filter(List<EmojiModel> list) {
     if (searchQuery.isEmpty) return list;
 
@@ -65,7 +73,7 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 360,
+      height: 380,
       decoration: const BoxDecoration(
         color: Color(0xFF1E1F22),
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -75,6 +83,9 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
           const SizedBox(height: 8),
 
           _searchBar(),
+
+          /// 🔥🔥🔥 Packs Bar
+          _packsBar(),
 
           TabBar(
             controller: _tabController,
@@ -101,6 +112,7 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
     );
   }
 
+  /// 🔍 Search
   Widget _searchBar() {
     return Padding(
       padding: const EdgeInsets.all(8),
@@ -122,13 +134,56 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
     );
   }
 
+  /// 🔥 Packs Bar
+  Widget _packsBar() {
+    return SizedBox(
+      height: 42,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: packs.length,
+        itemBuilder: (context, index) {
+          final pack = packs[index];
+          final isSelected = index == selectedPackIndex;
+
+          return GestureDetector(
+            onTap: () {
+              setState(() => selectedPackIndex = index);
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? Colors.white.withOpacity(0.15)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                pack.name,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.white54,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _emojiView() {
+    final current = _currentPackEmojis();
+
     return ListView(
       children: [
         if (searchQuery.isEmpty) _recentBar(),
 
         ...categories.entries.map((entry) {
-          final list = _filter(entry.value);
+          final list = _filter(
+            entry.value.where((e) => current.contains(e)).toList(),
+          );
 
           if (list.isEmpty) return const SizedBox();
 
