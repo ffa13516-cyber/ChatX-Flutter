@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io'; 
-import 'dart:typed_data'; // 🆕 ضفت ده عشان الـ Uint8List
+import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart'; 
 import '../models/emoji_model.dart';
 import '../models/sticker_model.dart';
@@ -40,10 +40,11 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
     "Custom": [],
   };
 
-  // 🆕🔥 IMPORT FUNCTION (FIXED & PROFESSIONAL)
+  // 🔥 IMPORT FUNCTION (UPDATED + DEBUG)
   Future<void> _importEmojiPack() async {
+    print("🔥 1. زرار الامبورت اتداس");
+
     try {
-      // 🔥 FIX: prevent crash in CI / unsupported platforms
       if (!Platform.isAndroid && !Platform.isIOS) {
         debugPrint("Import skipped: unsupported platform");
         return;
@@ -54,16 +55,20 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
         allowedExtensions: ['zip'],
       );
 
-      if (result == null) return;
+      if (result == null) {
+        print("❌ 2. المستخدم لغى الاختيار");
+        return;
+      }
 
-      // تحويل المسار لملف
+      print("✅ 2. الملف اتختار");
+
       final file = File(result.files.single.path!);
 
-      // 🔥 التعديل الجوهري: تحويل الملف لـ Bytes قبل الإرسال
       final Uint8List bytes = await file.readAsBytes();
 
-      // إرسال الـ bytes للخدمة بدلاً من كائن الملف نفسه
       await EmojiService().importFromZip(bytes);
+
+      print("🔥 3. الامبورت خلص");
 
       setState(() {});
 
@@ -73,6 +78,8 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
         );
       }
     } catch (e) {
+      print("💥 ERROR: $e");
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('❌ Import failed: $e')),
@@ -176,7 +183,6 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
     );
   }
 
-  /// 🔥 Packs Bar + IMPORT
   Widget _packsBar() {
     return SizedBox(
       height: 42,
@@ -217,7 +223,6 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
             ),
           ),
 
-          // 🆕🔥 IMPORT BUTTON
           GestureDetector(
             onTap: _importEmojiPack,
             child: Container(
