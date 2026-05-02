@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/emoji_model.dart';
 import '../models/sticker_pack.dart';
 import 'emoji_zip_importer.dart';
+import 'media_processor_service.dart'; //
 
 class EmojiService extends ChangeNotifier {
   static final EmojiService _instance = EmojiService._internal();
@@ -11,7 +12,10 @@ class EmojiService extends ChangeNotifier {
 
   final List<MediaPack> _packs = [];
   final List<String> _recentIds = [];
-  Map<String, ChatXMedia> _mediaCache = {};
+  final Map<String, ChatXMedia> _mediaCache = {};
+  
+  // استدعاء محرك المعالجة[cite: 1]
+  final MediaProcessorService _processor = MediaProcessorService();
 
   List<MediaPack> get packs => List.unmodifiable(_packs);
   
@@ -27,6 +31,16 @@ class EmojiService extends ChangeNotifier {
       
       final mediaItems = await EmojiZipImporter.convertToMediaList(processedData, packId);
       
+      // معالجة الصور داخل الحزمة لتحويلها لـ WebP وتوفير المساحة
+      for (var item in mediaItems) {
+        if (item.metadata?['raw_bytes'] != null) {
+          final webpBytes = await _processor.convertToWebP(item.metadata!['raw_bytes']);
+          if (webpBytes != null) {
+            item.metadata!['raw_bytes'] = webpBytes;
+          }
+        }
+      }
+
       final newPack = MediaPack(
         id: packId,
         title: processedData['metadata']['name'] ?? 'Untitled Pack',
@@ -52,13 +66,21 @@ class EmojiService extends ChangeNotifier {
     required MediaType type,
     bool removeBackground = false,
   }) async {
+    // معالجة الصورة قبل الإضافة (إزالة خلفية أو تحويل WebP)[cite: 1, 7]
+    Uint8List processedBytes;
+    if (removeBackground && type == MediaType.sticker) {
+      processedBytes = await _processor.removeBackground(bytes) ?? bytes;
+    } else {
+      processedBytes = await _processor.convertToWebP(bytes) ?? bytes;
+    }
+
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     final newMedia = ChatXMedia(
       id: id,
       packId: 'custom_uploads',
       url: '',
       type: type,
-      metadata: {'raw_bytes': bytes, 'bg_removed': removeBackground},
+      metadata: {'raw_bytes': processedBytes, 'bg_removed': removeBackground},
     );
 
     final customPackIndex = _packs.indexWhere((p) => p.id == 'custom_uploads');
