@@ -1,17 +1,18 @@
+import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'dart:io'; 
-import 'dart:typed_data';
-import 'package:file_picker/file_picker.dart'; 
+import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:lottie/lottie.dart';
+
 import '../models/emoji_model.dart';
-import '../models/sticker_model.dart';
 import '../models/sticker_pack.dart';
-import '../models/emoji_pack.dart';
 import '../services/emoji_service.dart';
-import '../services/sticker_service.dart';
 
 class EmojiStickerPicker extends StatefulWidget {
-  final Function(EmojiModel) onEmojiSelected;
-  final Function(StickerModel) onStickerSelected;
+  final Function(ChatXMedia) onEmojiSelected;
+  final Function(ChatXMedia) onStickerSelected;
 
   const EmojiStickerPicker({
     super.key,
@@ -23,228 +24,180 @@ class EmojiStickerPicker extends StatefulWidget {
   State<EmojiStickerPicker> createState() => _EmojiStickerPickerState();
 }
 
-class _EmojiStickerPickerState extends State<EmojiStickerPicker>
-    with SingleTickerProviderStateMixin {
+class _EmojiStickerPickerState extends State<EmojiStickerPicker> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  String _searchQuery = "";
+  int _selectedPackIndex = 0;
 
-  final emojis = EmojiService().allEmojis;
-  final packs = EmojiService().packs;
-
-  String searchQuery = "";
-
-  int selectedPackIndex = 0;
-
-  final Map<String, List<EmojiModel>> categories = {
-    "Smileys": [],
-    "Love": [],
-    "Custom": [],
-  };
-
-  // 🔥 ZIP IMPORT (زي ما هو)
-  Future<void> _importEmojiPack() async {
-    try {
-      if (!Platform.isAndroid && !Platform.isIOS) return;
-
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['zip'],
-      );
-
-      if (result == null) return;
-
-      final file = File(result.files.single.path!);
-      final Uint8List bytes = await file.readAsBytes();
-
-      await EmojiService().importFromZip(bytes);
-
-      setState(() {});
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Emoji pack imported')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Import failed: $e')),
-        );
-      }
-    }
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    EmojiService().addListener(_onServiceUpdate);
   }
 
-  // 🆕🔥 ADD EMOJI FROM IMAGE
-  Future<void> _addEmojiFromImage() async {
+  @override
+  void dispose() {
+    EmojiService().removeListener(_onServiceUpdate);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _onServiceUpdate() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _importPack(FileType type, List<String>? extensions) async {
     try {
       final result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
+        type: type,
+        allowedExtensions: extensions,
       );
 
-      if (result == null) return;
+      if (result == null || result.files.single.path == null) return;
 
       final file = File(result.files.single.path!);
       final bytes = await file.readAsBytes();
 
-      await EmojiService().addCustomEmojiFromBytes(bytes);
-
-      setState(() {});
+      if (type == FileType.custom) {
+        await EmojiService().importPackFromZip(bytes);
+      } else {
+        await EmojiService().addSingleMedia(
+          bytes: bytes,
+          type: MediaType.emoji,
+          removeBackground: false, 
+        );
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('🔥 Emoji added')),
+          const SnackBar(
+            content: Text('تمت الإضافة بنجاح', style: TextStyle(color: Colors.white)),
+            backgroundColor: Color(0xAA000000),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Failed: $e')),
+          SnackBar(content: Text('حدث خطأ: $e')),
         );
       }
     }
   }
 
-  // 🆕 MENU
-  void _showImportOptions() {
+  void _showImportMenu() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E1F22),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-
-              ListTile(
-                leading: const Icon(Icons.folder_zip, color: Colors.white70),
-                title: const Text("Import Pack (ZIP)",
-                    style: TextStyle(color: Colors.white)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _importEmojiPack();
-                },
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              color: Colors.black.withOpacity(0.4),
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.folder_zip, color: Colors.white),
+                    title: const Text("استيراد حزمة (ZIP)", style: TextStyle(color: Colors.white)),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _importPack(FileType.custom, ['zip']);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.image, color: Colors.white),
+                    title: const Text("إضافة رمز مخصص (صورة)", style: TextStyle(color: Colors.white)),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _importPack(FileType.image, null);
+                    },
+                  ),
+                ],
               ),
-
-              ListTile(
-                leading: const Icon(Icons.image, color: Colors.white70),
-                title: const Text("Add Emoji (Image)",
-                    style: TextStyle(color: Colors.white)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _addEmojiFromImage(); // 🔥 بدل Coming Soon
-                },
-              ),
-
-              ListTile(
-                leading:
-                    const Icon(Icons.sticky_note_2, color: Colors.white70),
-                title: const Text("Add Sticker (Image)",
-                    style: TextStyle(color: Colors.white)),
-                onTap: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("🚧 Coming soon")),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 12),
-            ],
+            ),
           ),
         );
       },
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _buildCategories();
-  }
+  List<ChatXMedia> _getFilteredMedia(MediaType targetType) {
+    if (EmojiService().packs.isEmpty) return [];
+    
+    final currentPack = EmojiService().packs[_selectedPackIndex];
+    var items = currentPack.items.where((m) => m.type == targetType || (targetType == MediaType.emoji && m.type == MediaType.svg)).toList();
 
-  void _buildCategories() {
-    for (var e in emojis) {
-      if (e.isCustom) {
-        categories["Custom"]!.add(e);
-      } else if (e.code.contains("heart")) {
-        categories["Love"]!.add(e);
-      } else {
-        categories["Smileys"]!.add(e);
-      }
+    if (_searchQuery.isNotEmpty) {
+      items = items.where((m) => (m.label?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false)).toList();
     }
-  }
-
-  List<EmojiModel> _currentPackEmojis() {
-    return packs[selectedPackIndex].emojis;
-  }
-
-  List<EmojiModel> _filter(List<EmojiModel> list) {
-    if (searchQuery.isEmpty) return list;
-
-    return list.where((e) {
-      final q = searchQuery.toLowerCase();
-      return e.code.toLowerCase().contains(q) ||
-          (e.char?.contains(q) ?? false);
-    }).toList();
+    return items;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 380,
-      decoration: const BoxDecoration(
-        color: Color(0xFF1E1F22),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 8),
-          _searchBar(),
-          _packsBar(),
-
-          TabBar(
-            controller: _tabController,
-            indicatorColor: Colors.white,
-            tabs: const [
-              Tab(icon: Icon(Icons.emoji_emotions)),
-              Tab(icon: Icon(Icons.gif_box)),
-              Tab(icon: Icon(Icons.sticky_note_2)),
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(
+          height: 400,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1F22).withOpacity(0.65),
+            border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1), width: 1)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              _buildSearchBar(),
+              _buildPacksBar(),
+              TabBar(
+                controller: _tabController,
+                indicatorColor: Colors.white,
+                dividerColor: Colors.transparent,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white38,
+                tabs: const [
+                  Tab(icon: Icon(Icons.emoji_emotions_rounded)),
+                  Tab(icon: Icon(Icons.sticky_note_2_rounded)),
+                ],
+              ),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildMediaGrid(MediaType.emoji, widget.onEmojiSelected),
+                    _buildMediaGrid(MediaType.sticker, widget.onStickerSelected),
+                  ],
+                ),
+              ),
             ],
           ),
-
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _emojiView(),
-                _gifView(),
-                _stickerView(),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _searchBar() {
+  Widget _buildSearchBar() {
     return Padding(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: TextField(
-        onChanged: (v) => setState(() => searchQuery = v),
+        onChanged: (v) => setState(() => _searchQuery = v),
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
-          hintText: "Search...",
+          hintText: "البحث عن الرموز...",
           hintStyle: const TextStyle(color: Colors.white38),
           prefixIcon: const Icon(Icons.search, color: Colors.white54),
           filled: true,
-          fillColor: const Color(0xFF2B2C2F),
+          fillColor: Colors.white.withOpacity(0.05),
+          contentPadding: EdgeInsets.zero,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
           ),
         ),
@@ -252,38 +205,36 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
     );
   }
 
-  Widget _packsBar() {
+  Widget _buildPacksBar() {
+    final packs = EmojiService().packs;
     return SizedBox(
-      height: 42,
+      height: 44,
       child: Row(
         children: [
           Expanded(
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               itemCount: packs.length,
               itemBuilder: (context, index) {
-                final pack = packs[index];
-                final isSelected = index == selectedPackIndex;
-
+                final isSelected = index == _selectedPackIndex;
                 return GestureDetector(
-                  onTap: () {
-                    setState(() => selectedPackIndex = index);
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 6),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  onTap: () => setState(() => _selectedPackIndex = index),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      color: isSelected
-                          ? Colors.white.withOpacity(0.15)
-                          : Colors.transparent,
+                      color: isSelected ? Colors.white.withOpacity(0.15) : Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent),
                     ),
                     alignment: Alignment.center,
                     child: Text(
-                      pack.name,
+                      packs[index].title,
                       style: TextStyle(
                         color: isSelected ? Colors.white : Colors.white54,
-                        fontSize: 13,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                   ),
@@ -291,161 +242,63 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker>
               },
             ),
           ),
-
-          GestureDetector(
-            onTap: _showImportOptions,
-            child: Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: const Icon(Icons.add, color: Colors.white70),
-            ),
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline, color: Colors.white70),
+            onPressed: _showImportMenu,
           ),
+          const SizedBox(width: 8),
         ],
       ),
     );
   }
 
-  Widget _emojiView() {
-    final current = _currentPackEmojis();
+  Widget _buildMediaGrid(MediaType type, Function(ChatXMedia) onSelected) {
+    final items = _getFilteredMedia(type);
 
-    return ListView(
-      children: [
-        if (searchQuery.isEmpty) _recentBar(),
+    if (items.isEmpty) {
+      return const Center(
+        child: Text("لا توجد عناصر هنا", style: TextStyle(color: Colors.white38)),
+      );
+    }
 
-        ...categories.entries.map((entry) {
-          final list = _filter(
-            entry.value.where((e) => current.contains(e)).toList(),
-          );
-
-          if (list.isEmpty) return const SizedBox();
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8),
-                child: Text(
-                  entry.key,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-              _emojiGrid(list),
-            ],
-          );
-        }),
-      ],
-    );
-  }
-
-  Widget _emojiGrid(List<EmojiModel> list) {
     return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(8),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 8,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
+      padding: const EdgeInsets.all(16),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: type == MediaType.sticker ? 4 : 8,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
       ),
-      itemCount: list.length,
-      itemBuilder: (_, i) {
-        final emoji = list[i];
-
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final media = items[index];
         return GestureDetector(
           onTap: () {
-            EmojiService().registerUsage(emoji);
-            widget.onEmojiSelected(emoji);
-            setState(() {});
+            EmojiService().recordUsage(media.id);
+            onSelected(media);
           },
-          child: Center(
-            child: emoji.char != null
-                ? Text(emoji.char!, style: const TextStyle(fontSize: 22))
-                : Image.memory(emoji.bytes!, width: 24), // 🔥 مهم
-          ),
+          onLongPress: () {
+          },
+          child: _renderMediaItem(media),
         );
       },
     );
   }
 
-  Widget _recentBar() {
-    final recents = EmojiService().getRecentEmojis();
-    if (recents.isEmpty) return const SizedBox();
-
-    return SizedBox(
-      height: 50,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: recents.map((e) {
-          return GestureDetector(
-            onTap: () {
-              EmojiService().registerUsage(e);
-              widget.onEmojiSelected(e);
-              setState(() {});
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: e.char != null
-                  ? Text(e.char!, style: const TextStyle(fontSize: 22))
-                  : Image.memory(e.bytes!, width: 24),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _gifView() {
-    return const Center(
-      child: Text("GIF Coming Soon 👀",
-          style: TextStyle(color: Colors.white54)),
-    );
-  }
-
-  Widget _stickerView() {
-    final packs = StickerService().packs;
-
-    if (packs.isEmpty) {
-      return const Center(
-        child: Text("No Stickers 😢",
-            style: TextStyle(color: Colors.white54)),
-      );
+  Widget _renderMediaItem(ChatXMedia media) {
+    final rawBytes = media.metadata?['raw_bytes'];
+    
+    if (rawBytes != null) {
+      if (media.type == MediaType.lottie) return Lottie.memory(rawBytes);
+      if (media.type == MediaType.svg) return SvgPicture.memory(rawBytes);
+      return Image.memory(rawBytes, fit: BoxFit.contain);
     }
 
-    return DefaultTabController(
-      length: packs.length,
-      child: Column(
-        children: [
-          TabBar(
-            isScrollable: true,
-            tabs: packs.map((p) => Tab(text: p.name)).toList(),
-          ),
-          Expanded(
-            child: TabBarView(
-              children: packs.map((pack) {
-                return GridView.builder(
-                  padding: const EdgeInsets.all(10),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                  ),
-                  itemCount: pack.stickers.length,
-                  itemBuilder: (_, i) {
-                    final sticker = pack.stickers[i];
+    if (media.url.isNotEmpty) {
+      if (media.type == MediaType.lottie) return Lottie.network(media.url);
+      if (media.type == MediaType.svg) return SvgPicture.network(media.url);
+      return Image.network(media.url, fit: BoxFit.contain);
+    }
 
-                    return GestureDetector(
-                      onTap: () => widget.onStickerSelected(sticker),
-                      child: Image.asset(sticker.path),
-                    );
-                  },
-                );
-              }).toList(),
-            ),
-          ),
-        ],
-      ),
-    );
+    return Text(media.label ?? '؟', style: const TextStyle(fontSize: 22));
   }
 }
