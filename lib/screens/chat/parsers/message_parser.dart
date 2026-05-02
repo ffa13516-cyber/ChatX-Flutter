@@ -1,106 +1,79 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:lottie/lottie.dart';
 import '../models/emoji_model.dart';
 
 class MessageParser {
-  /// 🔥 Parser احترافي:
-  /// - سريع (skip لو مفيش :)
-  /// - non-greedy regex
-  /// - scalable emoji size
-  /// - safe fallback
-
-  static final RegExp _regex = RegExp(r':(.*?):', multiLine: true);
+  static final RegExp _emojiRegex = RegExp(r':(.*?):', multiLine: true);
 
   static List<InlineSpan> parse({
     required String text,
-    required Map<String, EmojiModel> emojiMap,
+    required Map<String, ChatXMedia> mediaMap,
     TextStyle? style,
+    double scaleFactor = 1.3,
   }) {
-    // 🚀 تحسين الأداء: لو مفيش : خالص
     if (!text.contains(':')) {
-      return [
-        TextSpan(text: text, style: style),
-      ];
+      return [TextSpan(text: text, style: style)];
     }
 
     final List<InlineSpan> spans = [];
-    final matches = _regex.allMatches(text);
-
+    final matches = _emojiRegex.allMatches(text);
+    final double size = (style?.fontSize ?? 16) * scaleFactor;
     int lastIndex = 0;
 
     for (final match in matches) {
-      // ✏️ النص العادي
       if (match.start > lastIndex) {
-        spans.add(
-          TextSpan(
-            text: text.substring(lastIndex, match.start),
-            style: style,
-          ),
-        );
+        spans.add(TextSpan(
+          text: text.substring(lastIndex, match.start),
+          style: style,
+        ));
       }
 
-      final code = match.group(0)!; // :smile:
-      final emoji = emojiMap[code];
+      final code = match.group(0)!;
+      final media = mediaMap[code] ?? 
+                    mediaMap.values.firstWhere((m) => m.label == match.group(1), 
+                    orElse: () => ChatXMedia(id: '', packId: '', url: '', type: MediaType.emoji));
 
-      if (emoji != null) {
-        /// 🟢 Unicode Emoji
-        if (!emoji.isCustom && emoji.char != null) {
-          spans.add(
-            TextSpan(
-              text: emoji.char,
-              style: style,
-            ),
-          );
-        }
-
-        /// 🔵 Custom Emoji / Sticker
-        else if (emoji.assetPath != null) {
-          final fontSize = style?.fontSize ?? 16;
-
-          spans.add(
-            WidgetSpan(
-              alignment: PlaceholderAlignment.middle,
-              child: Image.asset(
-                emoji.assetPath!,
-                width: fontSize * 1.4,
-                height: fontSize * 1.4,
-                fit: BoxFit.contain,
-              ),
-            ),
-          );
-        }
-
-        /// ⚠️ fallback
-        else {
-          spans.add(
-            TextSpan(
-              text: code,
-              style: style,
-            ),
-          );
-        }
+      if (media.id.isNotEmpty) {
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: _buildMediaWidget(media, size),
+        ));
       } else {
-        /// ❌ unknown code
-        spans.add(
-          TextSpan(
-            text: code,
-            style: style,
-          ),
-        );
+        spans.add(TextSpan(text: code, style: style));
       }
 
       lastIndex = match.end;
     }
 
-    // ✏️ باقي النص
     if (lastIndex < text.length) {
-      spans.add(
-        TextSpan(
-          text: text.substring(lastIndex),
-          style: style,
-        ),
-      );
+      spans.add(TextSpan(text: text.substring(lastIndex), style: style));
     }
 
     return spans;
+  }
+
+  static Widget _buildMediaWidget(ChatXMedia media, double size) {
+    final rawBytes = media.metadata?['raw_bytes'];
+
+    if (rawBytes != null) {
+      if (media.type == MediaType.lottie) {
+        return Lottie.memory(rawBytes, width: size, height: size, fit: BoxFit.contain);
+      } else if (media.type == MediaType.svg) {
+        return SvgPicture.memory(rawBytes, width: size, height: size, fit: BoxFit.contain);
+      }
+      return Image.memory(rawBytes, width: size, height: size, fit: BoxFit.contain);
+    }
+
+    if (media.url.isNotEmpty) {
+      if (media.type == MediaType.lottie) {
+        return Lottie.network(media.url, width: size, height: size, fit: BoxFit.contain);
+      } else if (media.type == MediaType.svg) {
+        return SvgPicture.network(media.url, width: size, height: size, fit: BoxFit.contain);
+      }
+      return Image.network(media.url, width: size, height: size, fit: BoxFit.contain);
+    }
+
+    return const SizedBox.shrink();
   }
 }
