@@ -9,6 +9,7 @@ import 'package:lottie/lottie.dart';
 import '../models/emoji_model.dart';
 import '../models/sticker_pack.dart';
 import '../services/emoji_service.dart';
+import '../widgets/emoji_preview_sheet.dart';
 
 class EmojiStickerPicker extends StatefulWidget {
   final Function(ChatXMedia) onEmojiSelected;
@@ -277,6 +278,7 @@ class _EmojiStickerPickerState extends State<EmojiStickerPicker> with SingleTick
             onSelected(media);
           },
           onLongPress: () {
+            EmojiPreviewSheet.show(context, media);
           },
           child: _renderMediaItem(media),
         );
