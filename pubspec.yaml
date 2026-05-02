@@ -9,28 +9,36 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  
+  # Firebase Core & Auth
   firebase_core: ^2.24.2
-  firebase_database: ^10.4.0
   firebase_auth: ^4.16.0
+  
+  # Storage & Databases
+  firebase_database: ^10.4.0
   firebase_storage: ^11.6.0
+  shared_preferences: ^2.2.2
+  
+  # UI & Design System (Modern & Premium)
   cupertino_icons: ^1.0.6
   google_fonts: ^6.1.0
   flutter_animate: ^4.3.0
   cached_network_image: ^3.3.1
-  image_picker: ^1.0.7
-  shared_preferences: ^2.2.2
+  flutter_svg: ^2.0.10+1      # ضرورية لعرض الرموز بصيغة SVG
+  lottie: ^3.1.0              # للرموز المتحركة
+  
+  # Media Processing (The Engine)
+  image: ^4.1.7               # لتحويل الصور لـ WebP وتصغير حجمها
+  http: ^1.2.1                # للتعامل مع API إزالة الخلفية والرفع
+  
+  # File Management & Utils
+  file_picker: ^8.0.0         # لاختيار ملفات الـ Zip والصور
+  archive: ^3.6.1             # لفك ضغط حزم الإيموجي
+  path_provider: ^2.1.2       # للتعامل مع ذاكرة الموبايل التخزينية
+  path: ^1.9.0
+  uuid: ^4.3.3                # لعمل IDs فريدة للملفات المرفوعة
   intl: ^0.18.1
-  uuid: ^4.3.3
   timeago: ^3.6.1
-
-  # 🛠️ حل مشاكل الـ Build والـ Import
-  file_picker: ^8.0.0    # عشان تختار ملفات الـ Zip بتاعت الاستيكرات والإيموجي
-  archive: ^3.6.1        # المكتبة اللي فكت الضغط وسببت الايرور الأخير
-  path_provider: ^2.1.2  # ضرورية جداً عشان تحفظ الإيموجي في ذاكرة الموبايل بعد فكها
-
-  # ✨ ميزات الـ Premium & Modern UI
-  lottie: ^3.1.0         # عشان الرموز المتحركة (Animated Emojis) اللي هتجنن الناس
-  path: ^1.9.0           # بتساعد في تنظيم مسارات الملفات جوه السيستم
 
 dev_dependencies:
   flutter_test:
@@ -41,4 +49,3 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
-    # - assets/lottie/   # فك الكومنت لو هتحط ملفات Lottie محليا
