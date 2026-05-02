@@ -1,177 +1,90 @@
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
-
 import '../models/emoji_model.dart';
-import '../models/emoji_pack.dart';
-import '../models/emoji_pack_dto.dart';
+import '../models/sticker_pack.dart';
 import 'emoji_zip_importer.dart';
 
 class EmojiService extends ChangeNotifier {
-  /// 🔥 Singleton
   static final EmojiService _instance = EmojiService._internal();
   factory EmojiService() => _instance;
   EmojiService._internal();
 
-  /// 🔥 Packs بدل ليست واحدة
-  final List<EmojiPack> _packs = [
-    EmojiPack(
-      name: "Default",
-      emojis: [
-        EmojiModel(id: '1', code: ':smile:', char: '😄'),
-        EmojiModel(id: '2', code: ':laugh:', char: '😂'),
-        EmojiModel(id: '3', code: ':heart:', char: '❤️'),
-      ],
-    ),
+  final List<MediaPack> _packs = [];
+  final List<String> _recentIds = [];
+  Map<String, ChatXMedia> _mediaCache = {};
 
-    /// 🔹 Custom Pack
-    EmojiPack(
-      name: "Custom",
-      emojis: [
-        EmojiModel(
-          id: '4',
-          code: ':fire_custom:',
-          assetPath: 'assets/emojis/fire.png',
-        ),
-      ],
-    ),
-  ];
+  List<MediaPack> get packs => List.unmodifiable(_packs);
+  
+  List<ChatXMedia> get recentMedia => _recentIds
+      .map((id) => _mediaCache[id])
+      .whereType<ChatXMedia>()
+      .toList();
 
-  /// 🔥 Cache للـ map
-  Map<String, EmojiModel>? _emojiMapCache;
-
-  Map<String, EmojiModel> get emojiMap {
-    if (_emojiMapCache != null) return _emojiMapCache!;
-
-    final map = <String, EmojiModel>{};
-
-    for (var pack in _packs) {
-      for (var e in pack.emojis) {
-        map[e.code] = e;
-      }
-    }
-
-    _emojiMapCache = map;
-    return map;
-  }
-
-  /// 🔥 get by code
-  EmojiModel? getByCode(String code) {
-    return emojiMap[code];
-  }
-
-  /// 🔥 كل الإيموجي (UI)
-  List<EmojiModel> get allEmojis {
-    return _packs.expand((p) => p.emojis).toList();
-  }
-
-  /// 🔥 رجّع الـ packs
-  List<EmojiPack> get packs => _packs;
-
-  /// 🔥 إضافة Emoji جديد (قديم)
-  void addEmoji(EmojiModel emoji) {
-    _packs.first.emojis.add(emoji);
-    _emojiMapCache = null;
-    notifyListeners(); // 🔥 NEW
-  }
-
-  /// 🔥 إضافة Pack كامل
-  void addPack(EmojiPack pack) {
-    _packs.add(pack);
-    _emojiMapCache = null;
-    notifyListeners(); // 🔥 NEW
-  }
-
-  // =====================================
-  // 🔥🔥🔥 ADD EMOJI FROM IMAGE
-  // =====================================
-
-  int _customIdCounter = 1000;
-
-  Future<EmojiModel> addCustomEmojiFromBytes(Uint8List bytes) async {
-    /// 🔥 نلاقي الـ Custom pack
-    final customPack = _packs.firstWhere(
-      (p) => p.name == "Custom",
-      orElse: () {
-        final newPack = EmojiPack(name: "Custom", emojis: []);
-        _packs.add(newPack);
-        return newPack;
-      },
-    );
-
-    final id = (_customIdCounter++).toString();
-    final code = ':custom_$id:';
-
-    final emoji = EmojiModel(
-      id: id,
-      code: code,
-      bytes: bytes, // 🔥 مهم
-      isCustom: true,
-    );
-
-    customPack.emojis.add(emoji);
-
-    _emojiMapCache = null;
-    notifyListeners(); // 🔥 NEW
-
-    return emoji;
-  }
-
-  // =====================================
-  // 🔥🔥🔥 ZIP IMPORT
-  // =====================================
-
-  Future<bool> importFromZip(Uint8List zipBytes) async {
-    final EmojiPackDto? dto = await EmojiZipImporter.import(zipBytes);
-
-    if (dto == null) return false;
-
-    /// 🔥 نحول DTO → Model + نتأكد إن bytes موجودة
-    final emojis = dto.emojis.map((e) {
-      return EmojiModel(
-        id: e.id,
-        code: e.code,
-        bytes: e.bytes, // 🔥 أهم حاجة
-        isCustom: true,
+  Future<void> importPackFromZip(Uint8List zipBytes) async {
+    try {
+      final processedData = await EmojiZipImporter.processZipArchive(zipBytes);
+      final packId = processedData['metadata']['id'] ?? DateTime.now().toString();
+      
+      final mediaItems = await EmojiZipImporter.convertToMediaList(processedData, packId);
+      
+      final newPack = MediaPack(
+        id: packId,
+        title: processedData['metadata']['name'] ?? 'Untitled Pack',
+        authorId: 'system',
+        thumbnail: '',
+        items: mediaItems,
+        createdAt: DateTime.now(),
       );
-    }).toList();
 
-    final pack = EmojiPack(
-      name: dto.name,
-      emojis: emojis,
+      _packs.add(newPack);
+      for (var item in mediaItems) {
+        _mediaCache[item.id] = item;
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Import Error: $e');
+    }
+  }
+
+  Future<void> addSingleMedia({
+    required Uint8List bytes,
+    required MediaType type,
+    bool removeBackground = false,
+  }) async {
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
+    final newMedia = ChatXMedia(
+      id: id,
+      packId: 'custom_uploads',
+      url: '',
+      type: type,
+      metadata: {'raw_bytes': bytes, 'bg_removed': removeBackground},
     );
 
-    addPack(pack); // فيها notify already
-
-    return true;
-  }
-
-  // ===============================
-  // 🔥🔥🔥 RECENT EMOJIS SYSTEM
-  // ===============================
-
-  final List<String> _recentCodes = [];
-  static const int _maxRecent = 24;
-
-  void registerUsage(EmojiModel emoji) {
-    _recentCodes.remove(emoji.code);
-    _recentCodes.insert(0, emoji.code);
-
-    if (_recentCodes.length > _maxRecent) {
-      _recentCodes.removeLast();
+    final customPackIndex = _packs.indexWhere((p) => p.id == 'custom_uploads');
+    if (customPackIndex != -1) {
+      _packs[customPackIndex].items.add(newMedia);
+    } else {
+      _packs.add(MediaPack(
+        id: 'custom_uploads',
+        title: 'Custom',
+        authorId: 'user',
+        thumbnail: '',
+        items: [newMedia],
+        createdAt: DateTime.now(),
+      ));
     }
 
-    notifyListeners(); // 🔥 NEW
+    _mediaCache[id] = newMedia;
+    notifyListeners();
   }
 
-  List<EmojiModel> getRecentEmojis() {
-    return _recentCodes
-        .map((code) => emojiMap[code])
-        .whereType<EmojiModel>()
-        .toList();
+  void recordUsage(String mediaId) {
+    _recentIds.remove(mediaId);
+    _recentIds.insert(0, mediaId);
+    if (_recentIds.length > 30) _recentIds.removeLast();
+    notifyListeners();
   }
 
-  void clearRecent() {
-    _recentCodes.clear();
-    notifyListeners(); // 🔥 NEW
-  }
+  ChatXMedia? findMediaById(String id) => _mediaCache[id];
 }
