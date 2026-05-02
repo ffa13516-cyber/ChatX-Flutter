@@ -1,68 +1,68 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
-
-import '../models/emoji_model.dart';
-import '../models/emoji_pack.dart';
+import '../models/emoji_model.dart'; 
 
 class EmojiZipImporter {
-  Future<EmojiPack> importFromBytes(Uint8List bytes) async {
+  static Future<Map<String, dynamic>> processZipArchive(Uint8List bytes) async {
     final archive = ZipDecoder().decodeBytes(bytes);
-
-    Map<String, dynamic>? jsonData;
-    final Map<String, Uint8List> images = {};
+    Map<String, dynamic>? config;
+    final Map<String, Uint8List> imageMap = {};
 
     for (final file in archive) {
       if (file.isFile) {
-        final name = file.name;
-
-        if (name.endsWith('.json')) {
-          final content = utf8.decode(file.content as List<int>);
-          jsonData = jsonDecode(content);
-        } else if (_isImage(name)) {
-          images[name] = Uint8List.fromList(file.content as List<int>);
+        if (file.name.endsWith('.json')) {
+          config = jsonDecode(utf8.decode(file.content as List<int>));
+        } else if (_isValidImage(file.name)) {
+          imageMap[file.name] = Uint8List.fromList(file.content as List<int>);
         }
       }
     }
 
-    if (jsonData == null) {
-      throw Exception('No JSON file found in ZIP');
-    }
+    if (config == null) throw Exception('Invalid Pack: Missing JSON configuration');
 
-    final packId = jsonData['id'] ?? DateTime.now().millisecondsSinceEpoch.toString();
-
-    final List emojisJson = jsonData['emojis'];
-
-    final emojis = emojisJson.map<EmojiModel>((e) {
-      final fileName = e['file'];
-
-      return EmojiModel(
-        id: e['id'],
-        code: e['code'],
-        assetPath: fileName,
-        packId: packId,
-        name: e['name'],
-        keywords: e['keywords'] != null
-            ? List<String>.from(e['keywords'])
-            : null,
-      );
-    }).toList();
-
-    return EmojiPack(
-      id: packId,
-      name: jsonData['name'] ?? 'Imported Pack',
-      iconPath: jsonData['icon'],
-      emojis: emojis,
-      isLocal: true,
-      source: 'zip',
-    );
+    return {
+      'metadata': config,
+      'images': imageMap,
+    };
   }
 
-  bool _isImage(String name) {
-    final lower = name.toLowerCase();
-    return lower.endsWith('.png') ||
-        lower.endsWith('.webp') ||
-        lower.endsWith('.jpg') ||
-        lower.endsWith('.jpeg');
+  static bool _isValidImage(String name) {
+    final path = name.toLowerCase();
+    return path.endsWith('.png') || 
+           path.endsWith('.webp') || 
+           path.endsWith('.svg') || 
+           path.endsWith('.lottie');
+  }
+
+  static Future<List<ChatXMedia>> convertToMediaList(
+    Map<String, dynamic> zipData, 
+    String packId
+  ) async {
+    final List items = zipData['metadata']['items'] ?? [];
+    final Map<String, Uint8List> images = zipData['images'];
+
+    return items.map((item) {
+      final fileName = item['file'];
+      return ChatXMedia(
+        id: item['id'] ?? DateTime.now().microsecondsSinceEpoch.toString(),
+        packId: packId,
+        url: '', 
+        type: _determineType(fileName),
+        label: item['label'],
+        isAnimated: fileName.endsWith('.lottie'),
+        metadata: {
+          'raw_bytes': images[fileName],
+          'original_name': fileName,
+        },
+      );
+    }).toList();
+  }
+
+  static MediaType _determineType(String fileName) {
+    if (fileName.endsWith('.svg')) return MediaType.svg;
+    if (fileName.endsWith('.lottie')) return MediaType.lottie;
+    if (fileName.contains('sticker')) return MediaType.sticker;
+    return MediaType.emoji;
   }
 }
