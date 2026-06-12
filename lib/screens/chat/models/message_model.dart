@@ -1,27 +1,19 @@
-enum MessageType { text, image, voice, sticker }
+enum MessageType { text, image, voice }
 
 enum MessageStatus { sent, delivered, seen }
 
 class Message {
   final String? id;
-
   final String text;
   final bool isMe;
-
   final MessageType type;
   final String? imageUrl;
-
   final DateTime time;
   final MessageStatus status;
-
   final Message? replyTo;
   final String? replyToId;
-
   final String? senderName;
   final String? senderId;
-
-  final String? stickerPath;
-  final String? rawText;
 
   Message({
     this.id,
@@ -35,11 +27,7 @@ class Message {
     this.replyToId,
     this.senderName,
     this.senderId,
-    this.stickerPath,
-    this.rawText,
-  })  : type = stickerPath != null
-            ? MessageType.sticker
-            : (type ?? MessageType.text),
+  })  : type = type ?? MessageType.text,
         time = time ?? DateTime.now();
 
   Map<String, dynamic> toMap() {
@@ -51,9 +39,7 @@ class Message {
       'imageUrl': imageUrl,
       'time': time.millisecondsSinceEpoch,
       'status': status.name,
-
       'replyToId': replyToId,
-
       'replyTo': replyTo == null
           ? null
           : {
@@ -61,43 +47,27 @@ class Message {
               'text': replyTo!.text,
               'senderName': replyTo!.senderName,
             },
-
-      'stickerPath': stickerPath,
-      'rawText': rawText,
     };
   }
 
   factory Message.fromMap(Map map, String myUid, {String? id}) {
-    final stickerPath = map['stickerPath'];
-
     return Message(
       id: id,
-
       text: map['text'] ?? '',
       isMe: map['senderId'] == myUid,
-
       senderId: map['senderId'],
       senderName: map['senderName'],
-
-      // 🔥 أهم تعديل هنا
-      type: stickerPath != null
-          ? MessageType.sticker
-          : MessageType.values.firstWhere(
-              (e) => e.name == map['type'],
-              orElse: () => MessageType.text,
-            ),
-
+      type: MessageType.values.firstWhere(
+        (e) => e.name == map['type'],
+        orElse: () => MessageType.text,
+      ),
       imageUrl: map['imageUrl'],
-
       time: DateTime.fromMillisecondsSinceEpoch(map['time'] ?? 0),
-
       status: MessageStatus.values.firstWhere(
         (e) => e.name == map['status'],
         orElse: () => MessageStatus.sent,
       ),
-
       replyToId: map['replyToId'],
-
       replyTo: map['replyTo'] == null
           ? null
           : Message(
@@ -105,11 +75,7 @@ class Message {
               text: map['replyTo']['text'] ?? '',
               isMe: false,
               senderName: map['replyTo']['senderName'],
-              senderId: null,
             ),
-
-      stickerPath: stickerPath,
-      rawText: map['rawText'],
     );
   }
 }
