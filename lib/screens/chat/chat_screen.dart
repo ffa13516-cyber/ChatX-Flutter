@@ -1,9 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart'; // إذا كنت تستخدم Bloc/Cubit
+import 'package:flutter_bloc/flutter_bloc.dart'; 
 import 'models/message_model.dart';
 import 'widgets/chat_input.dart';
 import 'widgets/chat_bubble.dart';
+
+// 🚀 السطر الإضافي لربط الـ State Management وحل مشكلة الـ Build
+import 'cubit/chat_cubit.dart'; // (عدل مسار المجلد لو الـ Cubit في مكان مختلف)
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -43,7 +46,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // افترضنا ربط الـ Cubit هنا
+    // ربط الـ Cubit 
     final chatCubit = context.read<ChatCubit>();
 
     return Scaffold(
@@ -70,7 +73,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   return ListView.builder(
                     controller: _controller,
                     reverse: true, // 🚀 التريكاية السحرية لأداء خيالي (تبدأ من تحت لفوق)
-                    padding: const EdgeInsets.fromLTRB(20, 140, 20, 120), // تم عكس الـ Padding ليتوافق مع الـ reverse
+                    padding: const EdgeInsets.fromLTRB(20, 140, 20, 120), 
                     itemCount: state.messages.length,
                     itemBuilder: (context, index) {
                       final msg = state.messages[index];
@@ -83,7 +86,6 @@ class _ChatScreenState extends State<ChatScreen> {
                             onReply: chatCubit.setReply,
                             onTapReply: (replyId) => scrollToMessage(replyId),
                             isHighlighted: msg.id == highlightedMessageId,
-                            // تم إخفاء وعزل الاستيكرز داخل مكون الـ ChatBubble إن وُجدت
                           ),
                         ],
                       );
@@ -147,7 +149,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // تم الاحتفاظ بدالة _header() و _headerIcon() كما هي بالضبط دون أي تغيير 100%
   Widget _header() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
