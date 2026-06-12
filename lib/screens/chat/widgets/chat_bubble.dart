@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/message_model.dart';
-import 'inline_emoji_text.dart';
-import '../services/emoji_service.dart';
-import '../models/emoji_model.dart';
 
 class ChatBubble extends StatefulWidget {
   final Message message;
@@ -27,8 +24,6 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
   bool isPlaying = false;
   bool isPressed = false;
   late AnimationController _waveController;
-
-  static final Map<String, EmojiModel> emojiMap = EmojiService().emojiMap;
 
   @override
   void initState() {
@@ -148,7 +143,6 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
                         children: [
                           if (message.replyTo != null) _replyPreview(),
                           
-                          // 🚀 هنا تم تنظيف كود الاستيكر تماماً وتحويل الدعم للفويس والتكست فقط
                           if (message.type == MessageType.voice)
                             _voice()
                           else
@@ -237,13 +231,9 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
   }
 
   Widget _text() {
-    final safeText = (widget.message.rawText?.isNotEmpty == true)
-        ? widget.message.rawText!
-        : (widget.message.text.isNotEmpty ? widget.message.text : "");
-
-    return InlineEmojiText(
-      text: safeText,
-      emojiMap: emojiMap,
+    // 🧹 Cleaned up: Removed rawText and InlineEmojiText dependencies
+    return Text(
+      widget.message.text,
       style: const TextStyle(
         color: Colors.white,
         fontSize: 15.5,
