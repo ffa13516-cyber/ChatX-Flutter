@@ -19,24 +19,21 @@ dependencies:
   firebase_storage: ^11.6.0
   shared_preferences: ^2.2.2
   
-  # UI & Design System (Modern & Premium)
+  # UI & Design System (Lean & Premium)
   cupertino_icons: ^1.0.6
   google_fonts: ^6.1.0
   flutter_animate: ^4.3.0
   cached_network_image: ^3.3.1
-  flutter_svg: ^2.0.10+1      # ضرورية لعرض الرموز بصيغة SVG
-  lottie: ^3.1.0              # للرموز المتحركة
   
-  # Media Processing (The Engine)
-  image: ^4.1.7               # لتحويل الصور لـ WebP وتصغير حجمها
-  http: ^1.2.1                # للتعامل مع API إزالة الخلفية والرفع
+  # Media Processing
+  image: ^4.1.7               
+  http: ^1.2.1                
   
   # File Management & Utils
-  file_picker: ^8.0.0         # لاختيار ملفات الـ Zip والصور
-  archive: ^3.6.1             # لفك ضغط حزم الإيموجي
-  path_provider: ^2.1.2       # للتعامل مع ذاكرة الموبايل التخزينية
+  file_picker: ^8.0.0         
+  path_provider: ^2.1.2       
   path: ^1.9.0
-  uuid: ^4.3.3                # لعمل IDs فريدة للملفات المرفوعة
+  uuid: ^4.3.3                
   intl: ^0.18.1
   timeago: ^3.6.1
 
