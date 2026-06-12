@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/message_model.dart';
-import '../services/emoji_service.dart';
 
 // 🚀 تم إزالة StickerPicker واستبداله بـ EmojiPicker بسيط أو التعامل مع الـ Keyboard مباشرة
 class ChatInput extends StatefulWidget {
