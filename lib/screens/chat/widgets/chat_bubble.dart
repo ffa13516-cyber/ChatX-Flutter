@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/message_model.dart';
-
-// 🆕🔥
 import 'inline_emoji_text.dart';
 import '../services/emoji_service.dart';
-import '../models/emoji_model.dart'; // 🆕 مهم عشان static map
-import 'sticker_view.dart';
+import '../models/emoji_model.dart';
 
 class ChatBubble extends StatefulWidget {
   final Message message;
@@ -26,15 +23,12 @@ class ChatBubble extends StatefulWidget {
   State<ChatBubble> createState() => _ChatBubbleState();
 }
 
-class _ChatBubbleState extends State<ChatBubble>
-    with SingleTickerProviderStateMixin {
+class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateMixin {
   bool isPlaying = false;
   bool isPressed = false;
   late AnimationController _waveController;
 
-  // 🔥 FIX: يتعمل مرة واحدة بس بدل كل bubble
-  static final Map<String, EmojiModel> emojiMap =
-      EmojiService().emojiMap;
+  static final Map<String, EmojiModel> emojiMap = EmojiService().emojiMap;
 
   @override
   void initState() {
@@ -67,8 +61,7 @@ class _ChatBubbleState extends State<ChatBubble>
     final isMe = widget.message.isMe;
 
     return Row(
-      mainAxisAlignment:
-          isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+      mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
       children: [
         GestureDetector(
           onTapDown: (_) {
@@ -93,8 +86,7 @@ class _ChatBubbleState extends State<ChatBubble>
 
   Widget _bubble(BuildContext context, bool isMe) {
     final message = widget.message;
-    final time =
-        "${message.time.hour}:${message.time.minute.toString().padLeft(2, '0')}";
+    final time = "${message.time.hour}:${message.time.minute.toString().padLeft(2, '0')}";
 
     final radius = BorderRadius.only(
       topLeft: const Radius.circular(22),
@@ -155,15 +147,9 @@ class _ChatBubbleState extends State<ChatBubble>
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           if (message.replyTo != null) _replyPreview(),
-
-                          if (message.type == MessageType.sticker ||
-                              message.text.startsWith("[sticker]"))
-                            StickerView(
-                              path: message.stickerPath ??
-                                  message.text.replaceFirst(
-                                      "[sticker]", ""),
-                            )
-                          else if (message.type == MessageType.voice)
+                          
+                          // 🚀 هنا تم تنظيف كود الاستيكر تماماً وتحويل الدعم للفويس والتكست فقط
+                          if (message.type == MessageType.voice)
                             _voice()
                           else
                             _text(),
@@ -227,9 +213,7 @@ class _ChatBubbleState extends State<ChatBubble>
                     Text(
                       reply.senderName!,
                       style: TextStyle(
-                        color: isMe
-                            ? const Color(0xFF5AC8FA)
-                            : Colors.white70,
+                        color: isMe ? const Color(0xFF5AC8FA) : Colors.white70,
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -252,13 +236,10 @@ class _ChatBubbleState extends State<ChatBubble>
     );
   }
 
-  // 🔥 FIX: حماية من null / empty
   Widget _text() {
     final safeText = (widget.message.rawText?.isNotEmpty == true)
         ? widget.message.rawText!
-        : (widget.message.text.isNotEmpty
-            ? widget.message.text
-            : "");
+        : (widget.message.text.isNotEmpty ? widget.message.text : "");
 
     return InlineEmojiText(
       text: safeText,
@@ -285,16 +266,14 @@ class _ChatBubbleState extends State<ChatBubble>
           bottom: 8,
           right: 10,
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
             decoration: BoxDecoration(
               color: Colors.black.withOpacity(0.65),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
               time,
-              style:
-                  const TextStyle(color: Colors.white70, fontSize: 11),
+              style: const TextStyle(color: Colors.white70, fontSize: 11),
             ),
           ),
         ),
@@ -330,23 +309,19 @@ class _ChatBubbleState extends State<ChatBubble>
             builder: (_, __) {
               return Row(
                 children: List.generate(14, (i) {
-                  final phase =
-                      (_waveController.value + i * 0.07) % 1.0;
+                  final phase = (_waveController.value + i * 0.07) % 1.0;
                   final h = isPlaying
-                      ? 4 +
-                          (phase < 0.5 ? phase : 1 - phase) * 18
+                      ? 4 + (phase < 0.5 ? phase : 1 - phase) * 18
                       : _staticHeight(i);
                   final t = i / 13;
                   final color = Color.lerp(
                     const Color(0xFF0A84FF),
                     const Color(0xFF5AC8FA),
                     t,
-                  )!
-                      .withOpacity(isPlaying ? 1.0 : 0.6);
+                  )!.withOpacity(isPlaying ? 1.0 : 0.6);
 
                   return Container(
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 1),
+                    margin: const EdgeInsets.symmetric(horizontal: 1),
                     width: 2.3,
                     height: h,
                     decoration: BoxDecoration(
