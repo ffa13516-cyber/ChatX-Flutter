@@ -75,7 +75,7 @@ class FirebaseRepo {
     return chat;
   }
 
-  // ✅ Send Message (🔥 دعم الاستيكر)
+  // ✅ Send Message (تم إزالة الاستيكر)
   static Future<void> sendMessage(String chatId, Message message) async {
     final msgRef = messagesRef.child(chatId).push();
 
@@ -90,9 +90,6 @@ class FirebaseRepo {
     String lastMessageText;
 
     switch (message.type) {
-      case MessageType.sticker:
-        lastMessageText = "📦 Sticker";
-        break;
       case MessageType.image:
         lastMessageText = "📷 Photo";
         break;
@@ -170,8 +167,6 @@ class FirebaseRepo {
       return list;
     });
   }
-
-  // باقي الملف زي ما هو 👇
 
   static Future<void> sendGroupMessage(String groupId, MessageModel message) async {
     final msgRef = groupMsgsRef.child(groupId).push();
