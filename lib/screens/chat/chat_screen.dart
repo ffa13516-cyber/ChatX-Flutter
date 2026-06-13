@@ -9,11 +9,15 @@ import 'package:chatx/screens/chat/cubit/chat_cubit.dart';
 class ChatScreen extends StatefulWidget {
   final String chatId;
   final String myUid;
+  final String receiverName; // 🚀 متغير ديناميكي لاسم الطرف التاني
+  final String? receiverImage; // 🚀 متغير ديناميكي لصورة الطرف التاني
 
   const ChatScreen({
     super.key,
     required this.chatId,
     required this.myUid,
+    this.receiverName = "Daniel Garcia", // قيمة افتراضية لحماية الـ Architecture من الـ Crashes
+    this.receiverImage,
   });
 
   @override
@@ -195,27 +199,28 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       ),
                     ),
-                    const CircleAvatar(
+                    CircleAvatar(
                       radius: 22,
-                      backgroundImage:
-                          NetworkImage("https://i.pravatar.cc/150?img=8"),
+                      backgroundImage: NetworkImage(
+                        widget.receiverImage ?? "https://i.pravatar.cc/150?img=8",
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
-                      "Daniel Garcia",
-                      style: TextStyle(
+                      widget.receiverName, // 🔥 عرض الاسم الحقيقي ديناميكياً
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    SizedBox(height: 2),
-                    Text(
+                    const SizedBox(height: 2),
+                    const Text(
                       "Online",
                       style: TextStyle(
                         color: Color(0xFF22C55E),
