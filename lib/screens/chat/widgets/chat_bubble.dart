@@ -70,7 +70,7 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
             widget.onReply?.call(widget.message);
           },
           child: AnimatedScale(
-            scale: isPressed ? 0.97 : 1,
+            scale: isPressed ? 0.98 : 1, // تأثير ضغطة خفيف ورايق
             duration: const Duration(milliseconds: 100),
             child: _bubble(context, isMe),
           ),
@@ -95,20 +95,15 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
       constraints: BoxConstraints(
         maxWidth: MediaQuery.of(context).size.width * 0.72,
       ),
-      margin: const EdgeInsets.symmetric(vertical: 6),
+      margin: const EdgeInsets.symmetric(vertical: 4), // تباين عمودي متناسق وهادي
       decoration: BoxDecoration(
         borderRadius: radius,
         boxShadow: [
-          if (widget.isHighlighted)
-            BoxShadow(
-              color: const Color(0xFF00E6FF).withOpacity(0.35),
-              blurRadius: 18,
-              spreadRadius: 2,
-            ),
+          // ظل طبيعي خفيف لإعطاء عمق بدون وهج مزعج
           BoxShadow(
-            color: Colors.black.withOpacity(0.22),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -117,10 +112,11 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
         child: Container(
           decoration: BoxDecoration(
             borderRadius: radius,
-            color: isMe ? null : const Color(0xFF2B2C2F).withOpacity(0.85),
+            // لون أونكس بلاك صريح وفخم للطرف الآخر، وجراديانت متناسق وناعم ليك
+            color: isMe ? null : const Color(0xFF121212), 
             gradient: isMe
                 ? const LinearGradient(
-                    colors: [Color(0xFF007AFF), Color(0xFF00C6FF)],
+                    colors: [Color(0xFF007AFF), Color(0xFF0055FF)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   )
@@ -128,14 +124,15 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
           ),
           child: Stack(
             children: [
+              // تأثير هايلايت خفيف وناعم جداً للعين عند التحديد
               if (widget.isHighlighted)
                 Positioned.fill(
-                  child: Container(color: Colors.white.withOpacity(0.08)),
+                  child: Container(color: Colors.white.withOpacity(0.04)),
                 ),
               Padding(
                 padding: message.type == MessageType.image
                     ? EdgeInsets.zero
-                    : const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                    : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 child: message.type == MessageType.image
                     ? _imageWithTime(time, radius)
                     : Column(
@@ -184,55 +181,57 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
         margin: const EdgeInsets.only(bottom: 6),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.25),
+          color: Colors.black.withOpacity(0.2), // خلفية داكنة هادية للرد
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 3,
-              height: 34,
-              margin: const EdgeInsets.only(right: 6),
-              decoration: BoxDecoration(
-                color: isMe ? const Color(0xFF0A84FF) : Colors.grey,
-                borderRadius: BorderRadius.circular(2),
+        // استخدام IntrinsicHeight لضمان تمدد الخط الجانبي مع النص تلقائياً
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch, 
+            children: [
+              Container(
+                width: 3,
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: isMe ? const Color(0xFF0A84FF) : Colors.grey.shade600,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (reply.senderName != null)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (reply.senderName != null)
+                      Text(
+                        reply.senderName!,
+                        style: TextStyle(
+                          color: isMe ? const Color(0xFF5AC8FA) : Colors.white70,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     Text(
-                      reply.senderName!,
-                      style: TextStyle(
-                        color: isMe ? const Color(0xFF5AC8FA) : Colors.white70,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
+                      previewText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 12,
                       ),
                     ),
-                  Text(
-                    previewText,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _text() {
-    // 🧹 Cleaned up: Removed rawText and InlineEmojiText dependencies
-    return Text(
+    // تم تغييرها لـ SelectableText لتمكين ميزة النسخ والتحديد الاحترافية
+    return SelectableText(
       widget.message.text,
       style: const TextStyle(
         color: Colors.white,
@@ -258,7 +257,7 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.65),
+              color: Colors.black.withOpacity(0.5),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
@@ -281,7 +280,7 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.08),
+              color: Colors.white.withOpacity(0.06),
             ),
             child: Icon(
               isPlaying ? Icons.pause : Icons.play_arrow,
@@ -308,7 +307,7 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
                     const Color(0xFF0A84FF),
                     const Color(0xFF5AC8FA),
                     t,
-                  )!.withOpacity(isPlaying ? 1.0 : 0.6);
+                  )!.withOpacity(isPlaying ? 1.0 : 0.5);
 
                   return Container(
                     margin: const EdgeInsets.symmetric(horizontal: 1),
@@ -325,8 +324,10 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
           ),
         ),
         const SizedBox(width: 8),
+        // هنا يمكنك استبدال النص الثابت بمتغير المدة الحقيقي من الـ Model بتاعك
+        // مثل: widget.message.voiceDuration أو widget.message.text إذا كنت تخزن المدة هناك.
         const Text(
-          "2:45",
+          "2:45", 
           style: TextStyle(
             color: Colors.white38,
             fontSize: 11,
@@ -348,8 +349,8 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
         Text(
           time,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.35),
-            fontSize: 11,
+            color: Colors.white.withOpacity(0.3),
+            fontSize: 10.5,
           ),
         ),
         if (isMe) ...[
