@@ -1,216 +1,108 @@
-import 'dart:ui';
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart'; 
-import 'package:chatx/screens/chat/models/message_model.dart';
-import 'package:chatx/screens/chat/widgets/chat_input.dart';
-import 'package:chatx/screens/chat/widgets/chat_bubble.dart';
-import 'package:chatx/screens/chat/cubit/chat_cubit.dart';
+import 'dart:async';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../models/message_model.dart';
+import '../../../repositories/firebase_repo.dart'; // 🚀 تأكد من مسار الـ Repo بتاعك
 
-class ChatScreen extends StatefulWidget {
-  final String chatId;
-  final String myUid;
+// ==========================================
+// 1. حالات الشاشة (States)
+// ==========================================
+abstract class ChatState {}
 
-  const ChatScreen({
-    super.key,
-    required this.chatId,
-    required this.myUid,
-  });
+class ChatInitial extends ChatState {}
 
-  @override
-  State<ChatScreen> createState() => _ChatScreenState();
+class ChatLoaded extends ChatState {
+  final List<Message> messages;
+  final Message? replyingTo;
+
+  ChatLoaded({required this.messages, this.replyingTo});
 }
 
-class _ChatScreenState extends State<ChatScreen> {
-  final ScrollController _controller = ScrollController();
-  String? highlightedMessageId;
+class ChatError extends ChatState {
+  final String errorMessage;
+  ChatError(this.errorMessage);
+}
 
-  void scrollToMessage(String id) {
-    setState(() {
-      highlightedMessageId = id;
-    });
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() => highlightedMessageId = null);
-      }
-    });
+// ==========================================
+// 2. اللوجيك الأساسي (Cubit)
+// ==========================================
+class ChatCubit extends Cubit<ChatState> {
+  final String chatId;
+  final String myUid;
+  
+  StreamSubscription? _messagesSubscription;
+  Message? replyingTo; // متغير متاح للـ UI للوصول السريع
+
+  ChatCubit({required this.chatId, required this.myUid}) : super(ChatInitial()) {
+    _initChat();
   }
 
+  // 🚀 تهيئة الشات وجلب الرسائل
+  void _initChat() {
+    // 1. علّم الرسايل إنها اتقرت أول ما تفتح الشاشة
+    FirebaseRepo.markAsSeen(chatId, myUid);
+
+    // 2. استمع للرسايل من فايربيز (Real-time)
+    _messagesSubscription = FirebaseRepo.observeMessages(chatId, myUid).listen(
+      (messages) {
+        // 🔥 التريكاية: بنعكس الرسايل هنا عشان الـ ListView (reverse: true) تشتغل بأداء خيالي وتبدأ من تحت
+        final reversedMessages = messages.reversed.toList();
+        
+        emit(ChatLoaded(
+          messages: reversedMessages,
+          replyingTo: replyingTo,
+        ));
+      },
+      onError: (error) {
+        emit(ChatError("حدث خطأ أثناء جلب الرسائل: \${error.toString()}"));
+      },
+    );
+  }
+
+  // 🔄 تفعيل أو إلغاء الرد على رسالة
+  void setReply(Message? message) {
+    replyingTo = message;
+    
+    // تحديث الـ UI فورا لو إحنا في حالة الـ Loaded
+    if (state is ChatLoaded) {
+      final currentMessages = (state as ChatLoaded).messages;
+      emit(ChatLoaded(messages: currentMessages, replyingTo: replyingTo));
+    }
+  }
+
+  // 📤 إرسال رسالة جديدة
+  Future<void> sendMessage(String text) async {
+    if (text.trim().isEmpty) return;
+
+    // حفظ بيانات الرد قبل مسحها
+    final replyId = replyingTo?.id;
+    final replyMsg = replyingTo;
+
+    // مسح الرد فوراً من الـ UI عشان تجربة المستخدم تكون أسرع
+    setReply(null);
+
+    // تجهيز موديل الرسالة (بدون ستيكرز زي ما طلبت)
+    final newMessage = Message(
+      text: text,
+      isMe: true,
+      senderId: myUid,
+      senderName: 'Me',
+      replyToId: replyId,
+      replyTo: replyMsg,
+      // ضيف هنا أي حقول تانية مطلوبة في الـ Model زي type أو غيره
+    );
+
+    try {
+      await FirebaseRepo.sendMessage(chatId, newMessage);
+    } catch (e) {
+      // لو حصل مشكلة في الإرسال ممكن نطبعها أو نظهر Snackbar
+      print("Error sending message: \$e");
+    }
+  }
+
+  // 🧹 تنظيف الذاكرة لما اليوزر يخرج من الشات
   @override
-  void dispose() {
-    _controller.dispose(); // حماية الذاكرة من التسريب
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final chatCubit = context.read<ChatCubit>();
-
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Image.asset("assets/images/bg.jpg", fit: BoxFit.cover),
-          ),
-          Positioned.fill(
-            child: Container(color: Colors.black.withOpacity(0.30)),
-          ),
-          Positioned.fill(
-            child: SafeArea(
-              child: BlocBuilder<ChatCubit, ChatState>(
-                builder: (context, state) {
-                  if (state is! ChatLoaded) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  return ListView.builder(
-                    controller: _controller,
-                    reverse: true, // أداء فائق ومثالي للتمرير للأسفل
-                    padding: const EdgeInsets.fromLTRB(20, 140, 20, 120),
-                    itemCount: state.messages.length,
-                    itemBuilder: (context, index) {
-                      final msg = state.messages[index];
-
-                      return Column(
-                        children: [
-                          ChatBubble(
-                            message: msg,
-                            onReply: chatCubit.setReply,
-                            onTapReply: (replyId) => scrollToMessage(replyId),
-                            isHighlighted: msg.id == highlightedMessageId,
-                          ),
-                          const SizedBox(height: 18),
-                        ],
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ),
-
-          Positioned(
-            bottom: 10,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              child: ChatInput(
-                replyMessage: chatCubit.replyingTo,
-                onCancelReply: () => chatCubit.setReply(null),
-                onSend: (text, replyId) => chatCubit.sendMessage(text),
-              ),
-            ),
-          ),
-
-          // الحفاظ على تأثير التدرجات والـ Header الأصلي 100% دون تغيير
-          Positioned(
-            bottom: 0, left: 0, right: 0, height: 120,
-            child: IgnorePointer(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter, end: Alignment.topCenter,
-                    colors: [Colors.black.withOpacity(0.45), Colors.black.withOpacity(0.20), Colors.transparent],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 0, left: 0, right: 0, height: 120,
-            child: IgnorePointer(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                    colors: [Colors.black.withOpacity(0.35), Colors.transparent],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 0, left: 0, right: 0,
-            child: SafeArea(child: _header()),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _header() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(26),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(26),
-              gradient: LinearGradient(
-                colors: [Colors.white.withOpacity(0.10), Colors.white.withOpacity(0.03)],
-                begin: Alignment.topLeft, end: Alignment.bottomRight,
-              ),
-              border: Border.all(color: Colors.white.withOpacity(0.08)),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 25, offset: const Offset(0, 12)),
-              ],
-            ),
-            child: Row(
-              children: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
-                      width: 60, height: 60,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(colors: [const Color(0xFF00E6FF).withOpacity(0.20), Colors.transparent]),
-                      ),
-                    ),
-                    const CircleAvatar(
-                      radius: 22,
-                      backgroundImage: NetworkImage("https://i.pravatar.cc/150?img=8"),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text("Daniel Garcia", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
-                    SizedBox(height: 2),
-                    Text("Online", style: TextStyle(color: Color(0xFF22C55E), fontSize: 11)),
-                  ],
-                ),
-                const Spacer(),
-                _headerIcon(Icons.videocam_outlined),
-                const SizedBox(width: 10),
-                _headerIcon(Icons.call_outlined),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _headerIcon(IconData icon) {
-    return ClipOval(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.all(11),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withOpacity(0.08),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
-          ),
-          child: Icon(icon, color: Colors.white70, size: 22),
-        ),
-      ),
-    );
+  Future<void> close() {
+    _messagesSubscription?.cancel();
+    return super.close();
   }
 }
