@@ -1,12 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart'; 
-import 'models/message_model.dart';
-import 'widgets/chat_input.dart';
-import 'widgets/chat_bubble.dart';
-
-// 🚀 السطر الإضافي لربط الـ State Management وحل مشكلة الـ Build
-import 'cubit/chat_cubit.dart'; // (عدل مسار المجلد لو الـ Cubit في مكان مختلف)
+import 'package:chatx/screens/chat/models/message_model.dart';
+import 'package:chatx/screens/chat/widgets/chat_input.dart';
+import 'package:chatx/screens/chat/widgets/chat_bubble.dart';
+import 'package:chatx/screens/chat/cubit/chat_cubit.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
