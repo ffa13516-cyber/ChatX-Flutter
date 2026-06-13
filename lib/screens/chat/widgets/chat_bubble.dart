@@ -95,7 +95,8 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
       constraints: BoxConstraints(
         maxWidth: MediaQuery.of(context).size.width * 0.72,
       ),
-      margin: const EdgeInsets.symmetric(vertical: 4), // تباين عمودي متناسق وهادي
+      // تم تقليل المسافة العمودية هنا لتصبح الرسائل أكثر تقارباً
+      margin: const EdgeInsets.symmetric(vertical: 1.5), 
       decoration: BoxDecoration(
         borderRadius: radius,
         boxShadow: [
@@ -112,15 +113,8 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
         child: Container(
           decoration: BoxDecoration(
             borderRadius: radius,
-            // لون أونكس بلاك صريح وفخم للطرف الآخر، وجراديانت متناسق وناعم ليك
-            color: isMe ? null : const Color(0xFF121212), 
-            gradient: isMe
-                ? const LinearGradient(
-                    colors: [Color(0xFF007AFF), Color(0xFF0055FF)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : null,
+            // تطبيق الألوان المتطابقة مع الـ Screenshot تماماً بدلاً من الألوان القديمة والجراديانت
+            color: isMe ? const Color(0xFF4186F6) : const Color(0xFF2B2C31), 
           ),
           child: Stack(
             children: [
@@ -324,8 +318,6 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
           ),
         ),
         const SizedBox(width: 8),
-        // هنا يمكنك استبدال النص الثابت بمتغير المدة الحقيقي من الـ Model بتاعك
-        // مثل: widget.message.voiceDuration أو widget.message.text إذا كنت تخزن المدة هناك.
         const Text(
           "2:45", 
           style: TextStyle(
