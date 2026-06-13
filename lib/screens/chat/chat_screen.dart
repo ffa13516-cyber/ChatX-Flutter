@@ -9,14 +9,14 @@ import 'package:chatx/screens/chat/cubit/chat_cubit.dart';
 class ChatScreen extends StatefulWidget {
   final String chatId;
   final String myUid;
-  final String receiverName; // 🚀 متغير ديناميكي لاسم الطرف التاني
-  final String? receiverImage; // 🚀 متغير ديناميكي لصورة الطرف التاني
+  final String receiverName; 
+  final String? receiverImage; 
 
   const ChatScreen({
     super.key,
     required this.chatId,
     required this.myUid,
-    this.receiverName = "Daniel Garcia", // قيمة افتراضية لحماية الـ Architecture من الـ Crashes
+    this.receiverName = "Daniel Garcia", 
     this.receiverImage,
   });
 
@@ -27,8 +27,11 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _controller = ScrollController();
   String? highlightedMessageId;
+  
+  // 🚀 متغير للتحكم في ارتفاع الهيدر عشان نقص الرسايل من بعده بالضبط
+  // هنفترض إن الهيدر بياخد مساحة حوالي 115 بكسل (بما فيهم المارجن والـ SafeArea)
+  final double headerHeight = 115.0; 
 
-  // دالة الـ Scroll البسيطة (بدون استهلاك للذاكرة)
   void scrollToMessage(String id) {
     setState(() {
       highlightedMessageId = id;
@@ -42,20 +45,19 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    _controller.dispose(); // 🚀 حماية من الـ Memory Leak
+    _controller.dispose(); 
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // ربط الـ Cubit 
     final chatCubit = context.read<ChatCubit>();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // الـ UI الأصلي للخلفية
+          // 1. الطبقة الأولى (الخلفية اللي تحت خالص) - دي هتفضل ثابتة والهيدر هيعمل عليها Blur
           Positioned.fill(
             child: Image.asset("assets/images/bg.jpg", fit: BoxFit.cover),
           ),
@@ -63,56 +65,50 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Container(color: Colors.black.withOpacity(0.30)),
           ),
           
-          // منطقة الرسائل
-          Positioned.fill(
-            child: SafeArea(
-              child: BlocBuilder<ChatCubit, ChatState>(
-                builder: (context, state) {
-                  if (state is! ChatLoaded) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  return ListView.builder(
-                    controller: _controller,
-                    reverse: true, // 🚀 التريكاية السحرية لأداء خيالي (تبدأ من تحت لفوق)
-                    padding: const EdgeInsets.fromLTRB(20, 140, 20, 120), 
-                    itemCount: state.messages.length,
-                    itemBuilder: (context, index) {
-                      final msg = state.messages[index];
-
-                      return Column(
-                        children: [
-                          const SizedBox(height: 18),
-                          ChatBubble(
-                            message: msg,
-                            onReply: chatCubit.setReply,
-                            onTapReply: (replyId) => scrollToMessage(replyId),
-                            isHighlighted: msg.id == highlightedMessageId,
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ),
-
-          // الـ UI الأصلي لمربع الإدخال
+          // 2. الطبقة التانية (منطقة الرسائل) - 🚀 هنا السحر كله
           Positioned(
-            bottom: 10,
+            top: headerHeight, // بتبدأ من تحت الهيدر
             left: 0,
             right: 0,
+            bottom: 0,
             child: SafeArea(
-              child: ChatInput(
-                replyMessage: chatCubit.replyingTo,
-                onCancelReply: () => chatCubit.setReply(null),
-                onSend: (text, replyId) => chatCubit.sendMessage(text),
+              top: false, // شيلنا التوب عشان إحنا ظابطين الـ top بـ headerHeight
+              child: ClipRect( // 🔥 ده اللي بيقص الرسايل وبيخليها تختفي أول ما تلمس الهيدر
+                child: BlocBuilder<ChatCubit, ChatState>(
+                  builder: (context, state) {
+                    if (state is! ChatLoaded) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    return ListView.builder(
+                      controller: _controller,
+                      reverse: true, 
+                      // قللنا البادنج من فوق لأننا أصلاً بدأنا الـ ListView من تحت الهيدر
+                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 120), 
+                      itemCount: state.messages.length,
+                      itemBuilder: (context, index) {
+                        final msg = state.messages[index];
+
+                        return Column(
+                          children: [
+                            const SizedBox(height: 18),
+                            ChatBubble(
+                              message: msg,
+                              onReply: chatCubit.setReply,
+                              onTapReply: (replyId) => scrollToMessage(replyId),
+                              isHighlighted: msg.id == highlightedMessageId,
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
             ),
           ),
 
-          // الـ UI الأصلي للتدرجات (Gradients)
+          // 3. التدرج (Gradient) السفلي للرسايل
           Positioned(
             bottom: 0, left: 0, right: 0, height: 120,
             child: IgnorePointer(
@@ -127,24 +123,29 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
+          // (تم إزالة التدرج العلوي لأننا قصينا الرسايل خلاص ومبقاش ليه لازمة وهيبوظ شكل الهيدر)
+
+          // 4. الطبقة التالتة (الهيدر فوق خالص)
           Positioned(
-            top: 0, left: 0, right: 0, height: 120,
-            child: IgnorePointer(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                    colors: [Colors.black.withOpacity(0.35), Colors.transparent],
-                  ),
-                ),
-              ),
+            top: 0, left: 0, right: 0,
+            child: SafeArea(
+              bottom: false,
+              child: _header(),
             ),
           ),
 
-          // الـ UI الأصلي للهيدر
+          // 5. الطبقة الرابعة (مربع الإدخال)
           Positioned(
-            top: 0, left: 0, right: 0,
-            child: SafeArea(child: _header()),
+            bottom: 10,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: ChatInput(
+                replyMessage: chatCubit.replyingTo,
+                onCancelReply: () => chatCubit.setReply(null),
+                onSend: (text, replyId) => chatCubit.sendMessage(text),
+              ),
+            ),
           ),
         ],
       ),
@@ -153,6 +154,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _header() {
     return Container(
+      // ضفت Margin بسيط عشان الهيدر مايكونش لازق في الأطراف قوي (نفس الكود بتاعك)
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(26),
@@ -212,7 +214,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.receiverName, // 🔥 عرض الاسم الحقيقي ديناميكياً
+                      widget.receiverName, 
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 15,
