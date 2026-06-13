@@ -236,7 +236,7 @@ class _ChatsTabState extends State<ChatsTab>
 
             if (!mounted) return;
 
-            // 🚀 التعديل هنا: تمرير الـ ChatCubit للشاشة عبر الـ BlocProvider لضمان عملها بنجاح
+            // 🚀 التعديل الذكي هنا: تمرير الـ ChatCubit مع الاسم والصورة الحقيقية للشاشة
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -248,6 +248,8 @@ class _ChatsTabState extends State<ChatsTab>
                   child: ChatScreen(
                     chatId: chatData.chatId,
                     myUid: _myUid,
+                    receiverName: name,            // الاسم الحقيقي يمرر هنا ديناميكياً
+                    receiverImage: user?.avatarUrl, // رابط الصورة يمرر هنا لو وجد
                   ),
                 ),
               ),
