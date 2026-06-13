@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_bloc/flutter_bloc.dart'; // 🚀 تم إضافة الـ Bloc هنا
+import 'package:chatx/screens/chat/cubit/chat_cubit.dart'; // 🚀 تم إضافة الـ Cubit هنا
 import '../../models/models.dart';
 import '../../repositories/firebase_repo.dart';
 import '../../utils/app_colors.dart';
@@ -49,154 +51,156 @@ class _ChatsTabState extends State<ChatsTab>
       body: SafeArea(
         child: Column(
           children: [
-            /// HEADER
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                children: [
-                  const Text(
-                    'ChatX',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (_) => NewChatSheet(myUid: _myUid),
-                      );
-                    },
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        gradient: AppColors.primaryGradient,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.edit_rounded,
-                          color: Colors.white, size: 20),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            /// SEARCH BAR
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Container(
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.bgCard,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (v) =>
-                      setState(() => _searchQuery = v.toLowerCase()),
-                  style: const TextStyle(
-                      color: AppColors.textPrimary, fontSize: 14),
-                  decoration: const InputDecoration(
-                    hintText: 'Search chats...',
-                    hintStyle: TextStyle(
-                        color: AppColors.textHint, fontSize: 14),
-                    prefixIcon: Icon(Icons.search_rounded,
-                        color: AppColors.textHint, size: 20),
-                    border: InputBorder.none,
-                    contentPadding:
-                        EdgeInsets.symmetric(vertical: 10),
-                  ),
-                ),
-              ),
-            ),
-
-            /// TABS
-            TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              indicatorSize: TabBarIndicatorSize.label,
-              indicator: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              labelColor: AppColors.primary,
-              unselectedLabelColor: AppColors.textSecondary,
-              labelStyle: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 13),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              tabs: const [
-                Tab(text: '💬  Chats'),
-                Tab(text: '👥  Groups'),
-                Tab(text: '📢  Channels'),
-              ],
-            ),
-
-            /// CONTENT
+            _buildHeader(),
+            _buildSearchBar(),
+            _buildTabBar(),
             Expanded(
               child: TabBarView(
                 controller: _tabController,
                 children: [
                   _buildChatsList(),
-                  GroupsTab(myUid: _myUid, key: ValueKey(_myUid)), // ✅ التعديل
-                  ChannelsTab(myUid: _myUid, key: ValueKey(_myUid)), // ✅ التعديل
+                  const GroupsTab(),
+                  const ChannelsTab(),
                 ],
               ),
             ),
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => NewChatSheet(myUid: _myUid),
+          );
+        },
+        backgroundColor: AppColors.primary,
+        child: const Icon(Icons.chat_bubble_outline, color: Colors.black),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: AppColors.primary.withOpacity(0.2),
+                child: Text(
+                  _myName.isNotEmpty ? _myName[0].toUpperCase() : 'U',
+                  style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _myName.isNotEmpty ? _myName : 'Loading...',
+                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const Text(
+                    'Online',
+                    style: TextStyle(color: Colors.green, fontSize: 12),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          IconButton(
+            icon: const Icon(Icons.bookmark_border_rounded, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SavedMessagesScreen()),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: TextField(
+        controller: _searchController,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: 'Search chats...',
+          hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+          prefixIcon: Icon(Icons.search, color: Colors.white.withOpacity(0.5)),
+          fillColor: AppColors.bgSurface,
+          filled: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+        ),
+        onChanged: (val) {
+          setState(() {
+            _searchQuery = val.trim().toLowerCase();
+          });
+        },
+      ),
+    );
+  }
+
+  Widget _buildTabBar() {
+    return TabBar(
+      controller: _tabController,
+      indicatorColor: AppColors.primary,
+      labelColor: AppColors.primary,
+      unselectedLabelColor: Colors.white.withOpacity(0.5),
+      tabs: const [
+        Tab(text: 'Direct'),
+        Tab(text: 'Groups'),
+        Tab(text: 'Channels'),
+      ],
     );
   }
 
   Widget _buildChatsList() {
     if (_myUid.isEmpty) {
-      return const Center(
-          child: CircularProgressIndicator(color: AppColors.primary));
+      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
 
     return StreamBuilder<List<ChatModel>>(
-      stream: FirebaseRepo.observeUserChats(_myUid),
+      stream: FirebaseRepo.observeChats(_myUid),
       builder: (context, snapshot) {
-        final chats = snapshot.data ?? [];
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+        }
+
+        var chats = snapshot.data!;
+        
+        if (_searchQuery.isNotEmpty) {
+          // فلترة الشاتات بناءً على البحث لو محتاج تعدلها مستقبلاً
+        }
+
+        if (chats.isEmpty) {
+          return const Center(
+            child: EmptyStateWidget(
+              icon: Icons.chat_bubble_outline_rounded,
+              title: 'No chats yet',
+              subtitle: 'Start chatting!',
+            ),
+          );
+        }
 
         return ListView(
-          padding: const EdgeInsets.only(top: 8, bottom: 80),
-          children: [
-            ChatListItem(
-              name: 'Saved Messages',
-              lastMessage: 'Your personal notes',
-              time: '',
-              isSavedMessages: true,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => SavedMessagesScreen(
-                      myUid: _myUid, myName: _myName),
-                ),
-              ),
-            ),
-
-            if (chats.isEmpty && _searchQuery.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 60),
-                child: EmptyStateWidget(
-                  icon: Icons.chat_bubble_outline_rounded,
-                  title: 'No chats yet',
-                  subtitle: 'Start chatting!',
-                ),
-              )
-            else
-              ...chats.map((chat) => _buildChatItem(chat)),
-          ],
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          children: chats.map((chat) => _buildChatItem(chat)).toList(),
         );
       },
     );
@@ -219,19 +223,26 @@ class _ChatsTabState extends State<ChatsTab>
           avatarUrl: user?.avatarUrl,
           isOnline: user?.isOnline ?? false,
           onTap: () async {
-            final chat = await FirebaseRepo.getOrCreateChat(
+            final chatData = await FirebaseRepo.getOrCreateChat(
               _myUid,
               otherUid,
             );
 
             if (!mounted) return;
 
+            // 🚀 التعديل هنا: تمرير الـ ChatCubit للشاشة عبر الـ BlocProvider لضمان عملها بنجاح
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => ChatScreen(
-                  chatId: chat.chatId,
-                  myUid: _myUid,
+                builder: (_) => BlocProvider(
+                  create: (context) => ChatCubit(
+                    chatId: chatData.chatId,
+                    myUid: _myUid,
+                  ),
+                  child: ChatScreen(
+                    chatId: chatData.chatId,
+                    myUid: _myUid,
+                  ),
                 ),
               ),
             );
