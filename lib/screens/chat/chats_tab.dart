@@ -59,8 +59,10 @@ class _ChatsTabState extends State<ChatsTab>
                 controller: _tabController,
                 children: [
                   _buildChatsList(),
-                  const GroupsTab(),
-                  const ChannelsTab(),
+                  // ✅ تم إصلاح: تمرير myUid وإزالة const
+                  GroupsTab(myUid: _myUid, key: ValueKey(_myUid)), 
+                  // ✅ تم إصلاح: تمرير myUid وإزالة const
+                  ChannelsTab(myUid: _myUid, key: ValueKey(_myUid)), 
                 ],
               ),
             ),
@@ -118,7 +120,10 @@ class _ChatsTabState extends State<ChatsTab>
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const SavedMessagesScreen()),
+                MaterialPageRoute(
+                  // ✅ تم إصلاح: تمرير myUid و myName وإزالة const
+                  builder: (_) => SavedMessagesScreen(myUid: _myUid, myName: _myName), 
+                ),
               );
             },
           ),
@@ -173,7 +178,8 @@ class _ChatsTabState extends State<ChatsTab>
     }
 
     return StreamBuilder<List<ChatModel>>(
-      stream: FirebaseRepo.observeChats(_myUid),
+      // ✅ تم إصلاح: استخدام الاسم الصحيح للدالة observeUserChats بدلاً من observeChats
+      stream: FirebaseRepo.observeUserChats(_myUid), 
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
