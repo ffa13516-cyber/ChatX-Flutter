@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../models/message_model.dart';
+import 'package:chatx/screens/chat/models/message_model.dart';
 import '../../../repositories/firebase_repo.dart'; // 🚀 تأكد من مسار الـ Repo بتاعك
 
 // ==========================================
