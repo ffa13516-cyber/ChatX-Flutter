@@ -15,6 +15,12 @@ class Message {
   final String? senderName;
   final String? senderId;
 
+  // ✅ FIX #9: مدة رسالة الصوت بالثواني
+  final int? voiceDuration;
+
+  // ✅ FIX: علامة إن الرسالة اتعدلت
+  final bool isEdited;
+
   Message({
     this.id,
     required this.text,
@@ -27,7 +33,11 @@ class Message {
     this.replyToId,
     this.senderName,
     this.senderId,
+    this.voiceDuration,
+    this.isEdited = false,
   })  : type = type ?? MessageType.text,
+        // ✅ FIX #8: لو مفيش time بنستخدم DateTime.now() كـ fallback بس
+        // الـ server timestamp هو المصدر الحقيقي عند القراءة من Firebase
         time = time ?? DateTime.now();
 
   Map<String, dynamic> toMap() {
@@ -37,6 +47,7 @@ class Message {
       'senderName': senderName,
       'type': type.name,
       'imageUrl': imageUrl,
+      // ✅ FIX #8: الـ time بيتبعت كـ milliseconds لكن Firebase بيـ override بـ ServerValue.timestamp
       'time': time.millisecondsSinceEpoch,
       'status': status.name,
       'replyToId': replyToId,
@@ -46,11 +57,27 @@ class Message {
               'id': replyTo!.id,
               'text': replyTo!.text,
               'senderName': replyTo!.senderName,
+              'type': replyTo!.type.name,
             },
+      if (voiceDuration != null) 'voiceDuration': voiceDuration,
+      'isEdited': isEdited,
     };
   }
 
   factory Message.fromMap(Map map, String myUid, {String? id}) {
+    // ✅ FIX #8: بنقرا الـ timestamp من Firebase كـ int أو String
+    // لأن ServerValue.timestamp ممكن يرجع int أو Map
+    DateTime parsedTime;
+    final rawTime = map['time'];
+    if (rawTime is int) {
+      parsedTime = DateTime.fromMillisecondsSinceEpoch(rawTime);
+    } else if (rawTime is Map) {
+      // ServerValue.timestamp رجع Map<'.sv', 'timestamp'> — fallback
+      parsedTime = DateTime.now();
+    } else {
+      parsedTime = DateTime.now();
+    }
+
     return Message(
       id: id,
       text: map['text'] ?? '',
@@ -62,7 +89,7 @@ class Message {
         orElse: () => MessageType.text,
       ),
       imageUrl: map['imageUrl'],
-      time: DateTime.fromMillisecondsSinceEpoch(map['time'] ?? 0),
+      time: parsedTime,
       status: MessageStatus.values.firstWhere(
         (e) => e.name == map['status'],
         orElse: () => MessageStatus.sent,
@@ -73,9 +100,15 @@ class Message {
           : Message(
               id: map['replyTo']['id'],
               text: map['replyTo']['text'] ?? '',
-              isMe: false,
+              isMe: map['replyTo']['senderId'] == myUid,
               senderName: map['replyTo']['senderName'],
+              type: MessageType.values.firstWhere(
+                (e) => e.name == map['replyTo']['type'],
+                orElse: () => MessageType.text,
+              ),
             ),
+      voiceDuration: map['voiceDuration'] as int?,
+      isEdited: map['isEdited'] == true,
     );
   }
 }
