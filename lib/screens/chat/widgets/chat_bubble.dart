@@ -6,6 +6,8 @@ class ChatBubble extends StatefulWidget {
   final Message message;
   final Function(Message)? onReply;
   final Function(String)? onTapReply;
+  final VoidCallback? onEdit;    // 🚀 تحديث: إضافة حدث التعديل
+  final VoidCallback? onDelete;  // 🚀 تحديث: إضافة حدث الحذف
   final bool isHighlighted;
 
   const ChatBubble({
@@ -13,6 +15,8 @@ class ChatBubble extends StatefulWidget {
     required this.message,
     this.onReply,
     this.onTapReply,
+    this.onEdit,
+    this.onDelete,
     this.isHighlighted = false,
   });
 
@@ -51,6 +55,83 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
     });
   }
 
+  // 🚀 تحديث: دالة مسؤولة عن إظهار قائمة العمليات (Action Menu)
+  void _showActionMenu(BuildContext context) {
+    final isMe = widget.message.isMe;
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E), // لون داكن فخم للقائمة
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildMenuItem(
+                  icon: Icons.reply_rounded,
+                  title: 'رد',
+                  onTap: () {
+                    Navigator.pop(context);
+                    widget.onReply?.call(widget.message);
+                  },
+                ),
+                _buildMenuItem(
+                  icon: Icons.copy_rounded,
+                  title: 'نسخ',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Clipboard.setData(ClipboardData(text: widget.message.text));
+                    // اختياري: إظهار إشعار (Snackbar) بكلمة "تم النسخ"
+                  },
+                ),
+                // إظهار التعديل والحذف فقط لو الرسالة بتاعتي
+                if (isMe) ...[
+                  const Divider(color: Colors.white12, height: 1),
+                  _buildMenuItem(
+                    icon: Icons.edit_rounded,
+                    title: 'تعديل',
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.onEdit?.call();
+                    },
+                  ),
+                  _buildMenuItem(
+                    icon: Icons.delete_outline_rounded,
+                    title: 'حذف',
+                    color: Colors.redAccent, // تمييز الحذف باللون الأحمر
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.onDelete?.call();
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ويدجت مساعدة لشكل عناصر القائمة
+  Widget _buildMenuItem({
+    required IconData icon, 
+    required String title, 
+    required VoidCallback onTap, 
+    Color color = Colors.white
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: color, size: 24),
+      title: Text(title, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w500)),
+      onTap: onTap,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMe = widget.message.isMe;
@@ -66,8 +147,8 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
           onTapUp: (_) => setState(() => isPressed = false),
           onTapCancel: () => setState(() => isPressed = false),
           onLongPress: () {
-            HapticFeedback.mediumImpact();
-            widget.onReply?.call(widget.message);
+            HapticFeedback.mediumImpact(); // هزة أقوى عند فتح القائمة
+            _showActionMenu(context);      // 🚀 تشغيل قائمة الإجراءات
           },
           child: AnimatedScale(
             scale: isPressed ? 0.98 : 1, // تأثير ضغطة خفيف ورايق
@@ -95,12 +176,10 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
       constraints: BoxConstraints(
         maxWidth: MediaQuery.of(context).size.width * 0.72,
       ),
-      // تم تقليل المسافة العمودية هنا لتصبح الرسائل أكثر تقارباً
       margin: const EdgeInsets.symmetric(vertical: 1.5), 
       decoration: BoxDecoration(
         borderRadius: radius,
         boxShadow: [
-          // ظل طبيعي خفيف لإعطاء عمق بدون وهج مزعج
           BoxShadow(
             color: Colors.black.withOpacity(0.12),
             blurRadius: 8,
@@ -113,12 +192,10 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
         child: Container(
           decoration: BoxDecoration(
             borderRadius: radius,
-            // تطبيق الألوان المتطابقة مع الـ Screenshot تماماً بدلاً من الألوان القديمة والجراديانت
             color: isMe ? const Color(0xFF4186F6) : const Color(0xFF2B2C31), 
           ),
           child: Stack(
             children: [
-              // تأثير هايلايت خفيف وناعم جداً للعين عند التحديد
               if (widget.isHighlighted)
                 Positioned.fill(
                   child: Container(color: Colors.white.withOpacity(0.04)),
@@ -175,10 +252,9 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
         margin: const EdgeInsets.only(bottom: 6),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.2), // خلفية داكنة هادية للرد
+          color: Colors.black.withOpacity(0.2),
           borderRadius: BorderRadius.circular(8),
         ),
-        // استخدام IntrinsicHeight لضمان تمدد الخط الجانبي مع النص تلقائياً
         child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch, 
@@ -224,8 +300,8 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
   }
 
   Widget _text() {
-    // تم تغييرها لـ SelectableText لتمكين ميزة النسخ والتحديد الاحترافية
-    return SelectableText(
+    // 🚀 تحديث: تم التبديل لـ Text العادي لعدم تعارضه مع القائمة المنسدلة
+    return Text(
       widget.message.text,
       style: const TextStyle(
         color: Colors.white,
