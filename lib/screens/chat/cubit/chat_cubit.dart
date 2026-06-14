@@ -44,7 +44,6 @@ class ChatCubit extends Cubit<ChatState> {
     // 2. استمع للرسايل من فايربيز (Real-time)
     _messagesSubscription = FirebaseRepo.observeMessages(chatId, myUid).listen(
       (messages) {
-        // 🔥 التريكاية: بنعكس الرسايل هنا عشان الـ ListView (reverse: true) تشتغل بأداء خيالي وتبدأ من تحت
         final reversedMessages = messages.reversed.toList();
         
         emit(ChatLoaded(
@@ -53,7 +52,7 @@ class ChatCubit extends Cubit<ChatState> {
         ));
       },
       onError: (error) {
-        emit(ChatError("حدث خطأ أثناء جلب الرسائل: \${error.toString()}"));
+        emit(ChatError("حدث خطأ أثناء جلب الرسائل: ${error.toString()}"));
       },
     );
   }
@@ -62,7 +61,6 @@ class ChatCubit extends Cubit<ChatState> {
   void setReply(Message? message) {
     replyingTo = message;
     
-    // تحديث الـ UI فورا لو إحنا في حالة الـ Loaded
     if (state is ChatLoaded) {
       final currentMessages = (state as ChatLoaded).messages;
       emit(ChatLoaded(messages: currentMessages, replyingTo: replyingTo));
@@ -73,14 +71,11 @@ class ChatCubit extends Cubit<ChatState> {
   Future<void> sendMessage(String text) async {
     if (text.trim().isEmpty) return;
 
-    // حفظ بيانات الرد قبل مسحها
     final replyId = replyingTo?.id;
     final replyMsg = replyingTo;
 
-    // مسح الرد فوراً من الـ UI عشان تجربة المستخدم تكون أسرع
     setReply(null);
 
-    // تجهيز موديل الرسالة (بدون ستيكرز زي ما طلبت)
     final newMessage = Message(
       text: text,
       isMe: true,
@@ -88,18 +83,37 @@ class ChatCubit extends Cubit<ChatState> {
       senderName: 'Me',
       replyToId: replyId,
       replyTo: replyMsg,
-      // ضيف هنا أي حقول تانية مطلوبة في الـ Model زي type أو غيره
     );
 
     try {
       await FirebaseRepo.sendMessage(chatId, newMessage);
     } catch (e) {
-      // لو حصل مشكلة في الإرسال ممكن نطبعها أو نظهر Snackbar
-      print("Error sending message: \$e");
+      print("Error sending message: $e");
     }
   }
 
-  // 🧹 تنظيف الذاكرة لما اليوزر يخرج من الشات
+  // 🗑️ دالة حذف الرسالة
+  Future<void> deleteMessage(String messageId) async {
+    try {
+      // بنباصي الـ chatId والـ messageId للـ Firebase
+      await FirebaseRepo.deleteMessage(chatId, messageId);
+    } catch (e) {
+      print("Error deleting message: $e");
+    }
+  }
+
+  // ✏️ دالة تعديل الرسالة
+  Future<void> editMessage(String messageId, String newText) async {
+    if (newText.trim().isEmpty) return;
+    try {
+      // بنباصي الـ chatId والـ messageId والنص الجديد للـ Firebase
+      await FirebaseRepo.updateMessage(chatId, messageId, newText);
+    } catch (e) {
+      print("Error editing message: $e");
+    }
+  }
+
+  // 🧹 تنظيف الذاكرة
   @override
   Future<void> close() {
     _messagesSubscription?.cancel();
