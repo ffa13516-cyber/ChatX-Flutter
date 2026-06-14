@@ -28,8 +28,6 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _controller = ScrollController();
   String? highlightedMessageId;
   
-  // 🚀 متغير للتحكم في ارتفاع الهيدر عشان نقص الرسايل من بعده بالضبط
-  // هنفترض إن الهيدر بياخد مساحة حوالي 115 بكسل (بما فيهم المارجن والـ SafeArea)
   final double headerHeight = 115.0; 
 
   void scrollToMessage(String id) {
@@ -41,6 +39,72 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() => highlightedMessageId = null);
       }
     });
+  }
+
+  // 🚀 تحديث: دالة لإظهار نافذة تأكيد الحذف
+  void _showDeleteDialog(String messageId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E), // متناسق مع لون القائمة الداكن الفخم
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("حذف الرسالة", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        content: const Text("هل أنت متأكد من رغبتك في حذف هذه الرسالة؟", style: TextStyle(color: Colors.white70, fontSize: 14)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("إلغاء", style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () {
+              context.read<ChatCubit>().deleteMessage(messageId); // استدعاء دالة الحذف من الكوبيت
+              Navigator.pop(context);
+            },
+            child: const Text("حذف", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🚀 تحديث: دالة لإظهار نافذة مخصصة لتعديل نص الرسالة
+  void _showEditDialog(Message message) {
+    final controller = TextEditingController(text: message.text);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("تعديل الرسالة", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: controller,
+          style: const TextStyle(color: Colors.white),
+          maxLines: null, // يتيح للمستخدم رؤية النص كاملاً لو كان كذا سطر
+          decoration: const InputDecoration(
+            hintText: "تعديل النص...",
+            hintStyle: TextStyle(color: Colors.white38),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF4186F6))),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("إلغاء", style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () {
+              final newText = controller.text.trim();
+              if (newText.isNotEmpty && newText != message.text) {
+                context.read<ChatCubit>().editMessage(message.id, newText); // استدعاء دالة التعديل من الكوبيت
+              }
+              Navigator.pop(context);
+            },
+            child: const Text("حفظ", style: TextStyle(color: Color(0xFF4186F6), fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -57,7 +121,6 @@ class _ChatScreenState extends State<ChatScreen> {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // 1. الطبقة الأولى (الخلفية اللي تحت خالص) - دي هتفضل ثابتة والهيدر هيعمل عليها Blur
           Positioned.fill(
             child: Image.asset("assets/images/bg.jpg", fit: BoxFit.cover),
           ),
@@ -65,15 +128,14 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Container(color: Colors.black.withOpacity(0.30)),
           ),
           
-          // 2. الطبقة التانية (منطقة الرسائل) - 🚀 هنا السحر كله
           Positioned(
-            top: headerHeight, // بتبدأ من تحت الهيدر
+            top: headerHeight, 
             left: 0,
             right: 0,
             bottom: 0,
             child: SafeArea(
-              top: false, // شيلنا التوب عشان إحنا ظابطين الـ top بـ headerHeight
-              child: ClipRect( // 🔥 ده اللي بيقص الرسايل وبيخليها تختفي أول ما تلمس الهيدر
+              top: false, 
+              child: ClipRect( 
                 child: BlocBuilder<ChatCubit, ChatState>(
                   builder: (context, state) {
                     if (state is! ChatLoaded) {
@@ -83,7 +145,6 @@ class _ChatScreenState extends State<ChatScreen> {
                     return ListView.builder(
                       controller: _controller,
                       reverse: true, 
-                      // قللنا البادنج من فوق لأننا أصلاً بدأنا الـ ListView من تحت الهيدر
                       padding: const EdgeInsets.fromLTRB(20, 10, 20, 120), 
                       itemCount: state.messages.length,
                       itemBuilder: (context, index) {
@@ -97,6 +158,8 @@ class _ChatScreenState extends State<ChatScreen> {
                               onReply: chatCubit.setReply,
                               onTapReply: (replyId) => scrollToMessage(replyId),
                               isHighlighted: msg.id == highlightedMessageId,
+                              onEdit: () => _showEditDialog(msg),       // 🚀 تحديث: ربط زر التعديل
+                              onDelete: () => _showDeleteDialog(msg.id), // 🚀 تحديث: ربط زر الحذف
                             ),
                           ],
                         );
@@ -108,7 +171,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          // 3. التدرج (Gradient) السفلي للرسايل
           Positioned(
             bottom: 0, left: 0, right: 0, height: 120,
             child: IgnorePointer(
@@ -123,9 +185,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          // (تم إزالة التدرج العلوي لأننا قصينا الرسايل خلاص ومبقاش ليه لازمة وهيبوظ شكل الهيدر)
-
-          // 4. الطبقة التالتة (الهيدر فوق خالص)
           Positioned(
             top: 0, left: 0, right: 0,
             child: SafeArea(
@@ -134,7 +193,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          // 5. الطبقة الرابعة (مربع الإدخال)
           Positioned(
             bottom: 10,
             left: 0,
@@ -154,7 +212,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _header() {
     return Container(
-      // ضفت Margin بسيط عشان الهيدر مايكونش لازق في الأطراف قوي (نفس الكود بتاعك)
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(26),
