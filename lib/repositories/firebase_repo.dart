@@ -19,6 +19,8 @@ class FirebaseRepo {
   static DatabaseReference get channelsRef => _db.ref('channels');
   static DatabaseReference get channelMsgsRef => _db.ref('channelMessages');
 
+  // ─────────────────────────── Users ───────────────────────────
+
   static Future<void> saveUser(UserModel user) async {
     await usersRef.child(user.uid).set(user.toMap());
   }
@@ -43,13 +45,13 @@ class FirebaseRepo {
     return UserModel.fromMap(map.values.first as Map);
   }
 
-  static Future<List<UserModel>> getAllUsers() async {
-    final snap = await usersRef.get();
+  // ✅ FIX #10: limitToLast عشان منجيبش كل اليوزرز في كل مرة
+  // لو محتاج pagination زود الـ limit أو اعمل cursor-based
+  static Future<List<UserModel>> getAllUsers({int limit = 100}) async {
+    final snap = await usersRef.limitToFirst(limit).get();
     if (!snap.exists) return [];
     final map = snap.value as Map;
-    return map.values
-        .map((v) => UserModel.fromMap(v as Map))
-        .toList();
+    return map.values.map((v) => UserModel.fromMap(v as Map)).toList();
   }
 
   static Stream<UserModel?> observeUser(String uid) {
@@ -59,6 +61,8 @@ class FirebaseRepo {
     });
   }
 
+  // ─────────────────────────── Chats ───────────────────────────
+
   static String getChatId(String uid1, String uid2) {
     final ids = [uid1, uid2]..sort();
     return '${ids[0]}_${ids[1]}';
@@ -67,28 +71,37 @@ class FirebaseRepo {
   static Future<ChatModel> getOrCreateChat(String myUid, String otherUid) async {
     final chatId = getChatId(myUid, otherUid);
     final snap = await chatsRef.child(chatId).get();
-    if (snap.exists) {
-      return ChatModel.fromMap(snap.value as Map);
-    }
+    if (snap.exists) return ChatModel.fromMap(snap.value as Map);
     final chat = ChatModel(chatId: chatId, participants: [myUid, otherUid]);
     await chatsRef.child(chatId).set(chat.toMap());
     return chat;
   }
 
-  // ✅ Send Message (تم إزالة الاستيكر)
+  static Stream<List<ChatModel>> observeUserChats(String uid) {
+    return chatsRef.onValue.map((event) {
+      if (!event.snapshot.exists) return [];
+      final map = event.snapshot.value as Map;
+      final list = map.values
+          .map((v) => ChatModel.fromMap(v as Map))
+          .where((c) => c.participants.contains(uid))
+          .toList();
+      list.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+      return list;
+    });
+  }
+
+  // ─────────────────────────── Messages ────────────────────────
+
   static Future<void> sendMessage(String chatId, Message message) async {
     final msgRef = messagesRef.child(chatId).push();
-
     final data = message.toMap();
     data['messageId'] = msgRef.key ?? _uuid.v4();
-
+    // ✅ FIX #8: بنحط serverTimestamp بدل device time
+    data['timestamp'] = ServerValue.timestamp;
     data['status'] = 'sent';
-
     await msgRef.set(data);
 
-    // 🔥 تحديد نوع الرسالة لآخر رسالة
     String lastMessageText;
-
     switch (message.type) {
       case MessageType.image:
         lastMessageText = "📷 Photo";
@@ -102,73 +115,121 @@ class FirebaseRepo {
 
     await chatsRef.child(chatId).update({
       'lastMessage': lastMessageText,
-      'lastMessageTime': message.time.millisecondsSinceEpoch,
+      'lastMessageTime': ServerValue.timestamp,
       'lastMessageSenderId': message.senderId ?? '',
     });
   }
 
-  static Future<void> markAsDelivered(String chatId, String messageId) async {
+  // ✅ FIX #7: بنتأكد إن الـ sender مش هو اللي بيحذف/يعدل رسالة حد تاني
+  // الـ ownership check بيحصل هنا مش بس في الـ UI
+  static Future<void> deleteMessage(
+    String chatId,
+    String messageId,
+    String myUid,
+  ) async {
+    final ref = messagesRef.child(chatId);
+    final snap = await ref.orderByChild('messageId').equalTo(messageId).get();
+    if (!snap.exists) return;
+
+    final map = snap.value as Map;
+    for (var e in map.entries) {
+      final msg = e.value as Map;
+      // ✅ بنتأكد إن الرسالة للـ myUid قبل الحذف
+      if (msg['senderId'] == myUid) {
+        await ref.child(e.key).remove();
+      }
+    }
+  }
+
+  static Future<void> updateMessage(
+    String chatId,
+    String messageId,
+    String newText,
+    String myUid,
+  ) async {
+    if (newText.trim().isEmpty) return;
+    final ref = messagesRef.child(chatId);
+    final snap = await ref.orderByChild('messageId').equalTo(messageId).get();
+    if (!snap.exists) return;
+
+    final map = snap.value as Map;
+    for (var e in map.entries) {
+      final msg = e.value as Map;
+      // ✅ بنتأكد إن الرسالة للـ myUid قبل التعديل
+      if (msg['senderId'] == myUid) {
+        await ref.child(e.key).update({
+          'text': newText,
+          'isEdited': true,
+        });
+      }
+    }
+  }
+
+  // ✅ FIX #2: markAsSeen محسوبة — بتجيب الرسايل اللي status=delivered بس
+  // مش كل الرسايل، وبتعمل update واحد (multi-path) بدل loop
+  static Future<void> markAsSeen(String chatId, String myUid) async {
     final ref = messagesRef.child(chatId);
 
+    // بنجيب الرسايل اللي delivered بس ومش بتاعتي
     final snap = await ref
-        .orderByChild('messageId')
-        .equalTo(messageId)
+        .orderByChild('status')
+        .equalTo('delivered')
         .get();
 
     if (!snap.exists) return;
 
     final map = snap.value as Map;
 
+    // ✅ multi-path update = request واحد بدل N requests
+    final updates = <String, dynamic>{};
     for (var e in map.entries) {
-      ref.child(e.key).update({'status': 'delivered'});
+      final msg = e.value as Map;
+      if (msg['senderId'] != myUid) {
+        updates['${e.key}/status'] = 'seen';
+      }
+    }
+
+    if (updates.isNotEmpty) {
+      await ref.update(updates);
     }
   }
 
-  static Future<void> markAsSeen(String chatId, String myUid) async {
+  static Future<void> markAsDelivered(String chatId, String messageId) async {
     final ref = messagesRef.child(chatId);
-
-    final snap = await ref.get();
-
+    final snap = await ref.orderByChild('messageId').equalTo(messageId).get();
     if (!snap.exists) return;
 
     final map = snap.value as Map;
-
+    // ✅ multi-path update بدل loop
+    final updates = <String, dynamic>{};
     for (var e in map.entries) {
-      final msg = e.value as Map;
-
-      if (msg['senderId'] != myUid && msg['status'] == 'delivered') {
-        ref.child(e.key).update({'status': 'seen'});
-      }
+      updates['${e.key}/status'] = 'delivered';
+    }
+    if (updates.isNotEmpty) {
+      await ref.update(updates);
     }
   }
 
+  // ✅ FIX #3: observeMessages مفيهاش side-effects
+  // الـ markAsDelivered اتنقل للـ ChatCubit عشان يتحكم فيها بشكل صح
   static Stream<List<Message>> observeMessages(String chatId, String myUid) {
     return messagesRef.child(chatId).onValue.map((event) {
       if (!event.snapshot.exists) return [];
 
       final map = event.snapshot.value as Map;
 
-      final list = map.entries
-          .map((e) => Message.fromMap(
-                e.value as Map,
-                myUid,
-                id: e.key,
-              ))
+      return map.entries
+          .map((e) => Message.fromMap(e.value as Map, myUid, id: e.key))
           .toList()
         ..sort((a, b) => a.time.compareTo(b.time));
-
-      // 🔥 auto delivered
-      for (var msg in list) {
-        if (!msg.isMe && msg.status == MessageStatus.sent) {
-          markAsDelivered(chatId, msg.id!);
-        }
-      }
-
-      return list;
+      // ✅ مفيش markAsDelivered هنا — اتنقلت للـ Cubit
     });
   }
 
-  static Future<void> sendGroupMessage(String groupId, MessageModel message) async {
+  // ─────────────────────────── Groups ──────────────────────────
+
+  static Future<void> sendGroupMessage(
+      String groupId, MessageModel message) async {
     final msgRef = groupMsgsRef.child(groupId).push();
     final msgWithId = MessageModel(
       messageId: msgRef.key ?? _uuid.v4(),
@@ -180,7 +241,7 @@ class FirebaseRepo {
     await msgRef.set(msgWithId.toMap());
     await groupsRef.child(groupId).update({
       'lastMessage': message.text,
-      'lastMessageTime': message.timestamp,
+      'lastMessageTime': ServerValue.timestamp,
     });
   }
 
@@ -221,11 +282,18 @@ class FirebaseRepo {
     return groupWithId;
   }
 
-  static Future<void> sendChannelMessage(String channelId, MessageModel message, String adminId) async {
+  // ─────────────────────────── Channels ────────────────────────
+
+  static Future<void> sendChannelMessage(
+    String channelId,
+    MessageModel message,
+    String adminId,
+  ) async {
     final channel = await channelsRef.child(channelId).get();
     if (!channel.exists) return;
     final channelData = ChannelModel.fromMap(channel.value as Map);
     if (channelData.adminId != adminId) return;
+
     final msgRef = channelMsgsRef.child(channelId).push();
     final msgWithId = MessageModel(
       messageId: msgRef.key ?? _uuid.v4(),
@@ -237,7 +305,7 @@ class FirebaseRepo {
     await msgRef.set(msgWithId.toMap());
     await channelsRef.child(channelId).update({
       'lastMessage': message.text,
-      'lastMessageTime': message.timestamp,
+      'lastMessageTime': ServerValue.timestamp,
     });
   }
 
@@ -272,19 +340,6 @@ class FirebaseRepo {
       final list = map.values
           .map((v) => ChannelModel.fromMap(v as Map))
           .where((c) => c.subscribers.contains(uid) || c.adminId == uid)
-          .toList();
-      list.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
-      return list;
-    });
-  }
-
-  static Stream<List<ChatModel>> observeUserChats(String uid) {
-    return chatsRef.onValue.map((event) {
-      if (!event.snapshot.exists) return [];
-      final map = event.snapshot.value as Map;
-      final list = map.values
-          .map((v) => ChatModel.fromMap(v as Map))
-          .where((c) => c.participants.contains(uid))
           .toList();
       list.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
       return list;
