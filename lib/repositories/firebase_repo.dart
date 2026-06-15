@@ -19,7 +19,7 @@ class FirebaseRepo {
   static DatabaseReference get channelsRef => _db.ref('channels');
   static DatabaseReference get channelMsgsRef => _db.ref('channelMessages');
 
-  // ─────────────────────────── Users ───────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static Future<void> saveUser(UserModel user) async {
     await usersRef.child(user.uid).set(user.toMap());
@@ -45,8 +45,6 @@ class FirebaseRepo {
     return UserModel.fromMap(map.values.first as Map);
   }
 
-  // ✅ FIX #10: limitToLast عشان منجيبش كل اليوزرز في كل مرة
-  // لو محتاج pagination زود الـ limit أو اعمل cursor-based
   static Future<List<UserModel>> getAllUsers({int limit = 100}) async {
     final snap = await usersRef.limitToFirst(limit).get();
     if (!snap.exists) return [];
@@ -61,7 +59,7 @@ class FirebaseRepo {
     });
   }
 
-  // ─────────────────────────── Chats ───────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Chats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static String getChatId(String uid1, String uid2) {
     final ids = [uid1, uid2]..sort();
@@ -90,13 +88,25 @@ class FirebaseRepo {
     });
   }
 
-  // ─────────────────────────── Messages ────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Messages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static Future<void> sendMessage(String chatId, Message message) async {
+    // âœ… SECURITY: Ø¨Ù†ØªØ­Ù‚Ù‚ Ø¥Ù† Ø§Ù„Ù€ chatId ÙŠØ­ØªÙˆÙŠ Ø¹Ù„Ù‰ Ø§Ù„Ù€ myUid
+    if (message.senderId == null || message.senderId!.isEmpty) {
+      throw Exception('senderId is required');
+    }
+    // âœ… Ø¨Ù†ØªØ­Ù‚Ù‚ Ø¥Ù† Ø§Ù„Ù€ sender Ø¬Ø²Ø¡ Ù…Ù† Ø§Ù„Ù€ chat
+    final chatSnap = await chatsRef.child(chatId).get();
+    if (!chatSnap.exists) throw Exception('Chat not found');
+    final chatData = chatSnap.value as Map;
+    final participants = List<String>.from(chatData['participants'] ?? []);
+    if (!participants.contains(message.senderId)) {
+      throw Exception('Unauthorized: sender not in this chat');
+    }
+
     final msgRef = messagesRef.child(chatId).push();
     final data = message.toMap();
     data['messageId'] = msgRef.key ?? _uuid.v4();
-    // ✅ FIX #8: بنحط serverTimestamp بدل device time
     data['timestamp'] = ServerValue.timestamp;
     data['status'] = 'sent';
     await msgRef.set(data);
@@ -104,13 +114,16 @@ class FirebaseRepo {
     String lastMessageText;
     switch (message.type) {
       case MessageType.image:
-        lastMessageText = "📷 Photo";
+        lastMessageText = "ðŸ“· Photo";
         break;
       case MessageType.voice:
-        lastMessageText = "🎤 Voice message";
+        lastMessageText = "ðŸŽ¤ Voice message";
         break;
       default:
-        lastMessageText = message.text;
+        // âœ… SECURITY: Ø¨Ù†Ø­Ø¯ Ø·ÙˆÙ„ Ø§Ù„Ù€ lastMessage Ø¹Ø´Ø§Ù† Ù…ÙŠØ£Ø«Ø±Ø´ Ø¹Ù„Ù‰ Ø§Ù„Ù€ DB
+        lastMessageText = message.text.length > 200
+            ? message.text.substring(0, 200)
+            : message.text;
     }
 
     await chatsRef.child(chatId).update({
@@ -120,13 +133,14 @@ class FirebaseRepo {
     });
   }
 
-  // ✅ FIX #7: بنتأكد إن الـ sender مش هو اللي بيحذف/يعدل رسالة حد تاني
-  // الـ ownership check بيحصل هنا مش بس في الـ UI
   static Future<void> deleteMessage(
     String chatId,
     String messageId,
     String myUid,
   ) async {
+    // âœ… SECURITY: Ø¨Ù†ØªØ­Ù‚Ù‚ Ù…Ù† Ø§Ù„Ù€ inputs
+    if (messageId.trim().isEmpty || myUid.trim().isEmpty) return;
+
     final ref = messagesRef.child(chatId);
     final snap = await ref.orderByChild('messageId').equalTo(messageId).get();
     if (!snap.exists) return;
@@ -134,7 +148,6 @@ class FirebaseRepo {
     final map = snap.value as Map;
     for (var e in map.entries) {
       final msg = e.value as Map;
-      // ✅ بنتأكد إن الرسالة للـ myUid قبل الحذف
       if (msg['senderId'] == myUid) {
         await ref.child(e.key).remove();
       }
@@ -148,6 +161,9 @@ class FirebaseRepo {
     String myUid,
   ) async {
     if (newText.trim().isEmpty) return;
+    // âœ… SECURITY: Ø¨Ù†Ø­Ø¯ Ø·ÙˆÙ„ Ø§Ù„Ù€ text
+    if (newText.length > 4000) throw Exception('Message too long');
+
     final ref = messagesRef.child(chatId);
     final snap = await ref.orderByChild('messageId').equalTo(messageId).get();
     if (!snap.exists) return;
@@ -155,22 +171,18 @@ class FirebaseRepo {
     final map = snap.value as Map;
     for (var e in map.entries) {
       final msg = e.value as Map;
-      // ✅ بنتأكد إن الرسالة للـ myUid قبل التعديل
       if (msg['senderId'] == myUid) {
         await ref.child(e.key).update({
-          'text': newText,
+          'text': newText.trim(),
           'isEdited': true,
+          'editedAt': ServerValue.timestamp,
         });
       }
     }
   }
 
-  // ✅ FIX #2: markAsSeen محسوبة — بتجيب الرسايل اللي status=delivered بس
-  // مش كل الرسايل، وبتعمل update واحد (multi-path) بدل loop
   static Future<void> markAsSeen(String chatId, String myUid) async {
     final ref = messagesRef.child(chatId);
-
-    // بنجيب الرسايل اللي delivered بس ومش بتاعتي
     final snap = await ref
         .orderByChild('status')
         .equalTo('delivered')
@@ -179,8 +191,6 @@ class FirebaseRepo {
     if (!snap.exists) return;
 
     final map = snap.value as Map;
-
-    // ✅ multi-path update = request واحد بدل N requests
     final updates = <String, dynamic>{};
     for (var e in map.entries) {
       final msg = e.value as Map;
@@ -200,7 +210,6 @@ class FirebaseRepo {
     if (!snap.exists) return;
 
     final map = snap.value as Map;
-    // ✅ multi-path update بدل loop
     final updates = <String, dynamic>{};
     for (var e in map.entries) {
       updates['${e.key}/status'] = 'delivered';
@@ -210,8 +219,6 @@ class FirebaseRepo {
     }
   }
 
-  // ✅ FIX #3: observeMessages مفيهاش side-effects
-  // الـ markAsDelivered اتنقل للـ ChatCubit عشان يتحكم فيها بشكل صح
   static Stream<List<Message>> observeMessages(String chatId, String myUid) {
     return messagesRef.child(chatId).onValue.map((event) {
       if (!event.snapshot.exists) return [];
@@ -222,14 +229,77 @@ class FirebaseRepo {
           .map((e) => Message.fromMap(e.value as Map, myUid, id: e.key))
           .toList()
         ..sort((a, b) => a.time.compareTo(b.time));
-      // ✅ مفيش markAsDelivered هنا — اتنقلت للـ Cubit
     });
   }
 
-  // ─────────────────────────── Groups ──────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Reactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  /// âœ… FIX: Ø¨Ø¯Ù„Ù†Ø§ FirebaseFirestore Ø¨Ù€ Realtime Database
+  /// Ø§Ù„Ù…Ø³Ø§Ø±: messages/{chatId}/{messageKey}/reactions/{uid}
+  static Future<void> addReaction(
+    String chatId,
+    String messageId,
+    String emoji,
+    String uid,
+  ) async {
+    // âœ… SECURITY: validation Ø¹Ù„Ù‰ Ø§Ù„Ù€ inputs
+    if (chatId.trim().isEmpty || messageId.trim().isEmpty) return;
+    if (uid.trim().isEmpty || emoji.trim().isEmpty) return;
+
+    // âœ… Ø¨Ù†ØªØ£ÙƒØ¯ Ø¥Ù† Ø§Ù„Ù€ user Ø¬Ø²Ø¡ Ù…Ù† Ø§Ù„Ù€ chat Ù‚Ø¨Ù„ Ù…Ø§ ÙŠØ¶ÙŠÙ reaction
+    final chatSnap = await chatsRef.child(chatId).get();
+    if (!chatSnap.exists) throw Exception('Chat not found');
+    final chatData = chatSnap.value as Map;
+    final participants = List<String>.from(chatData['participants'] ?? []);
+    if (!participants.contains(uid)) {
+      throw Exception('Unauthorized: user not in this chat');
+    }
+
+    // âœ… Ø¨Ù†Ø¯ÙˆØ± Ø¹Ù„Ù‰ Ø§Ù„Ù€ message Ø¨Ø§Ù„Ù€ messageId
+    final ref = messagesRef.child(chatId);
+    final snap = await ref.orderByChild('messageId').equalTo(messageId).get();
+    if (!snap.exists) throw Exception('Message not found');
+
+    final map = snap.value as Map;
+    final msgKey = map.keys.first; // Ø£ÙˆÙ„ (ÙˆØ§Ù„ÙˆØ­ÙŠØ¯) Ù†ØªÙŠØ¬Ø©
+
+    // âœ… Ø¨Ù†Ø­Ø¯Ø« reactions/{uid} = emoji ÙÙŠ Ø§Ù„Ù€ RTDB
+    await ref.child(msgKey).child('reactions').child(uid).set(emoji);
+  }
+
+  /// âœ… Ø¥Ø²Ø§Ù„Ø© Ø§Ù„Ù€ reaction
+  static Future<void> removeReaction(
+    String chatId,
+    String messageId,
+    String uid,
+  ) async {
+    if (chatId.trim().isEmpty || messageId.trim().isEmpty || uid.trim().isEmpty) return;
+
+    final ref = messagesRef.child(chatId);
+    final snap = await ref.orderByChild('messageId').equalTo(messageId).get();
+    if (!snap.exists) return;
+
+    final map = snap.value as Map;
+    final msgKey = map.keys.first;
+    await ref.child(msgKey).child('reactions').child(uid).remove();
+  }
+
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Groups â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static Future<void> sendGroupMessage(
       String groupId, MessageModel message) async {
+    // âœ… SECURITY: Ø¨Ù†ØªØ­Ù‚Ù‚ Ø¥Ù† Ø§Ù„Ù€ sender Ø¬Ø²Ø¡ Ù…Ù† Ø§Ù„Ù€ group
+    if (message.senderId == null || message.senderId!.isEmpty) {
+      throw Exception('senderId is required');
+    }
+    final groupSnap = await groupsRef.child(groupId).get();
+    if (!groupSnap.exists) throw Exception('Group not found');
+    final groupData = groupSnap.value as Map;
+    final members = List<String>.from(groupData['members'] ?? []);
+    if (!members.contains(message.senderId)) {
+      throw Exception('Unauthorized: user not in this group');
+    }
+
     final msgRef = groupMsgsRef.child(groupId).push();
     final msgWithId = MessageModel(
       messageId: msgRef.key ?? _uuid.v4(),
@@ -240,7 +310,9 @@ class FirebaseRepo {
     );
     await msgRef.set(msgWithId.toMap());
     await groupsRef.child(groupId).update({
-      'lastMessage': message.text,
+      'lastMessage': message.text.length > 200
+          ? message.text.substring(0, 200)
+          : message.text,
       'lastMessageTime': ServerValue.timestamp,
     });
   }
@@ -282,7 +354,7 @@ class FirebaseRepo {
     return groupWithId;
   }
 
-  // ─────────────────────────── Channels ────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Channels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static Future<void> sendChannelMessage(
     String channelId,
@@ -292,7 +364,10 @@ class FirebaseRepo {
     final channel = await channelsRef.child(channelId).get();
     if (!channel.exists) return;
     final channelData = ChannelModel.fromMap(channel.value as Map);
-    if (channelData.adminId != adminId) return;
+    // âœ… SECURITY: Ø¨Ù†ØªØ­Ù‚Ù‚ Ø¥Ù† Ø§Ù„Ù€ adminId Ù‡Ùˆ ÙØ¹Ù„Ø§Ù‹ Ø§Ù„Ù€ admin
+    if (channelData.adminId != adminId) {
+      throw Exception('Unauthorized: only admin can send channel messages');
+    }
 
     final msgRef = channelMsgsRef.child(channelId).push();
     final msgWithId = MessageModel(
@@ -304,7 +379,9 @@ class FirebaseRepo {
     );
     await msgRef.set(msgWithId.toMap());
     await channelsRef.child(channelId).update({
-      'lastMessage': message.text,
+      'lastMessage': message.text.length > 200
+          ? message.text.substring(0, 200)
+          : message.text,
       'lastMessageTime': ServerValue.timestamp,
     });
   }
@@ -332,23 +409,7 @@ class FirebaseRepo {
     await ref.set(channelWithId.toMap());
     return channelWithId;
   }
-// ✅ دالة إضافة التفاعل (Reaction) للرسالة
-  static Future<void> addReaction(String chatId, String messageId, String emoji, String uid) async {
-    try {
-      // بنعمل تحديث للـ Document بتاع الرسالة جوه فايربيز
-      // بنستخدم مسار يعتمد على الـ uid عشان لو أكتر من شخص عمل رياكت
-      await FirebaseFirestore.instance
-          .collection('chats')
-          .doc(chatId)
-          .collection('messages')
-          .doc(messageId)
-          .update({
-        'reactions.$uid': emoji, 
-      });
-    } catch (e) {
-      throw Exception('Failed to add reaction: $e');
-    }
-  }
+
   static Stream<List<ChannelModel>> observeUserChannels(String uid) {
     return channelsRef.onValue.map((event) {
       if (!event.snapshot.exists) return [];
