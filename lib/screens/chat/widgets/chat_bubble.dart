@@ -9,6 +9,7 @@ class ChatBubble extends StatefulWidget {
   final Function(String)? onTapReply;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final Function(String)? onReact; // ✅ تم إضافة دالة التفاعل هنا
   final bool isHighlighted;
 
   const ChatBubble({
@@ -18,6 +19,7 @@ class ChatBubble extends StatefulWidget {
     this.onTapReply,
     this.onEdit,
     this.onDelete,
+    this.onReact, // ✅ وتم تمريرها في الكونسراكتور
     this.isHighlighted = false,
   });
 
@@ -58,16 +60,13 @@ class _ChatBubbleState extends State<ChatBubble>
     });
   }
 
-  // 🔥 المحرك الذكي للمنيو العائمة وتحديد الإحداثيات بدقة
+  // 🔥 المحرك الذكي للمنيو العائمة
   void _showActionMenu(BuildContext context) {
     final isMe = widget.message.isMe;
     
-    // حساب موقع فقاعة الرسالة على الشاشة عشان المنيو تظهر فوقيها بالظبط
     final renderBox = context.findRenderObject() as RenderBox;
     final offset = renderBox.localToGlobal(Offset.zero);
-    final screenSize = MediaQuery.of(context).size;
 
-    // حساب الـ Position الرأسي عشان لو الرسالة فوق خالص المنيو متنزلش بره الشاشة
     double topPosition = offset.dy - 110;
     if (topPosition < 50) {
       topPosition = offset.dy + renderBox.size.height + 10;
@@ -77,12 +76,11 @@ class _ChatBubbleState extends State<ChatBubble>
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Dismiss',
-      barrierColor: Colors.black26, // تعتيم خفيف جداً للخلفية لزيادة التركيز
+      barrierColor: Colors.black26, 
       transitionDuration: const Duration(milliseconds: 250),
       pageBuilder: (context, animation, secondaryAnimation) {
         return Stack(
           children: [
-            // ضغطة في أي مكان بره تقفل المنيو
             Positioned.fill(
               child: GestureDetector(
                 onTap: () => Navigator.pop(context),
@@ -90,7 +88,6 @@ class _ChatBubbleState extends State<ChatBubble>
               ),
             ),
             
-            // المنيو العائمة المتمركزة ديناميكياً
             Positioned(
               top: topPosition,
               left: isMe ? null : 24,
@@ -98,14 +95,14 @@ class _ChatBubbleState extends State<ChatBubble>
               child: ScaleTransition(
                 scale: CurvedAnimation(
                   parent: animation,
-                  curve: Curves.elasticOut, // أنيميشن بوب اب مطاطي ممتع ومودرن
+                  curve: Curves.elasticOut, 
                 ),
                 child: FadeTransition(
                   opacity: animation,
                   child: Column(
                     crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                     children: [
-                      // 1. صف الإيموجيز التفاعلي (Frosted Silver Glass)
+                      // 1. صف الإيموجيز التفاعلي
                       _buildSilverGlassCard(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         child: Row(
@@ -114,7 +111,7 @@ class _ChatBubbleState extends State<ChatBubble>
                             return GestureDetector(
                               onTap: () {
                                 Navigator.pop(context);
-                                // هنا تقدر تربط الميزة دي بـ Backend التفاعلات مستقبلاً
+                                widget.onReact?.call(emoji); // ✅ إرسال الإيموجي لملف اللوجيك
                               },
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -188,20 +185,20 @@ class _ChatBubbleState extends State<ChatBubble>
     );
   }
 
-  // ويدجت الزجاج الفضي البلوري الموحد عالي الأداء
+  // ✅ الزجاج الفضي البلوري (تم تخفيف التشويش لراحة العين)
   Widget _buildSilverGlassCard({required Widget child, double? width, EdgeInsetsGeometry? padding}) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8), // تم التخفيف لـ 8
         child: Container(
           width: width,
           padding: padding,
           decoration: BoxDecoration(
-            color: const Color(0xFFF0F0F0).withOpacity(0.15), // درجة الفضي الشفاف اللامع
+            color: const Color(0xFFF0F0F0).withOpacity(0.25), // تم رفع الشفافية لـ 0.25 لتباين أفضل
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: Colors.white.withOpacity(0.25), // خط خارجي ناعم يعطي تأثير حافة الزجاج
+              color: Colors.white.withOpacity(0.25), 
               width: 1,
             ),
           ),
@@ -249,12 +246,12 @@ class _ChatBubbleState extends State<ChatBubble>
         GestureDetector(
           onTapDown: (_) {
             setState(() => isPressed = true);
-            HapticFeedback.lightImpact(); // رد فعل اهتزازي خفيف فور اللمس
+            HapticFeedback.lightImpact(); 
           },
           onTapUp: (_) => setState(() => isPressed = false),
           onTapCancel: () => setState(() => isPressed = false),
           onLongPress: () {
-            HapticFeedback.mediumImpact(); // اهتزاز أعمق عند تأكيد الضغط المطول
+            HapticFeedback.mediumImpact(); 
             _showActionMenu(context);
           },
           child: AnimatedScale(
