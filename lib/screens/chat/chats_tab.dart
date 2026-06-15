@@ -75,7 +75,10 @@ class _ChatsTabState extends State<ChatsTab>
             context: context,
             isScrollControlled: true,
             backgroundColor: Colors.transparent,
-            builder: (context) => NewChatSheet(myUid: _myUid),
+            builder: (context) => NewChatSheet(
+              myUid: _myUid,
+              myName: _myName, // ✅ تم التعديل لتمرير الاسم هنا بعد تحديث الـ Sheet
+            ),
           );
         },
         backgroundColor: AppColors.primary,
@@ -236,7 +239,7 @@ class _ChatsTabState extends State<ChatsTab>
 
             if (!mounted) return;
 
-            // 🚀 التعديل الذكي هنا: تمرير الـ ChatCubit مع الاسم والصورة الحقيقية للشاشة
+            // 🚀 التعديل الذكي هنا: تمرير الـ myName لحل خطأ الـ Build النهائي في الكيوبيت والشاشة
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -244,10 +247,12 @@ class _ChatsTabState extends State<ChatsTab>
                   create: (context) => ChatCubit(
                     chatId: chatData.chatId,
                     myUid: _myUid,
+                    myName: _myName, // ✅ تم الإصلاح وتمرير البارامتر المطلوب
                   ),
                   child: ChatScreen(
                     chatId: chatData.chatId,
                     myUid: _myUid,
+                    myName: _myName, // ✅ تم الإصلاح وتمرير البارامتر المطلوب
                     receiverName: name,            // الاسم الحقيقي يمرر هنا ديناميكياً
                     receiverImage: user?.avatarUrl, // رابط الصورة يمرر هنا لو وجد
                   ),
