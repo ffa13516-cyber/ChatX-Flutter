@@ -32,6 +32,7 @@ class _SavedMessagesScreenState extends State<SavedMessagesScreen> {
       isMe: true,
       senderId: widget.myUid,
       senderName: widget.myName,
+      time: DateTime.now(), // ✅ تم حل المشكلة وتمرير الوقت الحالي هنا
     );
     FirebaseRepo.sendMessage(_savedChatId, message);
   }
@@ -102,7 +103,7 @@ class _SavedMessagesScreenState extends State<SavedMessagesScreen> {
                       text: msg.text,
                       time: DateFormat('HH:mm').format(msg.time),
                       isSent: true,
-                      senderName: msg.senderName ?? '', // ✅ التعديل
+                      senderName: msg.senderName ?? '',
                     );
                   },
                 );
