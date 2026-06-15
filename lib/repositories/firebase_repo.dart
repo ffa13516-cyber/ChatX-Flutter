@@ -332,7 +332,23 @@ class FirebaseRepo {
     await ref.set(channelWithId.toMap());
     return channelWithId;
   }
-
+// ✅ دالة إضافة التفاعل (Reaction) للرسالة
+  static Future<void> addReaction(String chatId, String messageId, String emoji, String uid) async {
+    try {
+      // بنعمل تحديث للـ Document بتاع الرسالة جوه فايربيز
+      // بنستخدم مسار يعتمد على الـ uid عشان لو أكتر من شخص عمل رياكت
+      await FirebaseFirestore.instance
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .doc(messageId)
+          .update({
+        'reactions.$uid': emoji, 
+      });
+    } catch (e) {
+      throw Exception('Failed to add reaction: $e');
+    }
+  }
   static Stream<List<ChannelModel>> observeUserChannels(String uid) {
     return channelsRef.onValue.map((event) {
       if (!event.snapshot.exists) return [];
