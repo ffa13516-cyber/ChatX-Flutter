@@ -1,3 +1,10 @@
+// ============================================================
+// chat_screen.dart â€” ChatX Main Chat UI
+// âœ… msg.id? null-safe | âœ… myName parameter
+// âœ… Dynamic header height | âœ… Safe scroll-to-message
+// âœ… BlocConsumer Ù„Ù„Ù€ error snackbar | âœ… Clean dispose
+// ============================================================
+
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,15 +16,19 @@ import 'package:chatx/screens/chat/cubit/chat_cubit.dart';
 class ChatScreen extends StatefulWidget {
   final String chatId;
   final String myUid;
+  final String myName; // âœ… NEW: Ø§Ø³Ù… Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø§Ù„Ø­Ù‚ÙŠÙ‚ÙŠ
   final String receiverName;
   final String? receiverImage;
+  final bool isOnline;
 
   const ChatScreen({
     super.key,
     required this.chatId,
     required this.myUid,
-    this.receiverName = "Daniel Garcia",
+    required this.myName,
+    this.receiverName = 'Unknown',
     this.receiverImage,
+    this.isOnline = false,
   });
 
   @override
@@ -25,60 +36,118 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final ScrollController _controller = ScrollController();
-  String? highlightedMessageId;
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _headerKey = GlobalKey();
 
-  final double headerHeight = 115.0;
+  late final ChatCubit _cubit; // âœ… FIX: Ù†Ù†Ø´Ø¦ Ø§Ù„Ù€ Cubit Ù…Ø±Ø© ÙˆØ§Ø­Ø¯Ø© ÙÙŠ initState
+  String? _highlightedMessageId;
+  double _headerHeight = 115.0;
 
-  void scrollToMessage(String id, List<Message> messages) {
+  @override
+  void initState() {
+    super.initState();
+    // âœ… FIX: Ù†Ù†Ø´Ø¦ Ø§Ù„Ù€ Cubit Ù…Ø±Ø© ÙˆØ§Ø­Ø¯Ø© Ù…Ø´ ÙƒÙ„ build
+    _cubit = ChatCubit(
+      chatId: widget.chatId,
+      myUid: widget.myUid,
+      myName: widget.myName,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measureHeader());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // âœ… FIX: Ø¥Ø¹Ø§Ø¯Ø© Ù‚ÙŠØ§Ø³ Ø§Ù„Ù€ header Ù„Ùˆ ØªØºÙŠØ±Øª Ø§Ù„Ù€ orientation Ø£Ùˆ Ø§Ù„Ù€ text scale
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measureHeader());
+  }
+
+  @override
+  void dispose() {
+    _cubit.close();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _measureHeader() {
+    final ctx = _headerKey.currentContext;
+    if (ctx == null) return;
+    final box = ctx.findRenderObject() as RenderBox?;
+    if (box != null && mounted) {
+      setState(() => _headerHeight = box.size.height);
+    }
+  }
+
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Scroll to replied message â€” âœ… Safe with estimated heights
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  void _scrollToMessage(String id, List<Message> messages) {
     final index = messages.indexWhere((m) => m.id == id);
     if (index == -1) return;
 
-    setState(() => highlightedMessageId = id);
+    if (mounted) setState(() => _highlightedMessageId = id);
 
-    const estimatedItemHeight = 80.0 + 18.0; 
-    final totalItems = messages.length;
-    final reversedIndex = totalItems - 1 - index;
-    final offset = reversedIndex * estimatedItemHeight;
+    // Estimate offset (Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ Ù…Ø´ uniformØŒ Ù‡Ù†Ø§ Ù†Ù‚Ø¯Ù‘Ø±)
+    // Ø§Ù„Ù€ reverse ListView â†’ index 0 = Ø£Ø­Ø¯Ø« Ø±Ø³Ø§Ù„Ø©
+    const double estimatedItemHeight = 85.0;
+    final offset = index * estimatedItemHeight;
 
-    _controller.animateTo(
-      offset.clamp(0.0, _controller.position.maxScrollExtent),
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOut,
-    );
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        offset.clamp(0.0, _scrollController.position.maxScrollExtent),
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    }
 
     Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => highlightedMessageId = null);
+      if (mounted) setState(() => _highlightedMessageId = null);
     });
   }
 
-  void _showDeleteDialog(BuildContext ctx, String messageId) {
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Delete Dialog â€” âœ… null-safe messageId
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  void _showDeleteDialog(BuildContext ctx, String? messageId) {
+    // âœ… FIX: Ù„Ùˆ id Ø¨Ù€ null â€” Ù…Ø´ Ø¨Ù†ÙØªØ­ Ø§Ù„Ù€ dialog Ø®Ø§Ù„Øµ
+    if (messageId == null || messageId.isEmpty) return;
+
     showDialog(
       context: ctx,
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: const Color(0xFF1E1E1E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
-          "حذف الرسالة",
-          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          'Ø­Ø°Ù Ø§Ù„Ø±Ø³Ø§Ù„Ø©',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: const Text(
-          "هل أنت متأكد من رغبتك في حذف هذه الرسالة؟",
+          'Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ Ù…Ù† Ø±ØºØ¨ØªÙƒ ÙÙŠ Ø­Ø°Ù Ù‡Ø°Ù‡ Ø§Ù„Ø±Ø³Ø§Ù„Ø©ØŸ',
           style: TextStyle(color: Colors.white70, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text("إلغاء", style: TextStyle(color: Colors.white54)),
+            child: const Text('Ø¥Ù„ØºØ§Ø¡', style: TextStyle(color: Colors.white54)),
           ),
           TextButton(
             onPressed: () {
-              ctx.read<ChatCubit>().deleteMessage(messageId);
               Navigator.pop(dialogCtx);
+              // Ù†Ø³ØªØ®Ø¯Ù… context Ø£ØµÙ„ÙŠ Ù…Ø´ dialogCtx
+              ctx.read<ChatCubit>().deleteMessage(messageId);
             },
             child: const Text(
-              "حذف",
-              style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
+              'Ø­Ø°Ù',
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -86,7 +155,13 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Edit Dialog
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
   void _showEditDialog(BuildContext ctx, Message message) {
+    if (!message.isEditable) return; // âœ… Ù†Øµ ÙÙ‚Ø·
+
     final textController = TextEditingController(text: message.text);
 
     showDialog(
@@ -94,136 +169,222 @@ class _ChatScreenState extends State<ChatScreen> {
       builder: (dialogCtx) => _EditDialog(
         message: message,
         textController: textController,
-        onSave: (newText) {
-          ctx.read<ChatCubit>().editMessage(message.id!, newText);
-        },
+        onSave: (newText) => ctx.read<ChatCubit>().editMessage(message.id, newText),
       ),
-    ).then((_) {
-      textController.dispose();
-    });
+    ).whenComplete(textController.dispose);
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Build
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Image.asset("assets/images/bg.jpg", fit: BoxFit.cover),
-          ),
-          Positioned.fill(
-            child: Container(color: Colors.black.withOpacity(0.30)),
-          ),
+    // âœ… FIX: BlocProvider.value ÙŠØ³ØªØ®Ø¯Ù… cubit Ù…ÙˆØ¬ÙˆØ¯ Ø¨Ø¯Ù„ create Ø¬Ø¯ÙŠØ¯ ÙƒÙ„ rebuild
+    return BlocProvider.value(
+      value: _cubit,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          children: [
+            // â”€â”€ Background â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            Positioned.fill(
+              child: Image.asset('assets/images/bg.jpg', fit: BoxFit.cover),
+            ),
+            Positioned.fill(
+              child: Container(color: Colors.black.withOpacity(0.30)),
+            ),
 
-          BlocBuilder<ChatCubit, ChatState>(
-            builder: (context, state) {
-              final messages = state is ChatLoaded ? state.messages : <Message>[];
-              final replyingTo = state is ChatLoaded ? state.replyingTo : null;
-              final cubit = context.read<ChatCubit>();
+            // â”€â”€ Main Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            BlocConsumer<ChatCubit, ChatState>(
+              // âœ… FIX: Ù†Ø¹Ø±Ø¶ Ø§Ù„Ù€ snackbar Ø¨Ø³ Ù„Ùˆ ÙÙŠ error Ø­Ù‚ÙŠÙ‚ÙŠ (Ù…Ø´ reaction failure)
+              listenWhen: (prev, curr) =>
+                  curr is ChatError && prev is! ChatError,
+              listener: (context, state) {
+                if (state is ChatError) {
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          state.errorMessage,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: const Color(0xFF2B2C31),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        margin: const EdgeInsets.fromLTRB(16, 0, 16, 90),
+                        duration: const Duration(seconds: 3),
+                        action: SnackBarAction(
+                          label: 'Ø­Ø³Ù†Ø§Ù‹',
+                          textColor: const Color(0xFF4186F6),
+                          onPressed: () {},
+                        ),
+                      ),
+                    );
+                }
+              },
+              builder: (context, state) {
+                final messages = state is ChatLoaded
+                    ? state.messages
+                    : (state is ChatError ? state.lastKnownMessages ?? [] : <Message>[]);
+                final replyingTo = state is ChatLoaded ? state.replyingTo : null;
+                final cubit = context.read<ChatCubit>();
+                final isLoading = state is ChatLoading || state is ChatInitial;
 
-              return Stack(
-                children: [
-                  Positioned(
-                    top: headerHeight,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: SafeArea(
-                      top: false,
-                      child: ClipRect(
-                        child: state is! ChatLoaded
-                            ? const Center(child: CircularProgressIndicator())
-                            : ListView.builder(
-                                controller: _controller,
-                                reverse: true,
-                                padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
-                                itemCount: messages.length,
-                                itemBuilder: (context, index) {
-                                  final msg = messages[index];
-                                  return Column(
-                                    children: [
-                                      const SizedBox(height: 18),
-                                      ChatBubble(
-                                        message: msg,
-                                        onReply: cubit.setReply,
-                                        onTapReply: (replyId) =>
-                                            scrollToMessage(replyId, messages),
-                                        isHighlighted: msg.id == highlightedMessageId,
-                                        onEdit: () => _showEditDialog(context, msg),
-                                        onDelete: () =>
-                                            _showDeleteDialog(context, msg.id!),
-                                        // ✅ تم الربط هنا بنجاح ليعمل التفاعل لحظياً في الـ Firebase
-                                        onReact: (emoji) => cubit.addReaction(msg.id, emoji),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
+                return Stack(
+                  children: [
+                    // â”€â”€ Messages List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                    Positioned(
+                      top: _headerHeight,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: SafeArea(
+                        top: false,
+                        child: ClipRect(
+                          child: isLoading
+                              ? const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Color(0xFF4186F6),
+                                    strokeWidth: 2.5,
+                                  ),
+                                )
+                              : messages.isEmpty
+                                  ? _emptyState()
+                                  : ListView.builder(
+                                      controller: _scrollController,
+                                      reverse: true,
+                                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 130),
+                                      itemCount: messages.length,
+                                      itemBuilder: (context, index) {
+                                        final msg = messages[index];
+                                        return Padding(
+                                          padding: const EdgeInsets.only(top: 14),
+                                          child: ChatBubble(
+                                            key: ValueKey(msg.id ?? index),
+                                            message: msg,
+                                            onReply: cubit.setReply,
+                                            onTapReply: (replyId) =>
+                                                _scrollToMessage(replyId, messages),
+                                            isHighlighted:
+                                                msg.id != null &&
+                                                msg.id == _highlightedMessageId,
+                                            onEdit: () =>
+                                                _showEditDialog(context, msg),
+                                            // âœ… FIX: Ø¨Ù†Ù…Ø±Ø± id? Ù…Ø´ id! ÙÙ…ÙÙŠØ´ crash
+                                            onDelete: () =>
+                                                _showDeleteDialog(context, msg.id),
+                                            onReact: (emoji) =>
+                                                cubit.addReaction(msg.id, emoji),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                        ),
                       ),
                     ),
-                  ),
 
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: 120,
-                    child: IgnorePointer(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: [
-                              Colors.black.withOpacity(0.45),
-                              Colors.black.withOpacity(0.20),
-                              Colors.transparent,
-                            ],
+                    // â”€â”€ Bottom Gradient Fade â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: 120,
+                      child: IgnorePointer(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                Colors.black.withOpacity(0.45),
+                                Colors.black.withOpacity(0.20),
+                                Colors.transparent,
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
 
-                  Positioned(
-                    bottom: 10,
-                    left: 0,
-                    right: 0,
-                    child: SafeArea(
-                      child: ChatInput(
-                        replyMessage: replyingTo,
-                        onCancelReply: () => cubit.setReply(null),
-                        onSend: (text, replyId) => cubit.sendMessage(text),
+                    // â”€â”€ Chat Input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: SafeArea(
+                        child: ChatInput(
+                          replyMessage: replyingTo,
+                          onCancelReply: () => cubit.setReply(null),
+                          // âœ… FIX: onSend signature Ù…ØªØ²Ø§Ù…Ù† Ù…Ø¹ ChatInput
+                          onSend: (text, _) => cubit.sendMessage(text),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              );
-            },
-          ),
-
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              bottom: false,
-              child: _header(),
+                  ],
+                );
+              },
             ),
+
+            // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                bottom: false,
+                child: _Header(
+                  key: _headerKey,
+                  receiverName: widget.receiverName,
+                  receiverImage: widget.receiverImage,
+                  isOnline: widget.isOnline,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyState() {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.chat_bubble_outline_rounded, color: Colors.white12, size: 56),
+          SizedBox(height: 12),
+          Text(
+            'Ø§Ø¨Ø¯Ø£ Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø© Ø§Ù„Ø¢Ù† ðŸ‘‹',
+            style: TextStyle(color: Colors.white24, fontSize: 15),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _header() {
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Header Widget â€” Ù…Ù†ÙØµÙ„ Ø¹Ø´Ø§Ù† Ø§Ù„Ù€ GlobalKey ÙŠØ´ØªØºÙ„
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _Header extends StatelessWidget {
+  final String receiverName;
+  final String? receiverImage;
+  final bool isOnline;
+
+  const _Header({
+    super.key,
+    required this.receiverName,
+    this.receiverImage,
+    this.isOnline = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: ClipRRect(
@@ -253,8 +414,8 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             child: Row(
               children: [
+                // Avatar with online indicator
                 Stack(
-                  alignment: Alignment.center,
                   children: [
                     Container(
                       width: 60,
@@ -269,37 +430,64 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       ),
                     ),
-                    CircleAvatar(
-                      radius: 22,
-                      backgroundImage: NetworkImage(
-                        widget.receiverImage ?? "https://i.pravatar.cc/150?img=8",
+                    Positioned(
+                      left: 8,
+                      top: 8,
+                      child: CircleAvatar(
+                        radius: 22,
+                        backgroundColor: Colors.white12,
+                        backgroundImage: receiverImage != null
+                            ? NetworkImage(receiverImage!)
+                            : const NetworkImage('https://i.pravatar.cc/150?img=8'),
                       ),
                     ),
+                    if (isOnline)
+                      Positioned(
+                        bottom: 4,
+                        right: 4,
+                        child: Container(
+                          width: 11,
+                          height: 11,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF22C55E),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.black, width: 2),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
                 const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.receiverName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        receiverName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      "Online",
-                      style: TextStyle(color: Color(0xFF22C55E), fontSize: 11),
-                    ),
-                  ],
+                      const SizedBox(height: 2),
+                      Text(
+                        isOnline ? 'Online' : 'Last seen recently',
+                        style: TextStyle(
+                          color: isOnline
+                              ? const Color(0xFF22C55E)
+                              : Colors.white38,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const Spacer(),
-                _headerIcon(Icons.videocam_outlined),
+                _HeaderIcon(icon: Icons.videocam_outlined),
                 const SizedBox(width: 10),
-                _headerIcon(Icons.call_outlined),
+                _HeaderIcon(icon: Icons.call_outlined),
               ],
             ),
           ),
@@ -307,8 +495,14 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
+}
 
-  Widget _headerIcon(IconData icon) {
+class _HeaderIcon extends StatelessWidget {
+  final IconData icon;
+  const _HeaderIcon({required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
     return ClipOval(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -325,6 +519,10 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 }
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Edit Dialog
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _EditDialog extends StatefulWidget {
   final Message message;
@@ -346,18 +544,23 @@ class _EditDialogState extends State<_EditDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: const Color(0xFF1E1E1E),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: const Text(
-        "تعديل الرسالة",
-        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+        'ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø±Ø³Ø§Ù„Ø©',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       content: TextField(
         controller: widget.textController,
         autofocus: true,
         style: const TextStyle(color: Colors.white),
         maxLines: null,
+        textInputAction: TextInputAction.newline,
         decoration: const InputDecoration(
-          hintText: "تعديل النص...",
+          hintText: 'ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ù†Øµ...',
           hintStyle: TextStyle(color: Colors.white38),
           enabledBorder: UnderlineInputBorder(
             borderSide: BorderSide(color: Colors.white24),
@@ -370,7 +573,7 @@ class _EditDialogState extends State<_EditDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text("إلغاء", style: TextStyle(color: Colors.white54)),
+          child: const Text('Ø¥Ù„ØºØ§Ø¡', style: TextStyle(color: Colors.white54)),
         ),
         TextButton(
           onPressed: () {
@@ -381,8 +584,11 @@ class _EditDialogState extends State<_EditDialog> {
             Navigator.pop(context);
           },
           child: const Text(
-            "حفظ",
-            style: TextStyle(color: Color(0xFF4186F6), fontWeight: FontWeight.bold),
+            'Ø­ÙØ¸',
+            style: TextStyle(
+              color: Color(0xFF4186F6),
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],
