@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/message_model.dart';
-// أول ما تضيف الباكدج في الـ pubspec.yaml، شيل علامة التعليق (//) من السطر اللي تحت ده:
+// أول ما تضيف الباكدج في الـ pubspec.yaml، شيل علامة التعليق (//) من السطر التالي:
 // import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 
 class ChatBubble extends StatefulWidget {
@@ -11,7 +11,7 @@ class ChatBubble extends StatefulWidget {
   final Function(String)? onTapReply;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
-  final Function(String)? onReact; // ✅ تم إضافة دالة التفاعل هنا
+  final Function(String)? onReact; // ✅ تم تمرير دالة التفاعل هنا
   final bool isHighlighted;
 
   const ChatBubble({
@@ -21,8 +21,8 @@ class ChatBubble extends StatefulWidget {
     this.onTapReply,
     this.onEdit,
     this.onDelete,
-    this.onReact, // ✅ وتم تمريرها في الكونسراكتور
-    required this.isHighlighted,
+    this.onReact, 
+    this.isHighlighted = false,
   });
 
   @override
@@ -62,7 +62,7 @@ class _ChatBubbleState extends State<ChatBubble>
     });
   }
 
-  // ✅ دالة فتح قائمة الإيموجي الكاملة من الأسفل (Bottom Sheet)
+  // ✅ دالة فتح قائمة الإيموجي الكاملة من الأسفل (Bottom Sheet) بشكل انسيابي
   void _showEmojiPickerBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -70,9 +70,9 @@ class _ChatBubbleState extends State<ChatBubble>
       isScrollControlled: true,
       builder: (context) {
         return Container(
-          height: MediaQuery.of(context).size.height * 0.45, // بتاخذ 45% من طول الشاشة
+          height: MediaQuery.of(context).size.height * 0.45, 
           decoration: const BoxDecoration(
-            color: Color(0xFF1E1F23), // لون داكن متناسق مع تصميمك
+            color: Color(0xFF1E1F23), 
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
@@ -88,7 +88,7 @@ class _ChatBubbleState extends State<ChatBubble>
                 ),
               ),
               
-              // مكان باكدج الإيموجي الجاهزة
+              // حاوية عرض باكدج الإيموجي كاملاً
               Expanded(
                 child: ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -97,12 +97,12 @@ class _ChatBubbleState extends State<ChatBubble>
                       "هنا هيتم عرض باكدج الـ Emoji Picker كاملاً 🎯",
                       style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 15),
                     ),
-                    // 💡 أول ما تضيف الباكدج، تقدر تستبدل الـ Text اللي فوق بـ الـ Widget ده:
+                    // 💡 فك التعليق عن هذا الـ Widget بمجرد تثبيت باكدج emoji_picker_flutter:
                     /*
                     child: EmojiPicker(
                       onEmojiSelected: (category, emoji) {
-                        Navigator.pop(context); // قفل البوتوم شيت
-                        widget.onReact?.call(emoji.emoji); // إرسال الإيموجي المختار
+                        Navigator.pop(context); // إغلاق البوتوم شيت
+                        widget.onReact?.call(emoji.emoji); // استدعاء دالة التفاعل بالإيموجي المختار
                       },
                       config: Config(
                         columns: 7,
@@ -122,8 +122,6 @@ class _ChatBubbleState extends State<ChatBubble>
                         ),
                         loadingIndicator: const SizedBox.shrink(),
                         tabBarDisplayNameStyle: const TextStyle(color: Colors.white70),
-                        categoryIcons: const CategoryIcons(),
-                        buttonMode: ButtonMode.MATERIAL,
                       ),
                     ),
                     */
@@ -179,18 +177,17 @@ class _ChatBubbleState extends State<ChatBubble>
                   child: Column(
                     crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                     children: [
-                      // 1. صف الإيموجيز التفاعلي + سهم فتح الباكدجات كاملة
+                      // 1. صف الإيموجيز التفاعلي + زر السهم السهل والسلس
                       _buildSilverGlassCard(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // عرض الستة إيموجي الأساسيين
                             ...['❤️', '👍', '🔥', '😂', '😮', '😢'].map((emoji) {
                               return GestureDetector(
                                 onTap: () {
                                   Navigator.pop(context);
-                                  widget.onReact?.call(emoji); // ✅ إرسال الإيموجي لملف اللوجيك
+                                  widget.onReact?.call(emoji); // إرسال الإيموجي المختار
                                 },
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -202,23 +199,23 @@ class _ChatBubbleState extends State<ChatBubble>
                               );
                             }).toList(),
                             
-                            // ✅ زرار السهم الجديد (يكشف باقي الباكدجات)
+                            // ✅ زر السهم الجديد: تم تكبير الـ Padding والمساحة ليكون "سهل ومريح جداً في الضغط"
                             GestureDetector(
                               onTap: () {
-                                Navigator.pop(context); // قفل المنيو العائمة أولاً
-                                _showEmojiPickerBottomSheet(context); // فتح قايمة الإيموجي الكاملة
+                                Navigator.pop(context); // إغلاق المنيو العائمة أولاً
+                                _showEmojiPickerBottomSheet(context); // فتح قائمة كل الباكدجات من أسفل
                               },
                               child: Container(
                                 margin: const EdgeInsets.only(left: 4, right: 2),
-                                padding: const EdgeInsets.all(2),
+                                padding: const EdgeInsets.all(6), // مساحة ضغط ممتازة وسهلة
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.12),
+                                  color: Colors.white.withOpacity(0.15),
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
-                                  Icons.keyboard_arrow_down_rounded, // سهم لأسفل ذكي ومميز
-                                  color: Colors.whiteEF,
-                                  size: 22,
+                                  Icons.keyboard_arrow_down_rounded, // سهم ذكي يشير للأسفل
+                                  color: Colors.white,
+                                  size: 20,
                                 ),
                               ),
                             ),
@@ -286,6 +283,69 @@ class _ChatBubbleState extends State<ChatBubble>
     );
   }
 
+  // ✅ بناء الحاوية العائمة للـ Reactions الذكية أسفل الرسالة بشكل مجمع
+  Widget _buildReactionsPill() {
+    if (widget.message.reactions == null || widget.message.reactions!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // تجميع التفاعلات وحساب عددها الإجمالي
+    final Map<String, int> emojiCounts = {};
+    widget.message.reactions!.forEach((uid, emoji) {
+      emojiCounts[emoji] = (emojiCounts[emoji] ?? 0) + 1;
+    });
+
+    final distinctEmojis = emojiCounts.keys.toList();
+    final totalCount = widget.message.reactions!.length;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1F23), // متناسق مع لون الرسائل المستلمة
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.12),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // عرض الإيموجيز الفريدة المستخدمة بالتفاعل (بحد أقصى 3 منعاً للازدحام)
+          ...distinctEmojis.take(3).map((emoji) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 1),
+              child: Text(
+                emoji,
+                style: const TextStyle(fontSize: 13),
+              ),
+            );
+          }).toList(),
+          
+          // عرض إجمالي عدد التفاعلات لو أكبر من 1
+          if (totalCount > 1) ...[
+            const SizedBox(width: 4),
+            Text(
+              '$totalCount',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   // ✅ الزجاج الفضي البلوري (تم تخفيف التشويش لراحة العين)
   Widget _buildSilverGlassCard({required Widget child, double? width, EdgeInsetsGeometry? padding}) {
     return ClipRRect(
@@ -340,6 +400,7 @@ class _ChatBubbleState extends State<ChatBubble>
   @override
   Widget build(BuildContext context) {
     final isMe = widget.message.isMe;
+    final hasReactions = widget.message.reactions != null && widget.message.reactions!.isNotEmpty;
 
     return Row(
       mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -358,14 +419,28 @@ class _ChatBubbleState extends State<ChatBubble>
           child: AnimatedScale(
             scale: isPressed ? 0.97 : 1,
             duration: const Duration(milliseconds: 90),
-            child: _bubble(context, isMe),
+            child: Stack(
+              clipBehavior: Clip.none, // للسماح للـ Pill بالظهور الخارجي المتداخل
+              children: [
+                _bubble(context, isMe, hasReactions),
+                
+                // ✅ وضع لوحة التفاعلات بشكل عائم في المكان المناسب حسب مرسل الرسالة
+                if (hasReactions)
+                  Positioned(
+                    bottom: -8,
+                    right: isMe ? 12 : null,
+                    left: isMe ? null : 12,
+                    child: _buildReactionsPill(),
+                  ),
+              ],
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _bubble(BuildContext context, bool isMe) {
+  Widget _bubble(BuildContext context, bool isMe, bool hasReactions) {
     final message = widget.message;
     final time = _formatTime(message.time);
 
@@ -381,7 +456,8 @@ class _ChatBubbleState extends State<ChatBubble>
       constraints: BoxConstraints(
         maxWidth: MediaQuery.of(context).size.width * 0.72,
       ),
-      margin: const EdgeInsets.symmetric(vertical: 1.5),
+      // 💡 قمنا بذكاء بزيادة الـ bottom margin لو فيه ريأكشن عشان الرسالة اللي بعدها متبقاش لازقة فيها
+      margin: EdgeInsets.only(top: 1.5, bottom: hasReactions ? 12 : 1.5),
       decoration: BoxDecoration(
         borderRadius: radius,
         boxShadow: [
