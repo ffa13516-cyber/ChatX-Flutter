@@ -32,7 +32,6 @@ class ChatCubit extends Cubit<ChatState> {
   StreamSubscription? _messagesSubscription;
   Message? replyingTo;
 
-  // ✅ FIX #3: بنتتبع الرسايل اللي عملنالها delivered عشان منعملهاش تاني
   final Set<String> _deliveredIds = {};
 
   ChatCubit({required this.chatId, required this.myUid}) : super(ChatInitial()) {
@@ -51,8 +50,6 @@ class ChatCubit extends Cubit<ChatState> {
           replyingTo: replyingTo,
         ));
 
-        // ✅ FIX #3: الـ markAsDelivered اتنقل من الـ Stream للـ Cubit
-        // وبيشتغل بس لو الرسالة جديدة ومش اتعملتلها delivered قبل كده
         _handleDelivery(messages);
       },
       onError: (error) {
@@ -61,7 +58,6 @@ class ChatCubit extends Cubit<ChatState> {
     );
   }
 
-  // ✅ بنعمل delivered بس للرسايل الجديدة اللي لسه ماتعملتلهاش
   void _handleDelivery(List<Message> messages) {
     for (final msg in messages) {
       if (!msg.isMe &&
@@ -101,9 +97,7 @@ class ChatCubit extends Cubit<ChatState> {
     try {
       await FirebaseRepo.sendMessage(chatId, newMessage);
     } catch (e) {
-      // ✅ بنعمل emit بـ error بدل print عشان الـ UI يعرف
       emit(ChatError("فشل إرسال الرسالة، حاول مرة أخرى."));
-      // نرجع للـ state القديم بعد ثانية عشان الـ UI ميتجمدش
       await Future.delayed(const Duration(seconds: 1));
       if (state is ChatError && state is ChatLoaded == false) {
         _restoreLoadedState();
@@ -111,7 +105,6 @@ class ChatCubit extends Cubit<ChatState> {
     }
   }
 
-  // ✅ FIX #7: بنمرر myUid للـ repo عشان يتحقق من الـ ownership
   Future<void> deleteMessage(String messageId) async {
     try {
       await FirebaseRepo.deleteMessage(chatId, messageId, myUid);
@@ -122,7 +115,6 @@ class ChatCubit extends Cubit<ChatState> {
     }
   }
 
-  // ✅ FIX #7: بنمرر myUid للـ repo عشان يتحقق من الـ ownership
   Future<void> editMessage(String? messageId, String newText) async {
     if (messageId == null || newText.trim().isEmpty) return;
     try {
@@ -134,10 +126,21 @@ class ChatCubit extends Cubit<ChatState> {
     }
   }
 
-  // helper: نرجع للـ ChatLoaded لو عندنا رسايل محملة
+  // ✅ إضافة دالة التفاعل مع الرسالة (Reactions)
+  Future<void> addReaction(String? messageId, String emoji) async {
+    if (messageId == null) return;
+    try {
+      // بنادي على الريبو يضيف التفاعل في الداتابيز
+      await FirebaseRepo.addReaction(chatId, messageId, emoji, myUid);
+    } catch (e) {
+      emit(ChatError("فشل إضافة التفاعل."));
+      await Future.delayed(const Duration(seconds: 1));
+      _restoreLoadedState();
+    }
+  }
+
   void _restoreLoadedState() {
     if (state is ChatLoaded) return;
-    // الـ stream هيعمل emit تلقائياً بالـ state الصح
   }
 
   @override
