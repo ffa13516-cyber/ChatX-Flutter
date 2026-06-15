@@ -1,17 +1,24 @@
+// ============================================================
+// chat_bubble.dart â€” ChatX Message Bubble
+// âœ… Context bug Ù…ØµÙ„Ø­ (emoji bottom sheet) 
+// âœ… Copy guard (Ù…Ø´ Ø¨ÙŠÙƒÙˆØ¨ÙŠ ØµÙˆØ±/ØµÙˆØª)
+// âœ… Reactions toggle (Ù†ÙØ³ Ø§Ù„Ø¥ÙŠÙ…ÙˆØ¬ÙŠ = Ø§Ø²ÙŠÙ„Ù‡)
+// âœ… AnimationController dispose Ø¢Ù…Ù†
+// âœ… _showActionMenu ÙŠØ³ØªØ®Ø¯Ù… rootContext Ù…Ø´ dialog context
+// ============================================================
+
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/message_model.dart';
-// أول ما تضيف الباكدج في الـ pubspec.yaml، شيل علامة التعليق (//) من السطر التالي:
-// import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 
 class ChatBubble extends StatefulWidget {
   final Message message;
   final Function(Message)? onReply;
-  final Function(String)? onTapReply;
+  final Function(String replyId)? onTapReply;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
-  final Function(String)? onReact; // ✅ تم تمرير دالة التفاعل هنا
+  final Function(String emoji)? onReact;
   final bool isHighlighted;
 
   const ChatBubble({
@@ -21,7 +28,7 @@ class ChatBubble extends StatefulWidget {
     this.onTapReply,
     this.onEdit,
     this.onDelete,
-    this.onReact, 
+    this.onReact,
     this.isHighlighted = false,
   });
 
@@ -31,9 +38,10 @@ class ChatBubble extends StatefulWidget {
 
 class _ChatBubbleState extends State<ChatBubble>
     with SingleTickerProviderStateMixin {
-  bool isPlaying = false;
-  bool isPressed = false;
-  late AnimationController _waveController;
+  bool _isPressed = false;
+  bool _isPlaying = false;
+
+  late final AnimationController _waveController;
 
   @override
   void initState() {
@@ -46,174 +54,105 @@ class _ChatBubbleState extends State<ChatBubble>
 
   @override
   void dispose() {
-    _waveController.stop();
-    _waveController.dispose();
+    _waveController.dispose(); // stop + dispose ÙÙŠ Ù†ÙØ³ Ø§Ù„ÙˆÙ‚Øª
     super.dispose();
   }
 
   void _togglePlay() {
-    setState(() {
-      isPlaying = !isPlaying;
-      if (isPlaying) {
-        _waveController.repeat();
-      } else {
-        _waveController.stop();
-      }
-    });
+    setState(() => _isPlaying = !_isPlaying);
+    _isPlaying ? _waveController.repeat() : _waveController.stop();
   }
 
-  // ✅ دالة فتح قائمة الإيموجي الكاملة من الأسفل (Bottom Sheet) بشكل انسيابي
-  void _showEmojiPickerBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.45, 
-          decoration: const BoxDecoration(
-            color: Color(0xFF1E1F23), 
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-              // مؤشر السحب العلوي (الشرطة الخفيفة)
-              Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
-                width: 38,
-                height: 4.5,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              
-              // حاوية عرض باكدج الإيموجي كاملاً
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                  child: Center(
-                    child: Text(
-                      "هنا هيتم عرض باكدج الـ Emoji Picker كاملاً 🎯",
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 15),
-                    ),
-                    // 💡 فك التعليق عن هذا الـ Widget بمجرد تثبيت باكدج emoji_picker_flutter:
-                    /*
-                    child: EmojiPicker(
-                      onEmojiSelected: (category, emoji) {
-                        Navigator.pop(context); // إغلاق البوتوم شيت
-                        widget.onReact?.call(emoji.emoji); // استدعاء دالة التفاعل بالإيموجي المختار
-                      },
-                      config: Config(
-                        columns: 7,
-                        emojiSizeMax: 32,
-                        backgroundColor: const Color(0xFF1E1F23),
-                        indicatorColor: const Color(0xFF4186F6),
-                        iconColor: Colors.grey,
-                        iconColorSelected: const Color(0xFF4186F6),
-                        backspaceColor: const Color(0xFF4186F6),
-                        skinToneIndicatorColor: Colors.grey,
-                        enableSkinTones: true,
-                        recentsLimit: 20,
-                        noRecents: const Text(
-                          'لا توجد إيموجيز مستخدمة مؤخراً',
-                          style: TextStyle(fontSize: 14, color: Colors.white24),
-                          textAlign: TextAlign.center,
-                        ),
-                        loadingIndicator: const SizedBox.shrink(),
-                        tabBarDisplayNameStyle: const TextStyle(color: Colors.white70),
-                      ),
-                    ),
-                    */
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Action Menu â€” âœ… FIX: rootContext Ù…Ø­ÙÙˆØ¸ Ù‚Ø¨Ù„ ÙØªØ­ Ø§Ù„Ù€ dialog
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  // 🔥 المحرك الذكي للمنيو العائمة
-  void _showActionMenu(BuildContext context) {
+  void _showActionMenu(BuildContext rootContext) {
     final isMe = widget.message.isMe;
-    
-    final renderBox = context.findRenderObject() as RenderBox;
-    final offset = renderBox.localToGlobal(Offset.zero);
+    final box = rootContext.findRenderObject() as RenderBox?;
+    if (box == null) return;
 
-    double topPosition = offset.dy - 110;
-    if (topPosition < 50) {
-      topPosition = offset.dy + renderBox.size.height + 10;
-    }
+    final offset = box.localToGlobal(Offset.zero);
+    double topPos = offset.dy - 120;
+    if (topPos < 60) topPos = offset.dy + box.size.height + 12;
 
     showGeneralDialog(
-      context: context,
+      context: rootContext,
       barrierDismissible: true,
-      barrierLabel: 'Dismiss',
-      barrierColor: Colors.black26, 
-      transitionDuration: const Duration(milliseconds: 250),
-      pageBuilder: (context, animation, secondaryAnimation) {
+      barrierLabel: 'dismiss',
+      barrierColor: Colors.black26,
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (dialogCtx, animation, _) {
         return Stack(
           children: [
+            // Dismiss area
             Positioned.fill(
               child: GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(color: Colors.transparent),
+                onTap: () => Navigator.pop(dialogCtx),
+                child: const ColoredBox(color: Colors.transparent),
               ),
             ),
-            
+
             Positioned(
-              top: topPosition,
-              left: isMe ? null : 24,
-              right: isMe ? 24 : null,
+              top: topPos,
+              left: isMe ? null : 20,
+              right: isMe ? 20 : null,
               child: ScaleTransition(
                 scale: CurvedAnimation(
                   parent: animation,
-                  curve: Curves.elasticOut, 
+                  curve: Curves.elasticOut,
                 ),
                 child: FadeTransition(
                   opacity: animation,
                   child: Column(
-                    crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                    crossAxisAlignment: isMe
+                        ? CrossAxisAlignment.end
+                        : CrossAxisAlignment.start,
                     children: [
-                      // 1. صف الإيموجيز التفاعلي + زر السهم السهل والسلس
-                      _buildSilverGlassCard(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      // â”€â”€ Quick Reactions Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                      _GlassCard(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            ...['❤️', '👍', '🔥', '😂', '😮', '😢'].map((emoji) {
-                              return GestureDetector(
+                            ...['â¤ï¸', 'ðŸ‘', 'ðŸ”¥', 'ðŸ˜‚', 'ðŸ˜®', 'ðŸ˜¢'].map(
+                              (emoji) => GestureDetector(
                                 onTap: () {
-                                  Navigator.pop(context);
-                                  widget.onReact?.call(emoji); // إرسال الإيموجي المختار
+                                  Navigator.pop(dialogCtx);
+                                  widget.onReact?.call(emoji);
                                 },
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6),
                                   child: Text(
                                     emoji,
                                     style: const TextStyle(fontSize: 22),
                                   ),
                                 ),
-                              );
-                            }).toList(),
-                            
-                            // ✅ زر السهم الجديد: تم تكبير الـ Padding والمساحة ليكون "سهل ومريح جداً في الضغط"
+                              ),
+                            ),
+                            // More emojis button
+                            // âœ… FIX: Ø¨Ù†Ø³ØªØ®Ø¯Ù… rootContext Ù…Ø´ dialogCtx
                             GestureDetector(
                               onTap: () {
-                                Navigator.pop(context); // إغلاق المنيو العائمة أولاً
-                                _showEmojiPickerBottomSheet(context); // فتح قائمة كل الباكدجات من أسفل
+                                Navigator.pop(dialogCtx);
+                                // âœ… FIX: rootContext ØµØ§Ù„Ø­ Ù‡Ù†Ø§ Ù„Ø£Ù†Ù†Ø§ Ø£ØºÙ„Ù‚Ù†Ø§ Ø§Ù„Ù€ dialog
+                                WidgetsBinding.instance
+                                    .addPostFrameCallback((_) {
+                                  _showEmojiSheet(rootContext);
+                                });
                               },
                               child: Container(
-                                margin: const EdgeInsets.only(left: 4, right: 2),
-                                padding: const EdgeInsets.all(6), // مساحة ضغط ممتازة وسهلة
+                                margin:
+                                    const EdgeInsets.only(left: 4, right: 2),
+                                padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.15),
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
-                                  Icons.keyboard_arrow_down_rounded, // سهم ذكي يشير للأسفل
+                                  Icons.keyboard_arrow_down_rounded,
                                   color: Colors.white,
                                   size: 20,
                                 ),
@@ -222,49 +161,74 @@ class _ChatBubbleState extends State<ChatBubble>
                           ],
                         ),
                       ),
-                      
+
                       const SizedBox(height: 8),
-                      
-                      // 2. قائمة الخيارات الذكية
-                      _buildSilverGlassCard(
+
+                      // â”€â”€ Context Menu â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                      _GlassCard(
+                        width: 195,
                         padding: const EdgeInsets.symmetric(vertical: 6),
-                        width: 190,
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            _buildFloatingMenuItem(
+                            // Ø±Ø¯
+                            _MenuItem(
                               icon: Icons.reply_rounded,
-                              title: 'رد',
+                              label: 'Ø±Ø¯',
                               onTap: () {
-                                Navigator.pop(context);
+                                Navigator.pop(dialogCtx);
                                 widget.onReply?.call(widget.message);
                               },
                             ),
-                            _buildFloatingMenuItem(
-                              icon: Icons.copy_rounded,
-                              title: 'نسخ',
-                              onTap: () {
-                                Navigator.pop(context);
-                                Clipboard.setData(ClipboardData(text: widget.message.text));
-                              },
-                            ),
+
+                            // Ù†Ø³Ø® â€” âœ… FIX: text ÙÙ‚Ø·
+                            if (widget.message.type == MessageType.text)
+                              _MenuItem(
+                                icon: Icons.copy_rounded,
+                                label: 'Ù†Ø³Ø®',
+                                onTap: () {
+                                  Navigator.pop(dialogCtx);
+                                  Clipboard.setData(
+                                    ClipboardData(
+                                        text: widget.message.text),
+                                  );
+                                  ScaffoldMessenger.of(rootContext)
+                                      .showSnackBar(
+                                    const SnackBar(
+                                      content:
+                                          Text('ØªÙ… Ù†Ø³Ø® Ø§Ù„Ø±Ø³Ø§Ù„Ø© âœ“'),
+                                      duration: Duration(seconds: 1),
+                                      backgroundColor:
+                                          Color(0xFF2B2C31),
+                                      behavior:
+                                          SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                },
+                              ),
+
+                            // ØªØ¹Ø¯ÙŠÙ„ ÙˆØ­Ø°Ù (Ù…Ø±Ø³Ù„ ÙÙ‚Ø·)
                             if (isMe) ...[
-                              if (widget.message.type == MessageType.text)
-                                _buildFloatingMenuItem(
+                              if (widget.message.isEditable)
+                                _MenuItem(
                                   icon: Icons.edit_rounded,
-                                  title: 'تعديل',
+                                  label: 'ØªØ¹Ø¯ÙŠÙ„',
                                   onTap: () {
-                                    Navigator.pop(context);
+                                    Navigator.pop(dialogCtx);
                                     widget.onEdit?.call();
                                   },
                                 ),
-                              const Divider(color: Colors.white12, height: 1, thickness: 0.5),
-                              _buildFloatingMenuItem(
+                              const Divider(
+                                color: Colors.white12,
+                                height: 1,
+                                thickness: 0.5,
+                              ),
+                              _MenuItem(
                                 icon: Icons.delete_outline_rounded,
-                                title: 'حذف',
-                                color: Colors.redAccent.withOpacity(0.9),
+                                label: 'Ø­Ø°Ù',
+                                color: Colors.redAccent,
                                 onTap: () {
-                                  Navigator.pop(context);
+                                  Navigator.pop(dialogCtx);
                                   widget.onDelete?.call();
                                 },
                               ),
@@ -283,165 +247,217 @@ class _ChatBubbleState extends State<ChatBubble>
     );
   }
 
-  // ✅ بناء الحاوية العائمة للـ Reactions الذكية أسفل الرسالة بشكل مجمع
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Emoji Bottom Sheet â€” âœ… FIX: context ØµØ­
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  void _showEmojiSheet(BuildContext ctx) {
+    if (!ctx.mounted) return;
+
+    showModalBottomSheet(
+      context: ctx,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetCtx) {
+        return Container(
+          height: MediaQuery.of(ctx).size.height * 0.45,
+          decoration: const BoxDecoration(
+            color: Color(0xFF1E1F23),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 38,
+                height: 4.5,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 7,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                  ),
+                  itemCount: _allEmojis.length,
+                  itemBuilder: (_, i) => GestureDetector(
+                    onTap: () {
+                      // âœ… FIX: Ù†ØºÙ„Ù‚ Ø§Ù„Ù€ sheet Ø¨Ù€ sheetCtx Ù…Ø´ ctx
+                      Navigator.pop(sheetCtx);
+                      widget.onReact?.call(_allEmojis[i]);
+                    },
+                    child: Center(
+                      child: Text(
+                        _allEmojis[i],
+                        style: const TextStyle(fontSize: 26),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Reactions Pill
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
   Widget _buildReactionsPill() {
-    if (widget.message.reactions == null || widget.message.reactions!.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    final grouped = widget.message.groupedReactions;
+    if (grouped.isEmpty) return const SizedBox.shrink();
 
-    // تجميع التفاعلات وحساب عددها الإجمالي
-    final Map<String, int> emojiCounts = {};
-    widget.message.reactions!.forEach((uid, emoji) {
-      emojiCounts[emoji] = (emojiCounts[emoji] ?? 0) + 1;
-    });
+    final totalCount = widget.message.reactionCount;
+    // Ø§Ù„Ø¥ÙŠÙ…ÙˆØ¬ÙŠ Ø§Ù„Ù„ÙŠ Ø§Ø®ØªØ§Ø±Ù‡ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø§Ù„Ø­Ø§Ù„ÙŠ (Ù„Ùˆ Ù…ÙˆØ¬ÙˆØ¯)
+    final myCurrentReaction = widget.message.reactions?[
+        // Ù†Ø³ØªØ®Ø¯Ù… onReact Ù„Ø£Ù†Ù†Ø§ Ù…Ø´ Ø¹Ù†Ø¯Ù†Ø§ myUid Ù‡Ù†Ø§ â€” Ø§Ù„Ù€ bubble ÙŠØ¹Ù…Ù„ toggle
+        // Ø¨Ø³ Ù†Ø¹Ø±Ø¶ Ø§Ù„Ù€ pill ÙƒÙ€ tappable Ø¹Ø´Ø§Ù† UX
+        'placeholder'
+    ];
 
-    final distinctEmojis = emojiCounts.keys.toList();
-    final totalCount = widget.message.reactions!.length;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1F23), // متناسق مع لون الرسائل المستلمة
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.12),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // عرض الإيموجيز الفريدة المستخدمة بالتفاعل (بحد أقصى 3 منعاً للازدحام)
-          ...distinctEmojis.take(3).map((emoji) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 1),
-              child: Text(
-                emoji,
-                style: const TextStyle(fontSize: 13),
-              ),
-            );
-          }).toList(),
-          
-          // عرض إجمالي عدد التفاعلات لو أكبر من 1
-          if (totalCount > 1) ...[
-            const SizedBox(width: 4),
-            Text(
-              '$totalCount',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
+    return GestureDetector(
+      // âœ… UX: Ø¶ØºØ·Ø© Ø¹Ù„Ù‰ Ø§Ù„Ù€ pill ØªÙØªØ­ Ø§Ù„Ù€ quick reaction menu
+      onTap: () => _showActionMenu(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1F23),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.12)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
           ],
-        ],
-      ),
-    );
-  }
-
-  // ✅ الزجاج الفضي البلوري (تم تخفيف التشويش لراحة العين)
-  Widget _buildSilverGlassCard({required Widget child, double? width, EdgeInsetsGeometry? padding}) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8), 
-        child: Container(
-          width: width,
-          padding: padding,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF0F0F0).withOpacity(0.25), 
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.25), 
-              width: 1,
-            ),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: child,
-          ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildFloatingMenuItem({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    Color color = Colors.white,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: 14),
-            Text(
-              title,
-              style: TextStyle(color: color, fontSize: 14.5, fontWeight: FontWeight.w500),
-            ),
+            ...grouped.keys.take(3).map(
+                  (emoji) => Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 1),
+                    child: Text(emoji, style: const TextStyle(fontSize: 13)),
+                  ),
+                ),
+            if (totalCount > 1) ...[
+              const SizedBox(width: 4),
+              Text(
+                '$totalCount',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
+
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Build
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @override
   Widget build(BuildContext context) {
     final isMe = widget.message.isMe;
-    final hasReactions = widget.message.reactions != null && widget.message.reactions!.isNotEmpty;
+    final hasReactions = widget.message.hasReactions;
 
-    return Row(
-      mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-      children: [
-        GestureDetector(
-          onTapDown: (_) {
-            setState(() => isPressed = true);
-            HapticFeedback.lightImpact(); 
-          },
-          onTapUp: (_) => setState(() => isPressed = false),
-          onTapCancel: () => setState(() => isPressed = false),
-          onLongPress: () {
-            HapticFeedback.mediumImpact(); 
-            _showActionMenu(context);
-          },
-          child: AnimatedScale(
-            scale: isPressed ? 0.97 : 1,
-            duration: const Duration(milliseconds: 90),
-            child: Stack(
-              clipBehavior: Clip.none, // للسماح للـ Pill بالظهور الخارجي المتداخل
-              children: [
-                _bubble(context, isMe, hasReactions),
-                
-                // ✅ وضع لوحة التفاعلات بشكل عائم في المكان المناسب حسب مرسل الرسالة
-                if (hasReactions)
-                  Positioned(
-                    bottom: -8,
-                    right: isMe ? 12 : null,
-                    left: isMe ? null : 12,
-                    child: _buildReactionsPill(),
-                  ),
-              ],
-            ),
+    return Align(
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: GestureDetector(
+        onTapDown: (_) {
+          setState(() => _isPressed = true);
+          HapticFeedback.lightImpact();
+        },
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        onLongPress: () {
+          HapticFeedback.mediumImpact();
+          _showActionMenu(context); // âœ… Ø¨Ù†Ù…Ø±Ø± Ø§Ù„Ù€ context Ù‡Ù†Ø§ Ù‚Ø¨Ù„ Ù…Ø§ Ù†Ø¯Ø®Ù„ ÙÙŠ dialogs
+        },
+        child: AnimatedScale(
+          scale: _isPressed ? 0.97 : 1.0,
+          duration: const Duration(milliseconds: 90),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              _Bubble(
+                message: widget.message,
+                isHighlighted: widget.isHighlighted,
+                hasReactions: hasReactions,
+                onTapReply: widget.onTapReply,
+                isPlaying: _isPlaying,
+                waveController: _waveController,
+                onTogglePlay: _togglePlay,
+              ),
+              if (hasReactions)
+                Positioned(
+                  bottom: -10, // âœ… FIX: ÙƒØ§Ù† hasReactions ? -10 : 0 ÙˆØ¯Ù‡ redundant Ù„Ø£Ù† Ø§Ù„Ù€ if ÙÙˆÙ‚ ÙƒØ§ÙÙŠ
+                  right: isMe ? 12 : null,
+                  left: isMe ? null : 12,
+                  child: _buildReactionsPill(),
+                ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 
-  Widget _bubble(BuildContext context, bool isMe, bool hasReactions) {
-    final message = widget.message;
+  // â”€â”€ Full emoji list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  static const _allEmojis = [
+    'ðŸ˜€','ðŸ˜','ðŸ˜‚','ðŸ¤£','ðŸ˜ƒ','ðŸ˜„','ðŸ˜…','ðŸ˜†',
+    'ðŸ˜‰','ðŸ˜Š','ðŸ˜‹','ðŸ˜Ž','ðŸ˜','ðŸ¥°','ðŸ˜˜','ðŸ˜—',
+    'ðŸ¤©','ðŸ¥³','ðŸ˜','ðŸ˜’','ðŸ˜ž','ðŸ˜”','ðŸ˜Ÿ','ðŸ˜•',
+    'ðŸ™','ðŸ˜£','ðŸ˜–','ðŸ˜«','ðŸ˜©','ðŸ¥º','ðŸ˜¢','ðŸ˜­',
+    'ðŸ˜¤','ðŸ˜ ','ðŸ˜¡','ðŸ¤¬','ðŸ¤¯','ðŸ˜³','ðŸ¥µ','ðŸ¥¶',
+    'ðŸ˜±','ðŸ˜¨','ðŸ˜°','ðŸ˜¥','ðŸ˜“','ðŸ¤—','ðŸ¤”','ðŸ¤­',
+    'ðŸ¤«','ðŸ¤¥','ðŸ˜¶','ðŸ˜','ðŸ˜‘','ðŸ˜¬','ðŸ™„','ðŸ˜¯',
+    'ðŸ‘','ðŸ‘Ž','â¤ï¸','ðŸ”¥','ðŸ’¯','ðŸŽ‰','âœ¨','ðŸ™',
+    'ðŸ‘','ðŸ’ª','ðŸ‘€','ðŸ¤','ðŸ«¶','ðŸ’€','ðŸ¤¡','ðŸ‘»',
+  ];
+}
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Bubble Widget â€” extracted for clarity
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _Bubble extends StatelessWidget {
+  final Message message;
+  final bool isHighlighted;
+  final bool hasReactions;
+  final Function(String)? onTapReply;
+  final bool isPlaying;
+  final AnimationController waveController;
+  final VoidCallback onTogglePlay;
+
+  const _Bubble({
+    required this.message,
+    required this.isHighlighted,
+    required this.hasReactions,
+    required this.onTapReply,
+    required this.isPlaying,
+    required this.waveController,
+    required this.onTogglePlay,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isMe = message.isMe;
     final time = _formatTime(message.time);
 
     final radius = BorderRadius.only(
@@ -456,8 +472,10 @@ class _ChatBubbleState extends State<ChatBubble>
       constraints: BoxConstraints(
         maxWidth: MediaQuery.of(context).size.width * 0.72,
       ),
-      // 💡 قمنا بذكاء بزيادة الـ bottom margin لو فيه ريأكشن عشان الرسالة اللي بعدها متبقاش لازقة فيها
-      margin: EdgeInsets.only(top: 1.5, bottom: hasReactions ? 12 : 1.5),
+      margin: EdgeInsets.only(
+        top: 1.5,
+        bottom: hasReactions ? 16 : 1.5,
+      ),
       decoration: BoxDecoration(
         borderRadius: radius,
         boxShadow: [
@@ -470,30 +488,48 @@ class _ChatBubbleState extends State<ChatBubble>
       ),
       child: ClipRRect(
         borderRadius: radius,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: radius,
-            color: isMe ? const Color(0xFF4186F6) : const Color(0xFF2B2C31),
-          ),
+        child: ColoredBox(
+          color: isMe ? const Color(0xFF4186F6) : const Color(0xFF2B2C31),
           child: Stack(
             children: [
-              if (widget.isHighlighted)
+              // Highlight overlay
+              if (isHighlighted)
                 Positioned.fill(
-                  child: Container(color: Colors.white.withOpacity(0.04)),
+                  child: ColoredBox(
+                    color: Colors.white.withOpacity(0.07),
+                  ),
                 ),
+
+              // Content
               Padding(
                 padding: message.type == MessageType.image
                     ? EdgeInsets.zero
                     : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 child: message.type == MessageType.image
-                    ? _imageWithTime(time, radius)
+                    ? _ImageContent(message: message, time: time, radius: radius)
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          if (message.replyTo != null) _replyPreview(),
-                          if (message.type == MessageType.voice) _voice() else _text(),
+                          if (message.replyTo != null)
+                            _ReplyPreview(
+                              reply: message.replyTo!,
+                              isMe: isMe,
+                              onTap: () {
+                                final id = message.replyToId;
+                                if (id != null) onTapReply?.call(id);
+                              },
+                            ),
+                          if (message.type == MessageType.voice)
+                            _VoiceContent(
+                              message: message,
+                              isPlaying: isPlaying,
+                              waveController: waveController,
+                              onTogglePlay: onTogglePlay,
+                            )
+                          else
+                            _TextContent(message: message),
                           const SizedBox(height: 4),
-                          _timeRow(time, isMe),
+                          _TimeRow(time: time, isMe: isMe, status: message.status),
                         ],
                       ),
               ),
@@ -504,87 +540,28 @@ class _ChatBubbleState extends State<ChatBubble>
     );
   }
 
-  String _formatTime(DateTime time) {
-    final h = time.hour.toString().padLeft(2, '0');
-    final m = time.minute.toString().padLeft(2, '0');
-    return "$h:$m";
+  String _formatTime(DateTime t) {
+    final h = t.hour.toString().padLeft(2, '0');
+    final m = t.minute.toString().padLeft(2, '0');
+    return '$h:$m';
   }
+}
 
-  Widget _replyPreview() {
-    final reply = widget.message.replyTo!;
-    final isMe = reply.isMe;
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Sub-widgets
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-    String previewText;
-    if (reply.type == MessageType.image) {
-      previewText = "📷 Photo";
-    } else if (reply.type == MessageType.voice) {
-      previewText = "🎤 Voice message";
-    } else {
-      previewText = reply.text;
-    }
+class _TextContent extends StatelessWidget {
+  final Message message;
+  const _TextContent({required this.message});
 
-    return GestureDetector(
-      onTap: () {
-        final replyId = widget.message.replyToId;
-        if (replyId != null) widget.onTapReply?.call(replyId);
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                width: 3,
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  color: isMe ? const Color(0xFF0A84FF) : Colors.grey.shade600,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (reply.senderName != null)
-                      Text(
-                        reply.senderName!,
-                        style: TextStyle(
-                          color: isMe ? const Color(0xFF5AC8FA) : Colors.white70,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    Text(
-                      previewText,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white60,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _text() {
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Text(
-          widget.message.text,
+          message.text,
           style: const TextStyle(
             color: Colors.white,
             fontSize: 15.5,
@@ -592,46 +569,67 @@ class _ChatBubbleState extends State<ChatBubble>
             fontWeight: FontWeight.w400,
           ),
         ),
-        if (widget.message.isEdited == true)
+        if (message.isEdited)
           const Text(
-            "تم التعديل",
-            style: TextStyle(
-              color: Colors.white38,
-              fontSize: 10,
-            ),
+            'ØªÙ… Ø§Ù„ØªØ¹Ø¯ÙŠÙ„',
+            style: TextStyle(color: Colors.white38, fontSize: 10),
           ),
       ],
     );
   }
+}
 
-  Widget _imageWithTime(String time, BorderRadius radius) {
+class _ImageContent extends StatelessWidget {
+  final Message message;
+  final String time;
+  final BorderRadius radius;
+
+  const _ImageContent({
+    required this.message,
+    required this.time,
+    required this.radius,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Stack(
       children: [
-        Image.network(
-          widget.message.imageUrl!,
-          height: 160,
-          width: 240,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => Container(
-            height: 160,
+        ClipRRect(
+          borderRadius: radius,
+          child: Image.network(
+            message.imageUrl!,
+            height: 180,
             width: 240,
-            color: Colors.white10,
-            child: const Icon(Icons.broken_image_outlined, color: Colors.white38, size: 40),
-          ),
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return Container(
-              height: 160,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              height: 180,
               width: 240,
               color: Colors.white10,
-              child: const Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white38,
-                ),
+              child: const Icon(
+                Icons.broken_image_outlined,
+                color: Colors.white38,
+                size: 40,
               ),
-            );
-          },
+            ),
+            loadingBuilder: (_, child, progress) {
+              if (progress == null) return child;
+              return Container(
+                height: 180,
+                width: 240,
+                color: Colors.white10,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    value: progress.expectedTotalBytes != null
+                        ? progress.cumulativeBytesLoaded /
+                            progress.expectedTotalBytes!
+                        : null,
+                    color: Colors.white38,
+                  ),
+                ),
+              );
+            },
+          ),
         ),
         Positioned(
           bottom: 8,
@@ -651,17 +649,40 @@ class _ChatBubbleState extends State<ChatBubble>
       ],
     );
   }
+}
 
-  Widget _voice() {
-    final duration = widget.message.voiceDuration != null
-        ? _formatDuration(widget.message.voiceDuration!)
-        : "—:——";
+class _VoiceContent extends StatelessWidget {
+  final Message message;
+  final bool isPlaying;
+  final AnimationController waveController;
+  final VoidCallback onTogglePlay;
+
+  const _VoiceContent({
+    required this.message,
+    required this.isPlaying,
+    required this.waveController,
+    required this.onTogglePlay,
+  });
+
+  static const _staticHeights = [6.0, 12, 18, 8, 22, 14, 20, 6, 16, 24, 10, 20, 8, 18];
+
+  String _formatDuration(int s) {
+    final m = (s ~/ 60).toString();
+    final sec = (s % 60).toString().padLeft(2, '0');
+    return '$m:$sec';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = message.voiceDuration != null
+        ? _formatDuration(message.voiceDuration!)
+        : 'â€”:â€”â€”';
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         GestureDetector(
-          onTap: _togglePlay,
+          onTap: onTogglePlay,
           child: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -669,7 +690,7 @@ class _ChatBubbleState extends State<ChatBubble>
               color: Colors.white.withOpacity(0.06),
             ),
             child: Icon(
-              isPlaying ? Icons.pause : Icons.play_arrow,
+              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
               color: Colors.white,
               size: 18,
             ),
@@ -680,19 +701,21 @@ class _ChatBubbleState extends State<ChatBubble>
           height: 28,
           width: 90,
           child: AnimatedBuilder(
-            animation: _waveController,
+            animation: waveController,
             builder: (_, __) {
               return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: List.generate(14, (i) {
-                  final phase = (_waveController.value + i * 0.07) % 1.0;
-                  final h = isPlaying ? 4 + (phase < 0.5 ? phase : 1 - phase) * 18 : _staticHeight(i);
+                  final phase = (waveController.value + i * 0.07) % 1.0;
+                  final h = isPlaying
+                      ? 4 + (phase < 0.5 ? phase : 1 - phase) * 18
+                      : _staticHeights[i % _staticHeights.length];
                   final t = i / 13;
                   final color = Color.lerp(
                     const Color(0xFF0A84FF),
                     const Color(0xFF5AC8FA),
                     t,
-                  )!
-                      .withOpacity(isPlaying ? 1.0 : 0.5);
+                  )!.withOpacity(isPlaying ? 1.0 : 0.5);
 
                   return Container(
                     margin: const EdgeInsets.symmetric(horizontal: 1),
@@ -716,19 +739,105 @@ class _ChatBubbleState extends State<ChatBubble>
       ],
     );
   }
+}
 
-  String _formatDuration(int seconds) {
-    final m = (seconds ~/ 60).toString().padLeft(1, '0');
-    final s = (seconds % 60).toString().padLeft(2, '0');
-    return "$m:$s";
+class _ReplyPreview extends StatelessWidget {
+  final Message reply;
+  final bool isMe;
+  final VoidCallback onTap;
+
+  const _ReplyPreview({
+    required this.reply,
+    required this.isMe,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final String previewText;
+    switch (reply.type) {
+      case MessageType.image:
+        previewText = 'ðŸ“· Photo';
+        break;
+      case MessageType.voice:
+        previewText = 'ðŸŽ¤ Voice message';
+        break;
+      case MessageType.text:
+        previewText = reply.text;
+        break;
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 3,
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: isMe
+                      ? const Color(0xFF0A84FF)
+                      : Colors.grey.shade600,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (reply.senderName != null)
+                      Text(
+                        reply.senderName!,
+                        style: TextStyle(
+                          color: isMe
+                              ? const Color(0xFF5AC8FA)
+                              : Colors.white70,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    Text(
+                      previewText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
+}
 
-  double _staticHeight(int i) {
-    final h = [6, 12, 18, 8, 22, 14, 20, 6, 16, 24, 10, 20, 8, 18];
-    return h[i % h.length].toDouble();
-  }
+class _TimeRow extends StatelessWidget {
+  final String time;
+  final bool isMe;
+  final MessageStatus status;
 
-  Widget _timeRow(String time, bool isMe) {
+  const _TimeRow({
+    required this.time,
+    required this.isMe,
+    required this.status,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -741,31 +850,112 @@ class _ChatBubbleState extends State<ChatBubble>
         ),
         if (isMe) ...[
           const SizedBox(width: 4),
-          _statusIcon(),
+          _StatusIcon(status: status),
         ],
       ],
     );
   }
+}
 
-  Widget _statusIcon() {
-    IconData icon;
-    Color color;
+class _StatusIcon extends StatelessWidget {
+  final MessageStatus status;
+  const _StatusIcon({required this.status});
 
-    switch (widget.message.status) {
+  @override
+  Widget build(BuildContext context) {
+    final IconData icon;
+    final Color color;
+
+    switch (status) {
       case MessageStatus.sent:
-        icon = Icons.check;
+        icon = Icons.check_rounded;
         color = Colors.white24;
         break;
       case MessageStatus.delivered:
-        icon = Icons.done_all;
-        color = Colors.white24;
+        icon = Icons.done_all_rounded;
+        color = Colors.white38;
         break;
       case MessageStatus.seen:
-        icon = Icons.done_all;
+        icon = Icons.done_all_rounded;
         color = const Color(0xFF0A84FF);
         break;
     }
 
     return Icon(icon, size: 13, color: color);
+  }
+}
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Glass Card Widget
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _GlassCard extends StatelessWidget {
+  final Widget child;
+  final double? width;
+  final EdgeInsetsGeometry? padding;
+
+  const _GlassCard({required this.child, this.width, this.padding});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          width: width,
+          padding: padding,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0F0F0).withOpacity(0.22),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withOpacity(0.22)),
+          ),
+          child: Material(color: Colors.transparent, child: child),
+        ),
+      ),
+    );
+  }
+}
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Menu Item
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _MenuItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color color;
+
+  const _MenuItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color = Colors.white,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 14),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 14.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
