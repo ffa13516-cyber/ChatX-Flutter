@@ -14,12 +14,11 @@ class Message {
   final String? replyToId;
   final String? senderName;
   final String? senderId;
-
-  // ✅ FIX #9: مدة رسالة الصوت بالثواني
   final int? voiceDuration;
-
-  // ✅ FIX: علامة إن الرسالة اتعدلت
   final bool isEdited;
+
+  // âœ… reactions: Map<uid, emoji> â€” ÙƒÙ„ ÙŠÙˆØ²Ø± Ù„Ù‡ reaction ÙˆØ§Ø­Ø¯Ø© Ø¨Ø³
+  final Map<String, String>? reactions;
 
   Message({
     this.id,
@@ -35,9 +34,8 @@ class Message {
     this.senderId,
     this.voiceDuration,
     this.isEdited = false,
+    this.reactions,
   })  : type = type ?? MessageType.text,
-        // ✅ FIX #8: لو مفيش time بنستخدم DateTime.now() كـ fallback بس
-        // الـ server timestamp هو المصدر الحقيقي عند القراءة من Firebase
         time = time ?? DateTime.now();
 
   Map<String, dynamic> toMap() {
@@ -47,7 +45,6 @@ class Message {
       'senderName': senderName,
       'type': type.name,
       'imageUrl': imageUrl,
-      // ✅ FIX #8: الـ time بيتبعت كـ milliseconds لكن Firebase بيـ override بـ ServerValue.timestamp
       'time': time.millisecondsSinceEpoch,
       'status': status.name,
       'replyToId': replyToId,
@@ -61,21 +58,33 @@ class Message {
             },
       if (voiceDuration != null) 'voiceDuration': voiceDuration,
       'isEdited': isEdited,
+      // âœ… reactions: Ø¨Ù†Ø­Ø·Ù‡Ø§ Ù„Ùˆ Ù…ÙˆØ¬ÙˆØ¯Ø© Ø¨Ø³
+      if (reactions != null && reactions!.isNotEmpty) 'reactions': reactions,
     };
   }
 
   factory Message.fromMap(Map map, String myUid, {String? id}) {
-    // ✅ FIX #8: بنقرا الـ timestamp من Firebase كـ int أو String
-    // لأن ServerValue.timestamp ممكن يرجع int أو Map
     DateTime parsedTime;
     final rawTime = map['time'];
     if (rawTime is int) {
       parsedTime = DateTime.fromMillisecondsSinceEpoch(rawTime);
     } else if (rawTime is Map) {
-      // ServerValue.timestamp رجع Map<'.sv', 'timestamp'> — fallback
       parsedTime = DateTime.now();
     } else {
       parsedTime = DateTime.now();
+    }
+
+    // âœ… Ù‚Ø±Ø§Ø¡Ø© Ø§Ù„Ù€ reactions Ù…Ù† Firebase Ø¨Ø£Ù…Ø§Ù†
+    Map<String, String>? parsedReactions;
+    final rawReactions = map['reactions'];
+    if (rawReactions is Map) {
+      try {
+        parsedReactions = Map<String, String>.from(
+          rawReactions.map((k, v) => MapEntry(k.toString(), v.toString())),
+        );
+      } catch (_) {
+        parsedReactions = null;
+      }
     }
 
     return Message(
@@ -109,6 +118,7 @@ class Message {
             ),
       voiceDuration: map['voiceDuration'] as int?,
       isEdited: map['isEdited'] == true,
+      reactions: parsedReactions,
     );
   }
 }
