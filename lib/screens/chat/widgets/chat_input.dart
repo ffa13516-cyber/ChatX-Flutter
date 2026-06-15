@@ -1,13 +1,28 @@
 // ============================================================
-// chat_input.dart â€” ChatX Message Input Bar
-// âœ… Ø²Ø± Ø§Ù„Ø¥ÙŠÙ…ÙˆØ¬ÙŠ Ø´ØºØ§Ù„ | âœ… reply preview ØµØ­ Ù„ÙƒÙ„ Ø£Ù†ÙˆØ§Ø¹ Ø§Ù„Ø±Ø³Ø§Ø¦Ù„
-// âœ… dispose Ø¢Ù…Ù† | âœ… keyboard dismiss Ø¹Ù†Ø¯ Ø§Ù„Ø¥Ø±Ø³Ø§Ù„
-// âœ… max characters hint | âœ… send on keyboard action
+// chat_input.dart — ChatX Premium Message Input Bar
+// ✅ حل مشكلة الترميز العربي | ✅ تصميم بريميوم مدمج
+// ✅ حركات انتقال سلسة (Fluid Animations) | ✅ فصل المكونات (Sub-widgets)
 // ============================================================
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
+// افترضنا وجود هذا الموديل في مشروعك
 import 'package:chatx/screens/chat/models/message_model.dart';
+
+// --- Constants & Styles ---
+// الألوان والمقاسات مجمعة هنا لتسهيل التعديل المستقبلي
+class _Style {
+  static const Color accentColor = Color(0xFF00FBFF); // لون التركيز للسيان
+  static const Color textColor = Colors.white;
+  static const Color hintTextColor = Colors.white38;
+  static const Color backgroundColor = Colors.black; // خلفية البار
+  static const Color iconColor = Colors.white54;
+  
+  static const double borderRadius = 28.0; // حواف دائرية كاملة
+  static const double compactVerticalPadding = 6.0; // padding قليل لتصغير الحجم
+  static const double iconSize = 22.0;
+  static const double inputFontSize = 14.0;
+}
 
 class ChatInput extends StatefulWidget {
   final Function(String text, String? replyId) onSend;
@@ -31,10 +46,10 @@ class _ChatInputState extends State<ChatInput>
   final FocusNode _focusNode = FocusNode();
 
   late final AnimationController _animController;
-  late final Animation<double> _sendScale;
+  late final Animation<double> _sendAnimation; // حركة مركبة Fade + Scale
 
   bool _hasText = false;
-  bool _showEmoji = false; // âœ… State Ù„Ù„Ù€ emoji toggle
+  bool _showEmoji = false;
 
   @override
   void initState() {
@@ -42,11 +57,13 @@ class _ChatInputState extends State<ChatInput>
 
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 180),
+      duration: const Duration(milliseconds: 220),
     );
 
-    _sendScale = Tween<double>(begin: 0.75, end: 1.0).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOutBack),
+    // حركه دخول سلسة ومركبة لزر الإرسال
+    _sendAnimation = CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOutBack,
     );
 
     _controller.addListener(_onTextChanged);
@@ -54,9 +71,15 @@ class _ChatInputState extends State<ChatInput>
 
   void _onTextChanged() {
     final hasText = _controller.text.trim().isNotEmpty;
-    if (hasText == _hasText) return; // Ù…Ù†Ø¹ rebuild ØºÙŠØ± Ø¶Ø±ÙˆØ±ÙŠ
+    if (hasText == _hasText) return; // تحسين الأداء: منع rebuild غير ضروري
+    
     setState(() => _hasText = hasText);
-    hasText ? _animController.forward() : _animController.reverse();
+    
+    if (hasText) {
+      _animController.forward();
+    } else {
+      _animController.reverse();
+    }
   }
 
   @override
@@ -74,114 +97,77 @@ class _ChatInputState extends State<ChatInput>
     widget.onSend(text, widget.replyMessage?.id);
     _controller.clear();
     widget.onCancelReply?.call();
-    // Ø£Ø¨Ù‚ Ø§Ù„Ù€ focus Ø¨Ø¹Ø¯ Ø§Ù„Ø¥Ø±Ø³Ø§Ù„ Ø¹Ø´Ø§Ù† Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ÙŠÙƒÙ…Ù„
-    _focusNode.requestFocus();
+    _focusNode.requestFocus(); // إبقاء الفوكس للمستخدم ليكمل كتابة
   }
 
-  // âœ… FIX: Ø²Ø± Ø§Ù„Ø¥ÙŠÙ…ÙˆØ¬ÙŠ Ø¨ÙŠØ¹Ù…Ù„ toggle Ù„Ù„Ù€ keyboard ÙˆØ§Ù„Ù€ emoji panel
   void _toggleEmoji() {
     setState(() => _showEmoji = !_showEmoji);
     if (_showEmoji) {
-      _focusNode.unfocus(); // Ø£ØºÙ„Ù‚ Ø§Ù„ÙƒÙŠØ¨ÙˆØ±Ø¯
+      _focusNode.unfocus(); // إغلاق الكيبورد عند فتح الإيموجي
     } else {
-      _focusNode.requestFocus(); // Ø§ÙØªØ­ Ø§Ù„ÙƒÙŠØ¨ÙˆØ±Ø¯
+      _focusNode.requestFocus(); // فتح الكيبورد عند إغلاق الإيموجي
     }
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // Build
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Build ---
 
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // â”€â”€ Reply Preview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // --- 1. معاينة الرد (Reply Preview) ---
         if (widget.replyMessage != null)
-          _ReplyPreview(
+          _ReplyPreviewWidget(
             message: widget.replyMessage!,
             onCancel: widget.onCancelReply,
           ),
 
-        // â”€â”€ Input Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // --- 2. بار الإدخال المدمج (Premium Input Bar) ---
         Padding(
-          padding: const EdgeInsets.fromLTRB(14, 6, 14, 20),
+          padding: const EdgeInsets.fromLTRB(10, 4, 10, 16), // هوامش خارجية متناسقة
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(32),
+            borderRadius: BorderRadius.circular(_Style.borderRadius),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                // تصغير الـ vertical padding لتقليل الحجم
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: _Style.compactVerticalPadding),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(32),
+                  borderRadius: BorderRadius.circular(_Style.borderRadius),
                   gradient: LinearGradient(
                     colors: [
-                      Colors.white.withOpacity(0.10),
-                      Colors.white.withOpacity(0.03),
+                      Colors.white.withOpacity(0.08),
+                      Colors.white.withOpacity(0.02),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  border: Border.all(color: Colors.white.withOpacity(0.15)),
+                  border: Border.all(color: Colors.white.withOpacity(0.06)),
                 ),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.end, // محاذاة العناصر من الأسفل
                   children: [
-                    _AttachButton(),
-                    const SizedBox(width: 10),
+                    // --- زر الإرفاق الصغير "New" ---
+                    const _AttachButtonWidget(),
+                    const SizedBox(width: 8),
 
-                    // â”€â”€ TextField â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                    // --- حقل النص الأساسي ---
                     Expanded(
-                      child: TextField(
+                      child: _TextFieldWidget(
                         controller: _controller,
                         focusNode: _focusNode,
-                        maxLines: 5,
-                        minLines: 1,
-                        style: const TextStyle(color: Colors.white, fontSize: 15),
-                        cursorColor: const Color(0xFF00FBFF),
-                        textInputAction: TextInputAction.newline,
-                        keyboardType: TextInputType.multiline,
-                        onTap: () {
-                          // Ù„Ùˆ Ø§Ù„Ø¥ÙŠÙ…ÙˆØ¬ÙŠ Ù…ÙØªÙˆØ­ ÙˆØ¶ØºØ· Ø¹Ù„Ù‰ Ø§Ù„Ù€ text field â†’ Ø£ØºÙ„Ù‚Ù‡
-                          if (_showEmoji) setState(() => _showEmoji = false);
-                        },
-                        decoration: const InputDecoration(
-                          hintText: 'Ø§ÙƒØªØ¨ Ø±Ø³Ø§Ù„Ø©...',
-                          hintStyle: TextStyle(color: Colors.white38, fontSize: 14),
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(vertical: 10),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(width: 6),
-
-                    // â”€â”€ Emoji Button â”€â”€ âœ… FIXED: Ø´ØºØ§Ù„ Ø¯Ù„ÙˆÙ‚ØªÙŠ
-                    GestureDetector(
-                      onTap: _toggleEmoji,
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Icon(
-                          _showEmoji
-                              ? Icons.keyboard_rounded
-                              : Icons.emoji_emotions_outlined,
-                          key: ValueKey(_showEmoji),
-                          color: _showEmoji
-                              ? const Color(0xFF00E6FF)
-                              : Colors.white54,
-                          size: 22,
-                        ),
+                        onEmojiToggle: _toggleEmoji,
+                        showEmoji: _showEmoji,
                       ),
                     ),
 
                     const SizedBox(width: 8),
 
-                    // â”€â”€ Send / Mic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                    _SendOrMicButton(
+                    // --- زر الإرسال / الميكروفون المدمج ---
+                    _SendOrMicButtonWidget(
                       hasText: _hasText,
-                      scaleAnimation: _sendScale,
+                      animation: _sendAnimation,
                       onSend: _send,
                     ),
                   ],
@@ -191,9 +177,9 @@ class _ChatInputState extends State<ChatInput>
           ),
         ),
 
-        // â”€â”€ Emoji Panel (placeholder Ø¬Ø§Ù‡Ø² Ù„Ù„Ù€ emoji_picker_flutter) â”€â”€
+        // --- 3. لوحة الإيموجي (Emoji Panel) ---
         if (_showEmoji)
-          _EmojiPanel(
+          _EmojiPanelWidget(
             onEmojiSelected: (emoji) {
               final sel = _controller.selection;
               final text = _controller.text;
@@ -213,91 +199,190 @@ class _ChatInputState extends State<ChatInput>
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Reply Preview â€” âœ… ÙŠØ¹Ø±Ø¶ ØµØ­ Ù„ÙƒÙ„ Ø£Ù†ÙˆØ§Ø¹ Ø§Ù„Ø±Ø³Ø§Ø¦Ù„
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ============================================================
+// Sub-widgets: فصل المكونات لتنظيم الكود
+// ============================================================
 
-class _ReplyPreview extends StatelessWidget {
-  final Message message;
-  final VoidCallback? onCancel;
+// --- حقل إدخال النص (TextField) ---
+class _TextFieldWidget extends StatelessWidget {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final VoidCallback onEmojiToggle;
+  final bool showEmoji;
 
-  const _ReplyPreview({required this.message, this.onCancel});
+  const _TextFieldWidget({
+    required this.controller,
+    required this.focusNode,
+    required this.onEmojiToggle,
+    required this.showEmoji,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // âœ… FIX: Ù†Øµ Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© ÙŠØªØºÙŠØ± Ø­Ø³Ø¨ Ù†ÙˆØ¹ Ø§Ù„Ø±Ø³Ø§Ù„Ø©
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(_Style.borderRadius),
+        border: Border.all(color: Colors.white.withOpacity(0.02)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: controller,
+              focusNode: focusNode,
+              maxLines: 4, // الحد الأقصى للسطور لمنع تضخم البار
+              minLines: 1,
+              style: const TextStyle(color: _Style.textColor, fontSize: _Style.inputFontSize),
+              cursorColor: _Style.accentColor,
+              keyboardType: TextInputType.multiline,
+              textInputAction: TextInputAction.newline,
+              decoration: const InputDecoration(
+                // حل مشكلة النص العربي هنا
+                hintText: 'اكتب رسالتك...',
+                hintStyle: TextStyle(color: _Style.hintTextColor, fontSize: 13),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+              ),
+            ),
+          ),
+          
+          // زر الإيموجي المدمج داخل الحقل
+          GestureDetector(
+            onTap: onEmojiToggle,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: Icon(
+                showEmoji ? Icons.keyboard_rounded : Icons.emoji_emotions_outlined,
+                key: ValueKey(showEmoji),
+                color: showEmoji ? _Style.accentColor : _Style.iconColor,
+                size: 20, // أصغر قليلاً لمظهر أكثر بريميوم
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+        ],
+      ),
+    );
+  }
+}
+
+// --- زر الإرسال / الميكروفون المدمج الذكي ---
+class _SendOrMicButtonWidget extends StatelessWidget {
+  final bool hasText;
+  final Animation<double> animation;
+  final VoidCallback onSend;
+
+  const _SendOrMicButtonWidget({
+    required this.hasText,
+    required this.animation,
+    required this.onSend,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // حركة مركبة Fade + Scale لزر الإرسال
+    final CurvedAnimation fluidAnimation = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutBack,
+    );
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      transitionBuilder: (child, anim) => FadeTransition(
+        opacity: anim,
+        child: ScaleTransition(scale: anim, child: child),
+      ),
+      child: hasText
+          ? GestureDetector(
+              key: const ValueKey('send_active'),
+              onTap: onSend,
+              child: ScaleTransition(
+                scale: fluidAnimation,
+                child: Container(
+                  padding: const EdgeInsets.all(9), // حجم مثالي للزر
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _Style.accentColor,
+                  ),
+                  child: const Icon(Icons.send_rounded, color: Colors.black, size: 16),
+                ),
+              ),
+            )
+          : const Padding(
+              key: ValueKey('mic_inactive'),
+              padding: EdgeInsets.only(bottom: 5), // محاذاة للأسفل
+              child: Icon(
+                Icons.mic_none_rounded,
+                color: _Style.iconColor,
+                size: _Style.iconSize,
+              ),
+            ),
+    );
+  }
+}
+
+// --- شريط معاينة الرد (Reply Preview) ---
+class _ReplyPreviewWidget extends StatelessWidget {
+  final Message message;
+  final VoidCallback? onCancel;
+
+  const _ReplyPreviewWidget({required this.message, this.onCancel});
+
+  @override
+  Widget build(BuildContext context) {
     final String previewText;
     switch (message.type) {
-      case MessageType.image:
-        previewText = 'ðŸ“· ØµÙˆØ±Ø©';
-        break;
-      case MessageType.voice:
-        previewText = 'ðŸŽ¤ Ø±Ø³Ø§Ù„Ø© ØµÙˆØªÙŠØ©';
-        break;
-      case MessageType.text:
-        previewText = message.text;
-        break;
+      case MessageType.image: previewText = '📷 صورة'; break;
+      case MessageType.voice: previewText = '🎤 رسالة صوتية'; break;
+      case MessageType.text: previewText = message.text; break;
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
+      padding: const EdgeInsets.fromLTRB(10, 0, 10, 3), // هوامش متناسقة
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              color: Colors.white.withOpacity(0.05),
-              border: Border.all(color: Colors.white.withOpacity(0.08)),
+              color: Colors.white.withOpacity(0.04),
+              border: Border.all(color: Colors.white.withOpacity(0.06)),
             ),
             child: Row(
               children: [
+                // مؤشر ملون جانبي
                 Container(
-                  width: 3,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF00E6FF),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+                  width: 3, height: 32,
+                  decoration: BoxDecoration(color: _Style.accentColor, borderRadius: BorderRadius.circular(2)),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        message.senderName ?? 'Ù…Ø¬Ù‡ÙˆÙ„',
-                        style: const TextStyle(
-                          color: Color(0xFF00E6FF),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        message.senderName ?? 'مجهول',
+                        style: const TextStyle(color: _Style.accentColor, fontSize: 11, fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 1),
                       Text(
-                        previewText,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white60,
-                          fontSize: 13,
-                        ),
+                        previewText, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white60, fontSize: 12),
                       ),
                     ],
                   ),
                 ),
-                // âœ… Ù…Ø³Ø§Ø­Ø© Ø¶ØºØ· ÙƒØ¨ÙŠØ±Ø© Ù„Ù„Ù€ close button
+                // زر الإغلاق بحجم مناسب
                 GestureDetector(
                   onTap: onCancel,
                   child: Container(
-                    padding: const EdgeInsets.all(6),
-                    child: const Icon(
-                      Icons.close_rounded,
-                      color: Colors.white54,
-                      size: 18,
-                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: const Icon(Icons.close_rounded, color: Colors.white54, size: 16),
                   ),
                 ),
               ],
@@ -309,97 +394,42 @@ class _ReplyPreview extends StatelessWidget {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Send / Mic Button
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- زر الإرفاق الصغير "New" كما في لقطة الشاشة ---
+class _AttachButtonWidget extends StatelessWidget {
+  const _AttachButtonWidget();
 
-class _SendOrMicButton extends StatelessWidget {
-  final bool hasText;
-  final Animation<double> scaleAnimation;
-  final VoidCallback onSend;
-
-  const _SendOrMicButton({
-    required this.hasText,
-    required this.scaleAnimation,
-    required this.onSend,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 180),
-      transitionBuilder: (child, anim) =>
-          ScaleTransition(scale: anim, child: child),
-      child: hasText
-          ? GestureDetector(
-              key: const ValueKey('send'),
-              onTap: onSend,
-              child: ScaleTransition(
-                scale: scaleAnimation,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(0xFF00E6FF),
-                  ),
-                  child: const Icon(Icons.send_rounded, color: Colors.black, size: 18),
-                ),
-              ),
-            )
-          : const Icon(
-              Icons.mic_none_rounded,
-              color: Colors.white54,
-              size: 24,
-              key: ValueKey('mic'),
-            ),
-    );
-  }
-}
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Attach Button
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-class _AttachButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      margin: const EdgeInsets.only(bottom: 2), // محاذاة مع باقي العناصر
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        color: Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.03)),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.add_rounded, color: Colors.white60, size: 16),
-          SizedBox(width: 4),
-          Text(
-            'New',
-            style: TextStyle(color: Colors.white60, fontSize: 12),
-          ),
+          Icon(Icons.add_rounded, color: Colors.white60, size: 14),
+          SizedBox(width: 2),
+          Text('New', style: TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.w500)),
         ],
       ),
     );
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Emoji Panel â€” Ø¬Ø§Ù‡Ø² Ù„Ù€ emoji_picker_flutter
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-class _EmojiPanel extends StatelessWidget {
+// --- لوحة الإيموجي (Placeholder) ---
+class _EmojiPanelWidget extends StatelessWidget {
   final Function(String emoji) onEmojiSelected;
 
-  const _EmojiPanel({required this.onEmojiSelected});
+  const _EmojiPanelWidget({required this.onEmojiSelected});
 
-  // Ø¥ÙŠÙ…ÙˆØ¬ÙŠØ² Ø´Ø§Ø¦Ø¹Ø© Ù…Ø¤Ù‚ØªØ© â€” Ø§Ø³ØªØ¨Ø¯Ù„Ù‡Ù… Ø¨Ù€ EmojiPicker Ù„Ù…Ø§ ØªØ¶ÙŠÙ Ø§Ù„Ø¨Ø§ÙƒØ¯Ø¬
   static const _quickEmojis = [
-    'ðŸ˜€','ðŸ˜‚','ðŸ¥°','ðŸ˜','ðŸ¤©','ðŸ˜Ž','ðŸ¥³','ðŸ˜¢',
-    'ðŸ˜­','ðŸ˜¤','ðŸ¤”','ðŸ˜…','ðŸ‘','ðŸ‘Ž','â¤ï¸','ðŸ”¥',
-    'ðŸŽ‰','âœ¨','ðŸ’¯','ðŸ™','ðŸ‘','ðŸ¤','ðŸ’ª','ðŸ‘€',
-    'ðŸ˜´','ðŸ¤¯','ðŸ¥º','ðŸ˜‡','ðŸ¤—','ðŸ˜','ðŸ˜’','ðŸ™„',
+    '😀','😂','😍','😭','🤩','😎','🥳','😢',
+    '😊','👍','👎','❤️','🔥','🎉','✨','💯',
+    '🤔','😋','🙄','🙏','🤝','💪','👀','🤫',
   ];
 
   @override
@@ -407,49 +437,35 @@ class _EmojiPanel extends StatelessWidget {
     return Container(
       height: 220,
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1B1E),
-        border: Border(
-          top: BorderSide(color: Colors.white.withOpacity(0.06)),
-        ),
+        color: const Color(0xFF101010), // خلفية داكنة جداً
+        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.06))),
       ),
       child: Column(
         children: [
-          // Handle bar
+          // مقبض اللوحة
           Container(
-            margin: const EdgeInsets.only(top: 8, bottom: 10),
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.white24,
-              borderRadius: BorderRadius.circular(10),
-            ),
+            margin: const EdgeInsets.only(top: 6, bottom: 8),
+            width: 32, height: 3,
+            decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(10)),
           ),
           Expanded(
             child: GridView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 8,
-                mainAxisSpacing: 6,
-                crossAxisSpacing: 6,
+                crossAxisCount: 8, mainAxisSpacing: 4, crossAxisSpacing: 4,
               ),
               itemCount: _quickEmojis.length,
               itemBuilder: (_, i) => GestureDetector(
                 onTap: () => onEmojiSelected(_quickEmojis[i]),
-                child: Center(
-                  child: Text(
-                    _quickEmojis[i],
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                ),
+                child: Center(child: Text(_quickEmojis[i], style: const TextStyle(fontSize: 22))),
               ),
             ),
           ),
-          // Hint Ù„Ù…Ø§ ÙŠØ¶ÙŠÙ Ø§Ù„Ø¨Ø§ÙƒØ¯Ø¬
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: 6),
             child: Text(
-              'ðŸ’¡ Ø£Ø¶Ù emoji_picker_flutter Ù„Ù„Ø­ØµÙˆÙ„ Ø¹Ù„Ù‰ Ø§Ù„Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„ÙƒØ§Ù…Ù„Ø©',
-              style: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 10),
+              '💡 أضف emoji_picker_flutter للحصول على القائمة الكاملة',
+              style: TextStyle(color: Colors.white.withOpacity(0.15), fontSize: 9),
             ),
           ),
         ],
