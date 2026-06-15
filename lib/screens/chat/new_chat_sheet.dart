@@ -6,8 +6,9 @@ import 'chat_screen.dart';
 
 class NewChatSheet extends StatefulWidget {
   final String myUid;
+  final String myName; // ✅ أضفنا المتغير هنا عشان نقدر نمرره للـ ChatScreen
 
-  const NewChatSheet({super.key, required this.myUid});
+  const NewChatSheet({super.key, required this.myUid, required this.myName}); // ✅ تحديث الـ Constructor
 
   @override
   State<NewChatSheet> createState() => _NewChatSheetState();
@@ -50,6 +51,7 @@ class _NewChatSheetState extends State<NewChatSheet> {
         builder: (_) => ChatScreen(
           chatId: chat.chatId,
           myUid: widget.myUid,
+          myName: widget.myName, // ✅ تم تمرير الـ myName هنا بنجاح لحل خطأ الـ Build
         ),
       ),
     );
