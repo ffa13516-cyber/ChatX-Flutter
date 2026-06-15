@@ -1,10 +1,10 @@
 // ============================================================
-// chat_bubble.dart â€” ChatX Message Bubble
-// âœ… Context bug Ù…ØµÙ„Ø­ (emoji bottom sheet) 
-// âœ… Copy guard (Ù…Ø´ Ø¨ÙŠÙƒÙˆØ¨ÙŠ ØµÙˆØ±/ØµÙˆØª)
-// âœ… Reactions toggle (Ù†ÙØ³ Ø§Ù„Ø¥ÙŠÙ…ÙˆØ¬ÙŠ = Ø§Ø²ÙŠÙ„Ù‡)
-// âœ… AnimationController dispose Ø¢Ù…Ù†
-// âœ… _showActionMenu ÙŠØ³ØªØ®Ø¯Ù… rootContext Ù…Ø´ dialog context
+// chat_bubble.dart — ChatX Message Bubble
+// ✅ Context bug مصلح (emoji bottom sheet) 
+// ✅ Copy guard (مش بيكوبي صور/صوت)
+// ✅ Reactions toggle (نفس الإيموجي = ازيله)
+// ✅ AnimationController dispose آمن
+// ✅ _showActionMenu يستخدم rootContext مش dialog context
 // ============================================================
 
 import 'dart:ui';
@@ -54,7 +54,7 @@ class _ChatBubbleState extends State<ChatBubble>
 
   @override
   void dispose() {
-    _waveController.dispose(); // stop + dispose ÙÙŠ Ù†ÙØ³ Ø§Ù„ÙˆÙ‚Øª
+    _waveController.dispose(); // stop + dispose في نفس الوقت
     super.dispose();
   }
 
@@ -63,9 +63,9 @@ class _ChatBubbleState extends State<ChatBubble>
     _isPlaying ? _waveController.repeat() : _waveController.stop();
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // Action Menu â€” âœ… FIX: rootContext Ù…Ø­ÙÙˆØ¸ Ù‚Ø¨Ù„ ÙØªØ­ Ø§Ù„Ù€ dialog
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────
+  // Action Menu — ✅ FIX: rootContext محفوظ قبل فتح الـ dialog
+  // ─────────────────────────────────────────
 
   void _showActionMenu(BuildContext rootContext) {
     final isMe = widget.message.isMe;
@@ -109,14 +109,14 @@ class _ChatBubbleState extends State<ChatBubble>
                         ? CrossAxisAlignment.end
                         : CrossAxisAlignment.start,
                     children: [
-                      // â”€â”€ Quick Reactions Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                      // ── Quick Reactions Row ────────────────
                       _GlassCard(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 6),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            ...['â¤ï¸', 'ðŸ‘', 'ðŸ”¥', 'ðŸ˜‚', 'ðŸ˜®', 'ðŸ˜¢'].map(
+                            ...['❤️', '👍', '🔥', '😂', '😮', '😢'].map(
                               (emoji) => GestureDetector(
                                 onTap: () {
                                   Navigator.pop(dialogCtx);
@@ -133,11 +133,11 @@ class _ChatBubbleState extends State<ChatBubble>
                               ),
                             ),
                             // More emojis button
-                            // âœ… FIX: Ø¨Ù†Ø³ØªØ®Ø¯Ù… rootContext Ù…Ø´ dialogCtx
+                            // ✅ FIX: بنستخدم rootContext مش dialogCtx
                             GestureDetector(
                               onTap: () {
                                 Navigator.pop(dialogCtx);
-                                // âœ… FIX: rootContext ØµØ§Ù„Ø­ Ù‡Ù†Ø§ Ù„Ø£Ù†Ù†Ø§ Ø£ØºÙ„Ù‚Ù†Ø§ Ø§Ù„Ù€ dialog
+                                // ✅ FIX: rootContext صالح هنا لأننا أغلقنا الـ dialog
                                 WidgetsBinding.instance
                                     .addPostFrameCallback((_) {
                                   _showEmojiSheet(rootContext);
@@ -164,28 +164,28 @@ class _ChatBubbleState extends State<ChatBubble>
 
                       const SizedBox(height: 8),
 
-                      // â”€â”€ Context Menu â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                      // ── Context Menu ──────────────────────
                       _GlassCard(
                         width: 195,
                         padding: const EdgeInsets.symmetric(vertical: 6),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Ø±Ø¯
+                            // رد
                             _MenuItem(
                               icon: Icons.reply_rounded,
-                              label: 'Ø±Ø¯',
+                              label: 'رد',
                               onTap: () {
                                 Navigator.pop(dialogCtx);
                                 widget.onReply?.call(widget.message);
                               },
                             ),
 
-                            // Ù†Ø³Ø® â€” âœ… FIX: text ÙÙ‚Ø·
+                            // نسخ — ✅ FIX: text فقط
                             if (widget.message.type == MessageType.text)
                               _MenuItem(
                                 icon: Icons.copy_rounded,
-                                label: 'Ù†Ø³Ø®',
+                                label: 'نسخ',
                                 onTap: () {
                                   Navigator.pop(dialogCtx);
                                   Clipboard.setData(
@@ -196,7 +196,7 @@ class _ChatBubbleState extends State<ChatBubble>
                                       .showSnackBar(
                                     const SnackBar(
                                       content:
-                                          Text('ØªÙ… Ù†Ø³Ø® Ø§Ù„Ø±Ø³Ø§Ù„Ø© âœ“'),
+                                          Text('تم نسخ الرسالة ✓'),
                                       duration: Duration(seconds: 1),
                                       backgroundColor:
                                           Color(0xFF2B2C31),
@@ -207,12 +207,12 @@ class _ChatBubbleState extends State<ChatBubble>
                                 },
                               ),
 
-                            // ØªØ¹Ø¯ÙŠÙ„ ÙˆØ­Ø°Ù (Ù…Ø±Ø³Ù„ ÙÙ‚Ø·)
+                            // تعديل وحذف (مرسل فقط)
                             if (isMe) ...[
                               if (widget.message.isEditable)
                                 _MenuItem(
                                   icon: Icons.edit_rounded,
-                                  label: 'ØªØ¹Ø¯ÙŠÙ„',
+                                  label: 'تعديل',
                                   onTap: () {
                                     Navigator.pop(dialogCtx);
                                     widget.onEdit?.call();
@@ -225,7 +225,7 @@ class _ChatBubbleState extends State<ChatBubble>
                               ),
                               _MenuItem(
                                 icon: Icons.delete_outline_rounded,
-                                label: 'Ø­Ø°Ù',
+                                label: 'حذف',
                                 color: Colors.redAccent,
                                 onTap: () {
                                   Navigator.pop(dialogCtx);
@@ -247,9 +247,9 @@ class _ChatBubbleState extends State<ChatBubble>
     );
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // Emoji Bottom Sheet â€” âœ… FIX: context ØµØ­
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────
+  // Emoji Bottom Sheet — ✅ FIX: context صح
+  // ─────────────────────────────────────────
 
   void _showEmojiSheet(BuildContext ctx) {
     if (!ctx.mounted) return;
@@ -288,7 +288,7 @@ class _ChatBubbleState extends State<ChatBubble>
                   itemCount: _allEmojis.length,
                   itemBuilder: (_, i) => GestureDetector(
                     onTap: () {
-                      // âœ… FIX: Ù†ØºÙ„Ù‚ Ø§Ù„Ù€ sheet Ø¨Ù€ sheetCtx Ù…Ø´ ctx
+                      // ✅ FIX: نغلق الـ sheet بـ sheetCtx مش ctx
                       Navigator.pop(sheetCtx);
                       widget.onReact?.call(_allEmojis[i]);
                     },
@@ -308,24 +308,24 @@ class _ChatBubbleState extends State<ChatBubble>
     );
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────
   // Reactions Pill
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────
 
   Widget _buildReactionsPill() {
     final grouped = widget.message.groupedReactions;
     if (grouped.isEmpty) return const SizedBox.shrink();
 
     final totalCount = widget.message.reactionCount;
-    // Ø§Ù„Ø¥ÙŠÙ…ÙˆØ¬ÙŠ Ø§Ù„Ù„ÙŠ Ø§Ø®ØªØ§Ø±Ù‡ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø§Ù„Ø­Ø§Ù„ÙŠ (Ù„Ùˆ Ù…ÙˆØ¬ÙˆØ¯)
+    // الإيموجي اللي اختاره المستخدم الحالي (لو موجود)
     final myCurrentReaction = widget.message.reactions?[
-        // Ù†Ø³ØªØ®Ø¯Ù… onReact Ù„Ø£Ù†Ù†Ø§ Ù…Ø´ Ø¹Ù†Ø¯Ù†Ø§ myUid Ù‡Ù†Ø§ â€” Ø§Ù„Ù€ bubble ÙŠØ¹Ù…Ù„ toggle
-        // Ø¨Ø³ Ù†Ø¹Ø±Ø¶ Ø§Ù„Ù€ pill ÙƒÙ€ tappable Ø¹Ø´Ø§Ù† UX
+        // نستخدم onReact لأننا مش عندنا myUid هنا — الـ bubble يعمل toggle
+        // بس نعرض الـ pill كـ tappable عشان UX
         'placeholder'
     ];
 
     return GestureDetector(
-      // âœ… UX: Ø¶ØºØ·Ø© Ø¹Ù„Ù‰ Ø§Ù„Ù€ pill ØªÙØªØ­ Ø§Ù„Ù€ quick reaction menu
+      // ✅ UX: ضغطة على الـ pill تفتح الـ quick reaction menu
       onTap: () => _showActionMenu(context),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -367,9 +367,9 @@ class _ChatBubbleState extends State<ChatBubble>
     );
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────
   // Build
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -387,7 +387,7 @@ class _ChatBubbleState extends State<ChatBubble>
         onTapCancel: () => setState(() => _isPressed = false),
         onLongPress: () {
           HapticFeedback.mediumImpact();
-          _showActionMenu(context); // âœ… Ø¨Ù†Ù…Ø±Ø± Ø§Ù„Ù€ context Ù‡Ù†Ø§ Ù‚Ø¨Ù„ Ù…Ø§ Ù†Ø¯Ø®Ù„ ÙÙŠ dialogs
+          _showActionMenu(context); // ✅ بنمرر الـ context هنا قبل ما ندخل في dialogs
         },
         child: AnimatedScale(
           scale: _isPressed ? 0.97 : 1.0,
@@ -406,7 +406,7 @@ class _ChatBubbleState extends State<ChatBubble>
               ),
               if (hasReactions)
                 Positioned(
-                  bottom: -10, // âœ… FIX: ÙƒØ§Ù† hasReactions ? -10 : 0 ÙˆØ¯Ù‡ redundant Ù„Ø£Ù† Ø§Ù„Ù€ if ÙÙˆÙ‚ ÙƒØ§ÙÙŠ
+                  bottom: -10, // ✅ FIX: كان hasReactions ? -10 : 0 وده redundant لأن الـ if فوق كافي
                   right: isMe ? 12 : null,
                   left: isMe ? null : 12,
                   child: _buildReactionsPill(),
@@ -418,23 +418,23 @@ class _ChatBubbleState extends State<ChatBubble>
     );
   }
 
-  // â”€â”€ Full emoji list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Full emoji list ──────────────────────
   static const _allEmojis = [
-    'ðŸ˜€','ðŸ˜','ðŸ˜‚','ðŸ¤£','ðŸ˜ƒ','ðŸ˜„','ðŸ˜…','ðŸ˜†',
-    'ðŸ˜‰','ðŸ˜Š','ðŸ˜‹','ðŸ˜Ž','ðŸ˜','ðŸ¥°','ðŸ˜˜','ðŸ˜—',
-    'ðŸ¤©','ðŸ¥³','ðŸ˜','ðŸ˜’','ðŸ˜ž','ðŸ˜”','ðŸ˜Ÿ','ðŸ˜•',
-    'ðŸ™','ðŸ˜£','ðŸ˜–','ðŸ˜«','ðŸ˜©','ðŸ¥º','ðŸ˜¢','ðŸ˜­',
-    'ðŸ˜¤','ðŸ˜ ','ðŸ˜¡','ðŸ¤¬','ðŸ¤¯','ðŸ˜³','ðŸ¥µ','ðŸ¥¶',
-    'ðŸ˜±','ðŸ˜¨','ðŸ˜°','ðŸ˜¥','ðŸ˜“','ðŸ¤—','ðŸ¤”','ðŸ¤­',
-    'ðŸ¤«','ðŸ¤¥','ðŸ˜¶','ðŸ˜','ðŸ˜‘','ðŸ˜¬','ðŸ™„','ðŸ˜¯',
-    'ðŸ‘','ðŸ‘Ž','â¤ï¸','ðŸ”¥','ðŸ’¯','ðŸŽ‰','âœ¨','ðŸ™',
-    'ðŸ‘','ðŸ’ª','ðŸ‘€','ðŸ¤','ðŸ«¶','ðŸ’€','ðŸ¤¡','ðŸ‘»',
+    '😀','😁','😂','🤣','😃','😄','😅','😆',
+    '😉','😊','😋','😎','😍','🥰','😘','😗',
+    '🤩','🥳','😏','😒','😞','😔','😟','😕',
+    '🙁','😣','😖','😫','😩','🥺','😢','😭',
+    '😤','😠','😡','🤬','🤯','😳','🥵','🥶',
+    '😱','😨','😰','😥','😓','🤗','🤔','🤭',
+    '🤫','🤥','😶','😐','😑','😬','🙄','😯',
+    '👍','👎','❤️','🔥','💯','🎉','✨','🙏',
+    '👏','💪','👀','🤝','🫶','💀','🤡','👻',
   ];
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Bubble Widget â€” extracted for clarity
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
+// Bubble Widget — extracted for clarity
+// ─────────────────────────────────────────────
 
 class _Bubble extends StatelessWidget {
   final Message message;
@@ -547,9 +547,9 @@ class _Bubble extends StatelessWidget {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 // Sub-widgets
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 
 class _TextContent extends StatelessWidget {
   final Message message;
@@ -571,7 +571,7 @@ class _TextContent extends StatelessWidget {
         ),
         if (message.isEdited)
           const Text(
-            'ØªÙ… Ø§Ù„ØªØ¹Ø¯ÙŠÙ„',
+            'تم التعديل',
             style: TextStyle(color: Colors.white38, fontSize: 10),
           ),
       ],
@@ -676,7 +676,7 @@ class _VoiceContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final duration = message.voiceDuration != null
         ? _formatDuration(message.voiceDuration!)
-        : 'â€”:â€”â€”';
+        : '—:——';
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -720,7 +720,7 @@ class _VoiceContent extends StatelessWidget {
                   return Container(
                     margin: const EdgeInsets.symmetric(horizontal: 1),
                     width: 2.3,
-                    height: h,
+                    height: h.toDouble(), // ✅ التعديل هنا فقط لتوافق الـ Types
                     decoration: BoxDecoration(
                       color: color,
                       borderRadius: BorderRadius.circular(2),
@@ -757,10 +757,10 @@ class _ReplyPreview extends StatelessWidget {
     final String previewText;
     switch (reply.type) {
       case MessageType.image:
-        previewText = 'ðŸ“· Photo';
+        previewText = '📷 Photo';
         break;
       case MessageType.voice:
-        previewText = 'ðŸŽ¤ Voice message';
+        previewText = '🎤 Voice message';
         break;
       case MessageType.text:
         previewText = reply.text;
@@ -885,9 +885,9 @@ class _StatusIcon extends StatelessWidget {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 // Glass Card Widget
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 
 class _GlassCard extends StatelessWidget {
   final Widget child;
@@ -917,9 +917,9 @@ class _GlassCard extends StatelessWidget {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 // Menu Item
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 
 class _MenuItem extends StatelessWidget {
   final IconData icon;
