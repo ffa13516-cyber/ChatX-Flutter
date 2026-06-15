@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/message_model.dart';
@@ -41,7 +42,6 @@ class _ChatBubbleState extends State<ChatBubble>
 
   @override
   void dispose() {
-    // ✅ لو الـ animation لسه شغالة نوقفها قبل الـ dispose عشان نتجنب errors
     _waveController.stop();
     _waveController.dispose();
     super.dispose();
@@ -58,90 +58,184 @@ class _ChatBubbleState extends State<ChatBubble>
     });
   }
 
+  // 🔥 المحرك الذكي للمنيو العائمة وتحديد الإحداثيات بدقة
   void _showActionMenu(BuildContext context) {
     final isMe = widget.message.isMe;
+    
+    // حساب موقع فقاعة الرسالة على الشاشة عشان المنيو تظهر فوقيها بالظبط
+    final renderBox = context.findRenderObject() as RenderBox;
+    final offset = renderBox.localToGlobal(Offset.zero);
+    final screenSize = MediaQuery.of(context).size;
 
-    showModalBottomSheet(
+    // حساب الـ Position الرأسي عشان لو الرسالة فوق خالص المنيو متنزلش بره الشاشة
+    double topPosition = offset.dy - 110;
+    if (topPosition < 50) {
+      topPosition = offset.dy + renderBox.size.height + 10;
+    }
+
+    showGeneralDialog(
       context: context,
-      backgroundColor: const Color(0xFF1E1E1E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildMenuItem(
-                  icon: Icons.reply_rounded,
-                  title: 'رد',
-                  onTap: () {
-                    Navigator.pop(context);
-                    widget.onReply?.call(widget.message);
-                  },
-                ),
-                _buildMenuItem(
-                  icon: Icons.copy_rounded,
-                  title: 'نسخ',
-                  onTap: () {
-                    Navigator.pop(context);
-                    Clipboard.setData(
-                        ClipboardData(text: widget.message.text));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("تم النسخ"),
-                        duration: Duration(seconds: 1),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                ),
-                if (isMe) ...[
-                  const Divider(color: Colors.white12, height: 1),
-                  // ✅ FIX: زر التعديل بيظهر بس لو الرسالة نصية مش صورة أو صوت
-                  if (widget.message.type == MessageType.text)
-                    _buildMenuItem(
-                      icon: Icons.edit_rounded,
-                      title: 'تعديل',
-                      onTap: () {
-                        Navigator.pop(context);
-                        widget.onEdit?.call();
-                      },
-                    ),
-                  _buildMenuItem(
-                    icon: Icons.delete_outline_rounded,
-                    title: 'حذف',
-                    color: Colors.redAccent,
-                    onTap: () {
-                      Navigator.pop(context);
-                      widget.onDelete?.call();
-                    },
-                  ),
-                ],
-              ],
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black26, // تعتيم خفيف جداً للخلفية لزيادة التركيز
+      transitionDuration: const Duration(milliseconds: 250),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Stack(
+          children: [
+            // ضغطة في أي مكان بره تقفل المنيو
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(color: Colors.transparent),
+              ),
             ),
-          ),
+            
+            // المنيو العائمة المتمركزة ديناميكياً
+            Positioned(
+              top: topPosition,
+              left: isMe ? null : 24,
+              right: isMe ? 24 : null,
+              child: ScaleTransition(
+                scale: CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.elasticOut, // أنيميشن بوب اب مطاطي ممتع ومودرن
+                ),
+                child: FadeTransition(
+                  opacity: animation,
+                  child: Column(
+                    crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                    children: [
+                      // 1. صف الإيموجيز التفاعلي (Frosted Silver Glass)
+                      _buildSilverGlassCard(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: ['❤️', '👍', '🔥', '😂', '😮', '😢'].map((emoji) {
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.pop(context);
+                                // هنا تقدر تربط الميزة دي بـ Backend التفاعلات مستقبلاً
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6),
+                                child: Text(
+                                  emoji,
+                                  style: const TextStyle(fontSize: 22),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 8),
+                      
+                      // 2. قائمة الخيارات الذكية
+                      _buildSilverGlassCard(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        width: 190,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildFloatingMenuItem(
+                              icon: Icons.reply_rounded,
+                              title: 'رد',
+                              onTap: () {
+                                Navigator.pop(context);
+                                widget.onReply?.call(widget.message);
+                              },
+                            ),
+                            _buildFloatingMenuItem(
+                              icon: Icons.copy_rounded,
+                              title: 'نسخ',
+                              onTap: () {
+                                Navigator.pop(context);
+                                Clipboard.setData(ClipboardData(text: widget.message.text));
+                              },
+                            ),
+                            if (isMe) ...[
+                              if (widget.message.type == MessageType.text)
+                                _buildFloatingMenuItem(
+                                  icon: Icons.edit_rounded,
+                                  title: 'تعديل',
+                                  onTap: () {
+                                    Navigator.pop(context);
+                                    widget.onEdit?.call();
+                                  },
+                                ),
+                              const Divider(color: Colors.white12, height: 1, thickness: 0.5),
+                              _buildFloatingMenuItem(
+                                icon: Icons.delete_outline_rounded,
+                                title: 'حذف',
+                                color: Colors.redAccent.withOpacity(0.9),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  widget.onDelete?.call();
+                                },
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         );
       },
     );
   }
 
-  Widget _buildMenuItem({
+  // ويدجت الزجاج الفضي البلوري الموحد عالي الأداء
+  Widget _buildSilverGlassCard({required Widget child, double? width, EdgeInsetsGeometry? padding}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          width: width,
+          padding: padding,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0F0F0).withOpacity(0.15), // درجة الفضي الشفاف اللامع
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.25), // خط خارجي ناعم يعطي تأثير حافة الزجاج
+              width: 1,
+            ),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingMenuItem({
     required IconData icon,
     required String title,
     required VoidCallback onTap,
-    Color color = Colors.white,
+    Color color = Colors.whiteEE,
   }) {
-    return ListTile(
-      leading: Icon(icon, color: color, size: 24),
-      title: Text(
-        title,
-        style: TextStyle(
-            color: color, fontSize: 16, fontWeight: FontWeight.w500),
-      ),
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 14),
+            Text(
+              title,
+              style: TextStyle(color: color, fontSize: 14.5, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -150,23 +244,22 @@ class _ChatBubbleState extends State<ChatBubble>
     final isMe = widget.message.isMe;
 
     return Row(
-      mainAxisAlignment:
-          isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+      mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
       children: [
         GestureDetector(
           onTapDown: (_) {
             setState(() => isPressed = true);
-            HapticFeedback.lightImpact();
+            HapticFeedback.lightImpact(); // رد فعل اهتزازي خفيف فور اللمس
           },
           onTapUp: (_) => setState(() => isPressed = false),
           onTapCancel: () => setState(() => isPressed = false),
           onLongPress: () {
-            HapticFeedback.mediumImpact();
+            HapticFeedback.mediumImpact(); // اهتزاز أعمق عند تأكيد الضغط المطول
             _showActionMenu(context);
           },
           child: AnimatedScale(
-            scale: isPressed ? 0.98 : 1,
-            duration: const Duration(milliseconds: 100),
+            scale: isPressed ? 0.97 : 1,
+            duration: const Duration(milliseconds: 90),
             child: _bubble(context, isMe),
           ),
         ),
@@ -176,8 +269,6 @@ class _ChatBubbleState extends State<ChatBubble>
 
   Widget _bubble(BuildContext context, bool isMe) {
     final message = widget.message;
-
-    // ✅ FIX #8: بنستخدم الـ timestamp من Firebase مش device time
     final time = _formatTime(message.time);
 
     final radius = BorderRadius.only(
@@ -208,32 +299,25 @@ class _ChatBubbleState extends State<ChatBubble>
         child: Container(
           decoration: BoxDecoration(
             borderRadius: radius,
-            color: isMe
-                ? const Color(0xFF4186F6)
-                : const Color(0xFF2B2C31),
+            color: isMe ? const Color(0xFF4186F6) : const Color(0xFF2B2C31),
           ),
           child: Stack(
             children: [
               if (widget.isHighlighted)
                 Positioned.fill(
-                  child: Container(
-                      color: Colors.white.withOpacity(0.04)),
+                  child: Container(color: Colors.white.withOpacity(0.04)),
                 ),
               Padding(
                 padding: message.type == MessageType.image
                     ? EdgeInsets.zero
-                    : const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                    : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 child: message.type == MessageType.image
                     ? _imageWithTime(time, radius)
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           if (message.replyTo != null) _replyPreview(),
-                          if (message.type == MessageType.voice)
-                            _voice()
-                          else
-                            _text(),
+                          if (message.type == MessageType.voice) _voice() else _text(),
                           const SizedBox(height: 4),
                           _timeRow(time, isMe),
                         ],
@@ -246,7 +330,6 @@ class _ChatBubbleState extends State<ChatBubble>
     );
   }
 
-  // ✅ FIX #8: دالة format للوقت تتعامل مع الـ server timestamp صح
   String _formatTime(DateTime time) {
     final h = time.hour.toString().padLeft(2, '0');
     final m = time.minute.toString().padLeft(2, '0');
@@ -273,8 +356,7 @@ class _ChatBubbleState extends State<ChatBubble>
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 6),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
           color: Colors.black.withOpacity(0.2),
           borderRadius: BorderRadius.circular(8),
@@ -287,9 +369,7 @@ class _ChatBubbleState extends State<ChatBubble>
                 width: 3,
                 margin: const EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
-                  color: isMe
-                      ? const Color(0xFF0A84FF)
-                      : Colors.grey.shade600,
+                  color: isMe ? const Color(0xFF0A84FF) : Colors.grey.shade600,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -301,9 +381,7 @@ class _ChatBubbleState extends State<ChatBubble>
                       Text(
                         reply.senderName!,
                         style: TextStyle(
-                          color: isMe
-                              ? const Color(0xFF5AC8FA)
-                              : Colors.white70,
+                          color: isMe ? const Color(0xFF5AC8FA) : Colors.white70,
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                         ),
@@ -340,7 +418,6 @@ class _ChatBubbleState extends State<ChatBubble>
             fontWeight: FontWeight.w400,
           ),
         ),
-        // ✅ FIX: لو الرسالة اتعدلت نبين علامة "تم التعديل"
         if (widget.message.isEdited == true)
           const Text(
             "تم التعديل",
@@ -356,7 +433,6 @@ class _ChatBubbleState extends State<ChatBubble>
   Widget _imageWithTime(String time, BorderRadius radius) {
     return Stack(
       children: [
-        // ✅ FIX: error builder لو الصورة مش موجودة
         Image.network(
           widget.message.imageUrl!,
           height: 160,
@@ -366,8 +442,7 @@ class _ChatBubbleState extends State<ChatBubble>
             height: 160,
             width: 240,
             color: Colors.white10,
-            child: const Icon(Icons.broken_image_outlined,
-                color: Colors.white38, size: 40),
+            child: const Icon(Icons.broken_image_outlined, color: Colors.white38, size: 40),
           ),
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
@@ -388,16 +463,14 @@ class _ChatBubbleState extends State<ChatBubble>
           bottom: 8,
           right: 10,
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
             decoration: BoxDecoration(
               color: Colors.black.withOpacity(0.5),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
               time,
-              style:
-                  const TextStyle(color: Colors.white70, fontSize: 11),
+              style: const TextStyle(color: Colors.white70, fontSize: 11),
             ),
           ),
         ),
@@ -406,7 +479,6 @@ class _ChatBubbleState extends State<ChatBubble>
   }
 
   Widget _voice() {
-    // ✅ FIX #9: بنعرض المدة الحقيقية من الـ model لو موجودة
     final duration = widget.message.voiceDuration != null
         ? _formatDuration(widget.message.voiceDuration!)
         : "—:——";
@@ -438,11 +510,8 @@ class _ChatBubbleState extends State<ChatBubble>
             builder: (_, __) {
               return Row(
                 children: List.generate(14, (i) {
-                  final phase =
-                      (_waveController.value + i * 0.07) % 1.0;
-                  final h = isPlaying
-                      ? 4 + (phase < 0.5 ? phase : 1 - phase) * 18
-                      : _staticHeight(i);
+                  final phase = (_waveController.value + i * 0.07) % 1.0;
+                  final h = isPlaying ? 4 + (phase < 0.5 ? phase : 1 - phase) * 18 : _staticHeight(i);
                   final t = i / 13;
                   final color = Color.lerp(
                     const Color(0xFF0A84FF),
@@ -474,7 +543,6 @@ class _ChatBubbleState extends State<ChatBubble>
     );
   }
 
-  // ✅ FIX #9: format حقيقي للمدة
   String _formatDuration(int seconds) {
     final m = (seconds ~/ 60).toString().padLeft(1, '0');
     final s = (seconds % 60).toString().padLeft(2, '0');
