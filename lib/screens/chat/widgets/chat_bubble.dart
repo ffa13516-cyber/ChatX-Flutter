@@ -218,7 +218,7 @@ class _ChatBubbleState extends State<ChatBubble>
     required IconData icon,
     required String title,
     required VoidCallback onTap,
-    Color color = Colors.whiteEE,
+    Color color = Colors.white,
   }) {
     return InkWell(
       onTap: onTap,
