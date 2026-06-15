@@ -36,7 +36,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     setState(() => highlightedMessageId = id);
 
-    const estimatedItemHeight = 80.0 + 18.0;
+    const estimatedItemHeight = 80.0 + 18.0; 
     final totalItems = messages.length;
     final reversedIndex = totalItems - 1 - index;
     final offset = reversedIndex * estimatedItemHeight;
@@ -59,19 +59,17 @@ class _ChatScreenState extends State<ChatScreen> {
         backgroundColor: const Color(0xFF1E1E1E),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
-          "Ø­Ø°Ù Ø§Ù„Ø±Ø³Ø§Ù„Ø©",
-          style: TextStyle(
-              color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          "حذف الرسالة",
+          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
         ),
         content: const Text(
-          "Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ Ù…Ù† Ø±ØºØ¨ØªÙƒ ÙÙŠ Ø­Ø°Ù Ù‡Ø°Ù‡ Ø§Ù„Ø±Ø³Ø§Ù„Ø©ØŸ",
+          "هل أنت متأكد من رغبتك في حذف هذه الرسالة؟",
           style: TextStyle(color: Colors.white70, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child:
-                const Text("Ø¥Ù„ØºØ§Ø¡", style: TextStyle(color: Colors.white54)),
+            child: const Text("إلغاء", style: TextStyle(color: Colors.white54)),
           ),
           TextButton(
             onPressed: () {
@@ -79,9 +77,8 @@ class _ChatScreenState extends State<ChatScreen> {
               Navigator.pop(dialogCtx);
             },
             child: const Text(
-              "Ø­Ø°Ù",
-              style: TextStyle(
-                  color: Colors.redAccent, fontWeight: FontWeight.bold),
+              "حذف",
+              style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -118,7 +115,6 @@ class _ChatScreenState extends State<ChatScreen> {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // Ø§Ù„Ø®Ù„ÙÙŠØ©
           Positioned.fill(
             child: Image.asset("assets/images/bg.jpg", fit: BoxFit.cover),
           ),
@@ -128,15 +124,12 @@ class _ChatScreenState extends State<ChatScreen> {
 
           BlocBuilder<ChatCubit, ChatState>(
             builder: (context, state) {
-              final messages =
-                  state is ChatLoaded ? state.messages : <Message>[];
-              final replyingTo =
-                  state is ChatLoaded ? state.replyingTo : null;
+              final messages = state is ChatLoaded ? state.messages : <Message>[];
+              final replyingTo = state is ChatLoaded ? state.replyingTo : null;
               final cubit = context.read<ChatCubit>();
 
               return Stack(
                 children: [
-                  // Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø±Ø³Ø§ÙŠÙ„
                   Positioned(
                     top: headerHeight,
                     left: 0,
@@ -146,13 +139,11 @@ class _ChatScreenState extends State<ChatScreen> {
                       top: false,
                       child: ClipRect(
                         child: state is! ChatLoaded
-                            ? const Center(
-                                child: CircularProgressIndicator())
+                            ? const Center(child: CircularProgressIndicator())
                             : ListView.builder(
                                 controller: _controller,
                                 reverse: true,
-                                padding: const EdgeInsets.fromLTRB(
-                                    20, 10, 20, 120),
+                                padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
                                 itemCount: messages.length,
                                 itemBuilder: (context, index) {
                                   final msg = messages[index];
@@ -163,20 +154,13 @@ class _ChatScreenState extends State<ChatScreen> {
                                         message: msg,
                                         onReply: cubit.setReply,
                                         onTapReply: (replyId) =>
-                                            scrollToMessage(
-                                                replyId, messages),
-                                        isHighlighted:
-                                            msg.id == highlightedMessageId,
-                                        onEdit: () =>
-                                            _showEditDialog(context, msg),
-                                        onDelete: () => _showDeleteDialog(
-                                            context, msg.id!),
-                                        // âœ… Ø±Ø¨Ø· Ø§Ù„Ù€ reaction Ø¨Ø§Ù„Ù€ cubit
-                                        onReact: (emoji) {
-                                          if (msg.id != null) {
-                                            cubit.addReaction(msg.id, emoji);
-                                          }
-                                        },
+                                            scrollToMessage(replyId, messages),
+                                        isHighlighted: msg.id == highlightedMessageId,
+                                        onEdit: () => _showEditDialog(context, msg),
+                                        onDelete: () =>
+                                            _showDeleteDialog(context, msg.id!),
+                                        // ✅ تم الربط هنا بنجاح ليعمل التفاعل لحظياً في الـ Firebase
+                                        onReact: (emoji) => cubit.addReaction(msg.id, emoji),
                                       ),
                                     ],
                                   );
@@ -186,7 +170,6 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
 
-                  // Gradient ÙÙˆÙ‚ Ø§Ù„Ù€ input
                   Positioned(
                     bottom: 0,
                     left: 0,
@@ -226,7 +209,6 @@ class _ChatScreenState extends State<ChatScreen> {
             },
           ),
 
-          // Ø§Ù„Ù‡ÙŠØ¯Ø±
           Positioned(
             top: 0,
             left: 0,
@@ -260,8 +242,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              border:
-                  Border.all(color: Colors.white.withOpacity(0.08)),
+              border: Border.all(color: Colors.white.withOpacity(0.08)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.18),
@@ -291,8 +272,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     CircleAvatar(
                       radius: 22,
                       backgroundImage: NetworkImage(
-                        widget.receiverImage ??
-                            "https://i.pravatar.cc/150?img=8",
+                        widget.receiverImage ?? "https://i.pravatar.cc/150?img=8",
                       ),
                     ),
                   ],
@@ -312,8 +292,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     const SizedBox(height: 2),
                     const Text(
                       "Online",
-                      style: TextStyle(
-                          color: Color(0xFF22C55E), fontSize: 11),
+                      style: TextStyle(color: Color(0xFF22C55E), fontSize: 11),
                     ),
                   ],
                 ),
@@ -338,8 +317,7 @@ class _ChatScreenState extends State<ChatScreen> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.white.withOpacity(0.08),
-            border:
-                Border.all(color: Colors.white.withOpacity(0.08)),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
           ),
           child: Icon(icon, color: Colors.white70, size: 22),
         ),
@@ -348,7 +326,6 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-// âœ… Edit Dialog
 class _EditDialog extends StatefulWidget {
   final Message message;
   final TextEditingController textController;
@@ -369,24 +346,19 @@ class _EditDialogState extends State<_EditDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: const Color(0xFF1E1E1E),
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: const Text(
-        "ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø±Ø³Ø§Ù„Ø©",
-        style: TextStyle(
-            color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+        "تعديل الرسالة",
+        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
       ),
       content: TextField(
         controller: widget.textController,
         autofocus: true,
         style: const TextStyle(color: Colors.white),
         maxLines: null,
-        // âœ… SECURITY: Ø­Ø¯ Ø£Ù‚ØµÙ‰ Ù„Ù„Ù†Øµ
-        maxLength: 4000,
         decoration: const InputDecoration(
-          hintText: "ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ù†Øµ...",
+          hintText: "تعديل النص...",
           hintStyle: TextStyle(color: Colors.white38),
-          counterStyle: TextStyle(color: Colors.white24),
           enabledBorder: UnderlineInputBorder(
             borderSide: BorderSide(color: Colors.white24),
           ),
@@ -398,22 +370,19 @@ class _EditDialogState extends State<_EditDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child:
-              const Text("Ø¥Ù„ØºØ§Ø¡", style: TextStyle(color: Colors.white54)),
+          child: const Text("إلغاء", style: TextStyle(color: Colors.white54)),
         ),
         TextButton(
           onPressed: () {
             final newText = widget.textController.text.trim();
-            // âœ… SECURITY: Ù…Ø´ Ø¨Ù†Ø­ÙØ¸ Ù„Ùˆ Ø§Ù„Ù†Øµ ÙØ§Ø¶ÙŠ Ø£Ùˆ Ù…Ø´ Ø§ØªØºÙŠØ±
             if (newText.isNotEmpty && newText != widget.message.text) {
               widget.onSave(newText);
             }
             Navigator.pop(context);
           },
           child: const Text(
-            "Ø­ÙØ¸",
-            style: TextStyle(
-                color: Color(0xFF4186F6), fontWeight: FontWeight.bold),
+            "حفظ",
+            style: TextStyle(color: Color(0xFF4186F6), fontWeight: FontWeight.bold),
           ),
         ),
       ],
