@@ -1,14 +1,14 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // مستدعى خصيصاً للتفاعل اللمسي الفخم (Haptics)
 
-// مسارات الملفات بتاعتك زي ما هي
+// مسارات الملفات الخاصة بمشروعك
 import '../chat/chats_tab.dart';
 import '../profile/profile_screen.dart';
 import '../settings/settings_screen.dart';
 import '../../utils/app_colors.dart';
 
 class HomeScreenUI extends StatelessWidget {
-  // المتغيرات دي هتيجي من ملف اللوجيك
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
   final VoidCallback onCreateChannel;
@@ -24,7 +24,7 @@ class HomeScreenUI extends StatelessWidget {
     required this.onSearch,
   });
 
-  // الشاشات اللي هنعرضها
+  // الشاشات المعروضة داخل التطبيق
   final List<Widget> _screens = const [
     ChatsTab(),
     ProfileScreen(),
@@ -35,7 +35,7 @@ class HomeScreenUI extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgDark,
-      extendBody: true, // عشان الشات ينزل ورا النيڤيجيشن بار الشفاف
+      extendBody: true, // حجر الأساس لجعل المحتوى يتدفق خلف البار الزجاجي بسلاسة
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -51,11 +51,11 @@ class HomeScreenUI extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: _buildFloatingNavBar(),
+      bottomNavigationBar: _buildFullWidthGlassNavBar(),
     );
   }
 
-  // 1. الهيدر (chatx + القائمة الزجاجية)
+  // 1. الهيدر العلوي (chatx + القائمة المنسدلة بتأثير زجاجي)
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
@@ -78,11 +78,11 @@ class HomeScreenUI extends StatelessWidget {
             ),
             child: PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert, color: Colors.white),
-              color: Colors.white.withOpacity(0.15), // لون زجاجي للقائمة
+              color: Colors.black.withOpacity(0.4), // تأثير داكن زجاجي متناسق مع الخلفية
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                side: BorderSide(color: Colors.white.withOpacity(0.15)),
               ),
               onSelected: (value) {
                 if (value == 'channel') onCreateChannel();
@@ -117,7 +117,7 @@ class HomeScreenUI extends StatelessWidget {
     );
   }
 
-  // 2. شريط البحث الزجاجي
+  // 2. شريط البحث العائم والزجاجي
   Widget _buildSearchBar() {
     return GlassContainer(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -136,44 +136,113 @@ class HomeScreenUI extends StatelessWidget {
     );
   }
 
-  // 4. الـ Bottom Navigation Bar العائم والزجاجي
-  Widget _buildFloatingNavBar() {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 20, left: 40, right: 40),
-        child: GlassContainer(
-          borderRadius: 30,
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildNavItem(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 0),
-              _buildNavItem(Icons.person_outline_rounded, Icons.person_rounded, 1),
-              _buildNavItem(Icons.settings_outlined, Icons.settings_rounded, 2),
-            ],
+  // 3. الـ Navigation Bar السفلي الممتد بعرض الشاشة بالكامل (Ultra-Glassmorphic)
+  Widget _buildFullWidthGlassNavBar() {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25), // زيادة التغبيش لمنح مظهر سائل وناعم
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.02), // درجة شفافة جداً ومدروسة لمنع بهتان الألوان خلفها
+            border: Border(
+              top: BorderSide(
+                color: Colors.white.withOpacity(0.12), // خط علوي فائق النعومة ليعطي لمعة قطع الزجاج الحقيقية
+                width: 1.0,
+              ),
+            ),
+          ),
+          child: SafeArea(
+            top: false, // الحفاظ على أبعاد الهواتف التي تحتوي على نتوء سفلي (Gesture Bar)
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildNavItem(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 0, 'Chats'),
+                  _buildNavItem(Icons.person_outline_rounded, Icons.person_rounded, 1, 'Profile'),
+                  _buildNavItem(Icons.settings_outlined, Icons.settings_rounded, 2, 'Settings'),
+                ],
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 
-  // ويدجت مساعدة لزراير النيڤيجيشن
-  Widget _buildNavItem(IconData icon, IconData activeIcon, int index) {
+  // 4. بناء عناصر النيڤيجيشن الفردية مع المايكرو-أنيميشن والتأثير اللمسي
+  Widget _buildNavItem(IconData icon, IconData activeIcon, int index, String label) {
     final isSelected = currentIndex == index;
+
     return GestureDetector(
-      onTap: () => onTabSelected(index),
+      onTap: () {
+        // تأثير اهتزاز فيزيائي خفيف وذكي عند الضغط لرفع تقييم تجربة المستخدم
+        HapticFeedback.lightImpact(); 
+        onTabSelected(index);
+      },
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withOpacity(0.2) : Colors.transparent,
-          shape: BoxShape.circle,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.transformCurves([Curves.easeOutCubic]), // حركة انسيابية سريعة في النهاية ومريحة للعين
+        padding: EdgeInsets.symmetric(
+          horizontal: isSelected ? 20 : 14,
+          vertical: 10,
         ),
-        child: Icon(
-          isSelected ? activeIcon : icon,
-          color: isSelected ? AppColors.primary : Colors.white.withOpacity(0.6),
-          size: 26,
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary.withOpacity(0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.08),
+                    blurRadius: 16,
+                    spreadRadius: 2,
+                  )
+                ]
+              : [],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // أنيميشن تبديل الأيقونات مع تكبير وتصغير (Scale Drop) احترافي
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return ScaleTransition(
+                  scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+                  child: child,
+                );
+              },
+              child: Icon(
+                isSelected ? activeIcon : icon,
+                key: ValueKey<bool>(isSelected),
+                color: isSelected ? AppColors.primary : Colors.white.withOpacity(0.5),
+                size: 24,
+              ),
+            ),
+            // تمدد ذكي جداً لظهور النص وانبثاقه بدون حدوث قفزة فجائية في الواجهة
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              child: isSelected
+                  ? Row(
+                      children: [
+                        const SizedBox(width: 8),
+                        Text(
+                          label,
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
         ),
       ),
     );
@@ -181,7 +250,7 @@ class HomeScreenUI extends StatelessWidget {
 }
 
 // -------------------------------------------------------------------
-// ويدجت الـ Glassmorphism (تأثير الزجاج) قابلة لإعادة الاستخدام
+// ويدجت الـ Glassmorphic المخصصة للعناصر العائمة (كشريط البحث)
 // -------------------------------------------------------------------
 class GlassContainer extends StatelessWidget {
   final Widget child;
@@ -203,12 +272,12 @@ class GlassContainer extends StatelessWidget {
       margin: margin,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
-        color: Colors.white.withOpacity(0.05), // شفافية خفيفة عشان تأثير الإزاز
+        border: Border.all(color: Colors.white.withOpacity(0.15), width: 1.2),
+        color: Colors.white.withOpacity(0.04),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 12,
             spreadRadius: 1,
           ),
         ],
@@ -216,7 +285,7 @@ class GlassContainer extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12), // درجة نعومة الزجاج
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
           child: Padding(
             padding: padding ?? EdgeInsets.zero,
             child: child,
