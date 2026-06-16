@@ -45,21 +45,6 @@ class _ChatsTabState extends State<ChatsTab> {
           child: _buildChatsList(),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (context) => NewChatSheet(
-              myUid: _myUid,
-              myName: _myName,
-            ),
-          );
-        },
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.chat_bubble_outline, color: Colors.black),
-      ),
     );
   }
 
