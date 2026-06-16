@@ -13,7 +13,7 @@ class HomeScreenUI extends StatelessWidget {
   final ValueChanged<int> onTabSelected;
   final VoidCallback onCreateChannel;
   final VoidCallback onCreateGroup;
-  final ValueChanged<String> onSearch;
+  final ValueChanged<String> onSearch; // محتفظين بيها عشان ميعملش إيرور في الـ Constructor عندك
 
   const HomeScreenUI({
     super.key,
@@ -37,17 +37,32 @@ class HomeScreenUI extends StatelessWidget {
       extendBody: true, 
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            _buildHeader(context),
-            _buildSearchBar(),
-            Expanded(
-              child: IndexedStack(
-                index: currentIndex,
-                children: _screens,
+        // 1. استخدام NestedScrollView عشان يدعم حركة إخفاء وظهور السيرش مع السكرول
+        child: NestedScrollView(
+          floatHeaderSlivers: true, // سر الحركة: يظهر أول ما ترفع لفوق سحبة خفيفة
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              SliverAppBar(
+                backgroundColor: AppColors.bgDark,
+                floating: true,
+                snap: true,
+                elevation: 0,
+                toolbarHeight: 60,
+                titleSpacing: 0,
+                title: _buildHeaderContent(context),
+                // دمج شريط البحث في أسفل الـ AppBar
+                bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(52), // الارتفاع الكلي لمنطقة السيرش بالهوامش
+                  child: _buildSearchBar(context),
+                ),
               ),
-            ),
-          ],
+            ];
+          },
+          // محتوى الشاشات يتمرر هنا جوه الـ body
+          body: IndexedStack(
+            index: currentIndex,
+            children: _screens,
+          ),
         ),
       ),
       bottomNavigationBar: Padding(
@@ -57,10 +72,10 @@ class HomeScreenUI extends StatelessWidget {
     );
   }
 
-  // 1. الهيدر العلوي
-  Widget _buildHeader(BuildContext context) {
+  // الهيدر العلوي (تم تحويله لـ Content داخل الـ SliverAppBar)
+  Widget _buildHeaderContent(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+      padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -91,20 +106,20 @@ class HomeScreenUI extends StatelessWidget {
                 if (value == 'group') onCreateGroup();
               },
               itemBuilder: (context) => [
-                PopupMenuItem(
+                const PopupMenuItem(
                   value: 'channel',
                   child: Row(
-                    children: const [
+                    children: [
                       Icon(Icons.campaign_rounded, color: Colors.white70),
                       SizedBox(width: 12),
                       Text('Create Channel', style: TextStyle(color: Colors.white)),
                     ],
                   ),
                 ),
-                PopupMenuItem(
+                const PopupMenuItem(
                   value: 'group',
                   child: Row(
-                    children: const [
+                    children: [
                       Icon(Icons.group_add_rounded, color: Colors.white70),
                       SizedBox(width: 12),
                       Text('Create Group', style: TextStyle(color: Colors.white)),
@@ -119,26 +134,48 @@ class HomeScreenUI extends StatelessWidget {
     );
   }
 
-  // 2. شريط البحث
-  Widget _buildSearchBar() {
-    return GlassContainer(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      borderRadius: 24,
-      child: TextField(
-        onChanged: onSearch,
-        style: const TextStyle(color: Colors.white),
-        decoration: InputDecoration(
-          icon: Icon(Icons.search_rounded, color: Colors.white.withOpacity(0.5)),
-          hintText: 'Search...',
-          hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
-          border: InputBorder.none,
+  // شريط البحث المطور (تصميم كبسولة بريميوم، ملموم، وجاهز للانتقال)
+  Widget _buildSearchBar(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 20, right: 20, bottom: 10),
+      child: SizedBox(
+        height: 42, // المقاس المثالي عشان يكون نحيف وشيك
+        child: GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact(); // هزة تفاعلية فخمة عند الضغط
+            
+            // TODO: هنا هتحط كود الانتقال لشاشتك الكاملة، كمثال:
+            // Navigator.push(context, MaterialPageRoute(builder: (context) => SearchScreen()));
+          },
+          child: GlassContainer(
+            borderRadius: 24, // حواف دائرية ناعمة جداً تليق بتطبيق بريميوم
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.search_rounded, 
+                    size: 20, 
+                    color: Colors.white.withOpacity(0.5),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Search...',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.4), 
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  // 3. الجزيرة العائمة المُحدثة
+  // الجزيرة العائمة (كما هي بدون تعديل)
   Widget _buildFloatingIslandNavBar() {
     return SafeArea(
       top: false,
@@ -167,7 +204,6 @@ class HomeScreenUI extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // تم استبدال الأيقونات بأحدث المعايير البصرية
                 _buildIslandNavItem(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 0),
                 _buildIslandNavItem(Icons.person_outline_rounded, Icons.person_rounded, 1),
                 _buildIslandNavItem(Icons.tune_rounded, Icons.tune_rounded, 2), 
@@ -179,7 +215,6 @@ class HomeScreenUI extends StatelessWidget {
     );
   }
 
-  // 4. بناء عنصر النيڤيجيشن المدمج
   Widget _buildIslandNavItem(IconData icon, IconData activeIcon, int index) {
     final isSelected = currentIndex == index;
 
@@ -237,9 +272,7 @@ class HomeScreenUI extends StatelessWidget {
   }
 }
 
-// -------------------------------------------------------------------
-// ويدجت الـ Glassmorphic 
-// -------------------------------------------------------------------
+// ويدجت الـ Glassmorphic (كما هي بدون تغيير)
 class GlassContainer extends StatelessWidget {
   final Widget child;
   final double borderRadius;
