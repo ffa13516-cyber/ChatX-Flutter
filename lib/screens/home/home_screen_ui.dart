@@ -34,7 +34,6 @@ class HomeScreenUI extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgDark,
-      // أساسي عشان المحتوى ينزل تحت البار العائم ويدي إحساس العمق
       extendBody: true, 
       body: SafeArea(
         bottom: false,
@@ -51,9 +50,8 @@ class HomeScreenUI extends StatelessWidget {
           ],
         ),
       ),
-      // استخدام Padding لرفع البار عن حافة الشاشة وعمل تأثير الجزيرة
       bottomNavigationBar: Padding(
-        padding: const EdgeInsets.only(bottom: 24.0, left: 32.0, right: 32.0),
+        padding: const EdgeInsets.only(bottom: 16.0, left: 40.0, right: 40.0),
         child: _buildFloatingIslandNavBar(),
       ),
     );
@@ -140,39 +138,39 @@ class HomeScreenUI extends StatelessWidget {
     );
   }
 
-  // 3. الجزيرة العائمة (The Floating Island)
+  // 3. الجزيرة العائمة المُحدثة
   Widget _buildFloatingIslandNavBar() {
     return SafeArea(
       top: false,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(40), // شكل الكبسولة
+        borderRadius: BorderRadius.circular(30),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30), // تغبيش عالي لفخامة الإزاز
+          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30), 
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.06), // شفافية دقيقة جداً
-              borderRadius: BorderRadius.circular(40),
+              color: Colors.white.withOpacity(0.06), 
+              borderRadius: BorderRadius.circular(30),
               border: Border.all(
-                color: Colors.white.withOpacity(0.15), // حافة مضيئة تعطي انعكاس الضوء
+                color: Colors.white.withOpacity(0.12),
                 width: 1.0,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2), // ظل ناعم لفصل الجزيرة عن الخلفية
-                  blurRadius: 30,
-                  spreadRadius: 5,
-                  offset: const Offset(0, 10),
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // تغيير الأيقونة لتكون Forum لأنها بتدي انطباع Premium أكتر من البابل العادية
-                _buildIslandNavItem(Icons.forum_outlined, Icons.forum_rounded, 0),
+                // تم استبدال الأيقونات بأحدث المعايير البصرية
+                _buildIslandNavItem(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 0),
                 _buildIslandNavItem(Icons.person_outline_rounded, Icons.person_rounded, 1),
-                _buildIslandNavItem(Icons.settings_outlined, Icons.settings_rounded, 2),
+                _buildIslandNavItem(Icons.tune_rounded, Icons.tune_rounded, 2), 
               ],
             ),
           ),
@@ -181,22 +179,21 @@ class HomeScreenUI extends StatelessWidget {
     );
   }
 
-  // 4. بناء عنصر النيڤيجيشن بدون نصوص (Minimalist Glow Dot)
+  // 4. بناء عنصر النيڤيجيشن المدمج
   Widget _buildIslandNavItem(IconData icon, IconData activeIcon, int index) {
     final isSelected = currentIndex == index;
 
     return GestureDetector(
       onTap: () {
-        // تأثير لمسي أقوى قليلاً ليعطي إحساس بالـ Hardware الحقيقي
-        HapticFeedback.mediumImpact(); 
+        HapticFeedback.lightImpact(); 
         onTabSelected(index);
       },
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
         color: Colors.transparent,
         child: Column(
-          mainAxisSize: MainAxisSize.min, // عشان مياخدش مساحة بالطول أكتر من حجمه
+          mainAxisSize: MainAxisSize.min, 
           children: [
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
@@ -210,16 +207,15 @@ class HomeScreenUI extends StatelessWidget {
                 isSelected ? activeIcon : icon,
                 key: ValueKey<bool>(isSelected),
                 color: isSelected ? AppColors.primary : Colors.white.withOpacity(0.4),
-                size: 28, // حجم أيقونة أكبر نسبياً لتعويض غياب النص
+                size: 24, 
               ),
             ),
-            const SizedBox(height: 6),
-            // النقطة المضيئة (Glow Indicator)
+            const SizedBox(height: 4),
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeOutCubic,
-              height: 5,
-              width: isSelected ? 5 : 0, // تختفي وتظهر بنعومة
+              height: 4,
+              width: isSelected ? 4 : 0, 
               decoration: BoxDecoration(
                 color: AppColors.primary,
                 shape: BoxShape.circle,
@@ -227,8 +223,8 @@ class HomeScreenUI extends StatelessWidget {
                     ? [
                         BoxShadow(
                           color: AppColors.primary.withOpacity(0.8),
-                          blurRadius: 10,
-                          spreadRadius: 2,
+                          blurRadius: 8,
+                          spreadRadius: 1,
                         )
                       ]
                     : [],
@@ -242,7 +238,7 @@ class HomeScreenUI extends StatelessWidget {
 }
 
 // -------------------------------------------------------------------
-// ويدجت الـ Glassmorphic المخصصة (بدون تعديلات كبيرة لأنها ممتازة)
+// ويدجت الـ Glassmorphic 
 // -------------------------------------------------------------------
 class GlassContainer extends StatelessWidget {
   final Widget child;
