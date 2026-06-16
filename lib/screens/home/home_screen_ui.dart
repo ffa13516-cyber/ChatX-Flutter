@@ -184,7 +184,7 @@ class HomeScreenUI extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 350),
-        curve: Curves.transformCurves([Curves.easeOutCubic]), // حركة انسيابية سريعة في النهاية ومريحة للعين
+        curve: Curves.easeOutCubic, // حركة انسيابية سريعة في النهاية ومريحة للعين
         padding: EdgeInsets.symmetric(
           horizontal: isSelected ? 20 : 14,
           vertical: 10,
