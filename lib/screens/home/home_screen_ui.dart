@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // مستدعى خصيصاً للتفاعل اللمسي الفخم (Haptics)
+import 'package:flutter/services.dart';
 
 // مسارات الملفات الخاصة بمشروعك
 import '../chat/chats_tab.dart';
@@ -24,7 +24,6 @@ class HomeScreenUI extends StatelessWidget {
     required this.onSearch,
   });
 
-  // الشاشات المعروضة داخل التطبيق
   final List<Widget> _screens = const [
     ChatsTab(),
     ProfileScreen(),
@@ -35,7 +34,8 @@ class HomeScreenUI extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgDark,
-      extendBody: true, // حجر الأساس لجعل المحتوى يتدفق خلف البار الزجاجي بسلاسة
+      // أساسي عشان المحتوى ينزل تحت البار العائم ويدي إحساس العمق
+      extendBody: true, 
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -51,11 +51,15 @@ class HomeScreenUI extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: _buildFullWidthGlassNavBar(),
+      // استخدام Padding لرفع البار عن حافة الشاشة وعمل تأثير الجزيرة
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.only(bottom: 24.0, left: 32.0, right: 32.0),
+        child: _buildFloatingIslandNavBar(),
+      ),
     );
   }
 
-  // 1. الهيدر العلوي (chatx + القائمة المنسدلة بتأثير زجاجي)
+  // 1. الهيدر العلوي
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
@@ -78,11 +82,11 @@ class HomeScreenUI extends StatelessWidget {
             ),
             child: PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert, color: Colors.white),
-              color: Colors.black.withOpacity(0.4), // تأثير داكن زجاجي متناسق مع الخلفية
+              color: Colors.black.withOpacity(0.5), 
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: Colors.white.withOpacity(0.15)),
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: Colors.white.withOpacity(0.1)),
               ),
               onSelected: (value) {
                 if (value == 'channel') onCreateChannel();
@@ -93,8 +97,8 @@ class HomeScreenUI extends StatelessWidget {
                   value: 'channel',
                   child: Row(
                     children: const [
-                      Icon(Icons.campaign_rounded, color: Colors.white),
-                      SizedBox(width: 10),
+                      Icon(Icons.campaign_rounded, color: Colors.white70),
+                      SizedBox(width: 12),
                       Text('Create Channel', style: TextStyle(color: Colors.white)),
                     ],
                   ),
@@ -103,8 +107,8 @@ class HomeScreenUI extends StatelessWidget {
                   value: 'group',
                   child: Row(
                     children: const [
-                      Icon(Icons.group_add_rounded, color: Colors.white),
-                      SizedBox(width: 10),
+                      Icon(Icons.group_add_rounded, color: Colors.white70),
+                      SizedBox(width: 12),
                       Text('Create Group', style: TextStyle(color: Colors.white)),
                     ],
                   ),
@@ -117,7 +121,7 @@ class HomeScreenUI extends StatelessWidget {
     );
   }
 
-  // 2. شريط البحث العائم والزجاجي
+  // 2. شريط البحث
   Widget _buildSearchBar() {
     return GlassContainer(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -127,43 +131,49 @@ class HomeScreenUI extends StatelessWidget {
         onChanged: onSearch,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
-          icon: Icon(Icons.search_rounded, color: Colors.white.withOpacity(0.7)),
+          icon: Icon(Icons.search_rounded, color: Colors.white.withOpacity(0.5)),
           hintText: 'Search...',
-          hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+          hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
           border: InputBorder.none,
         ),
       ),
     );
   }
 
-  // 3. الـ Navigation Bar السفلي الممتد بعرض الشاشة بالكامل (Ultra-Glassmorphic)
-  Widget _buildFullWidthGlassNavBar() {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25), // زيادة التغبيش لمنح مظهر سائل وناعم
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.02), // درجة شفافة جداً ومدروسة لمنع بهتان الألوان خلفها
-            border: Border(
-              top: BorderSide(
-                color: Colors.white.withOpacity(0.12), // خط علوي فائق النعومة ليعطي لمعة قطع الزجاج الحقيقية
+  // 3. الجزيرة العائمة (The Floating Island)
+  Widget _buildFloatingIslandNavBar() {
+    return SafeArea(
+      top: false,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(40), // شكل الكبسولة
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30), // تغبيش عالي لفخامة الإزاز
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.06), // شفافية دقيقة جداً
+              borderRadius: BorderRadius.circular(40),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.15), // حافة مضيئة تعطي انعكاس الضوء
                 width: 1.0,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2), // ظل ناعم لفصل الجزيرة عن الخلفية
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
-          ),
-          child: SafeArea(
-            top: false, // الحفاظ على أبعاد الهواتف التي تحتوي على نتوء سفلي (Gesture Bar)
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildNavItem(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 0, 'Chats'),
-                  _buildNavItem(Icons.person_outline_rounded, Icons.person_rounded, 1, 'Profile'),
-                  _buildNavItem(Icons.settings_outlined, Icons.settings_rounded, 2, 'Settings'),
-                ],
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                // تغيير الأيقونة لتكون Forum لأنها بتدي انطباع Premium أكتر من البابل العادية
+                _buildIslandNavItem(Icons.forum_outlined, Icons.forum_rounded, 0),
+                _buildIslandNavItem(Icons.person_outline_rounded, Icons.person_rounded, 1),
+                _buildIslandNavItem(Icons.settings_outlined, Icons.settings_rounded, 2),
+              ],
             ),
           ),
         ),
@@ -171,43 +181,25 @@ class HomeScreenUI extends StatelessWidget {
     );
   }
 
-  // 4. بناء عناصر النيڤيجيشن الفردية مع المايكرو-أنيميشن والتأثير اللمسي
-  Widget _buildNavItem(IconData icon, IconData activeIcon, int index, String label) {
+  // 4. بناء عنصر النيڤيجيشن بدون نصوص (Minimalist Glow Dot)
+  Widget _buildIslandNavItem(IconData icon, IconData activeIcon, int index) {
     final isSelected = currentIndex == index;
 
     return GestureDetector(
       onTap: () {
-        // تأثير اهتزاز فيزيائي خفيف وذكي عند الضغط لرفع تقييم تجربة المستخدم
-        HapticFeedback.lightImpact(); 
+        // تأثير لمسي أقوى قليلاً ليعطي إحساس بالـ Hardware الحقيقي
+        HapticFeedback.mediumImpact(); 
         onTabSelected(index);
       },
       behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeOutCubic, // حركة انسيابية سريعة في النهاية ومريحة للعين
-        padding: EdgeInsets.symmetric(
-          horizontal: isSelected ? 20 : 14,
-          vertical: 10,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withOpacity(0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.08),
-                    blurRadius: 16,
-                    spreadRadius: 2,
-                  )
-                ]
-              : [],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        color: Colors.transparent,
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // عشان مياخدش مساحة بالطول أكتر من حجمه
           children: [
-            // أنيميشن تبديل الأيقونات مع تكبير وتصغير (Scale Drop) احترافي
             AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
+              duration: const Duration(milliseconds: 300),
               transitionBuilder: (Widget child, Animation<double> animation) {
                 return ScaleTransition(
                   scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
@@ -217,30 +209,30 @@ class HomeScreenUI extends StatelessWidget {
               child: Icon(
                 isSelected ? activeIcon : icon,
                 key: ValueKey<bool>(isSelected),
-                color: isSelected ? AppColors.primary : Colors.white.withOpacity(0.5),
-                size: 24,
+                color: isSelected ? AppColors.primary : Colors.white.withOpacity(0.4),
+                size: 28, // حجم أيقونة أكبر نسبياً لتعويض غياب النص
               ),
             ),
-            // تمدد ذكي جداً لظهور النص وانبثاقه بدون حدوث قفزة فجائية في الواجهة
-            AnimatedSize(
+            const SizedBox(height: 6),
+            // النقطة المضيئة (Glow Indicator)
+            AnimatedContainer(
               duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              child: isSelected
-                  ? Row(
-                      children: [
-                        const SizedBox(width: 8),
-                        Text(
-                          label,
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      ],
-                    )
-                  : const SizedBox.shrink(),
+              curve: Curves.easeOutCubic,
+              height: 5,
+              width: isSelected ? 5 : 0, // تختفي وتظهر بنعومة
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.8),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        )
+                      ]
+                    : [],
+              ),
             ),
           ],
         ),
@@ -250,7 +242,7 @@ class HomeScreenUI extends StatelessWidget {
 }
 
 // -------------------------------------------------------------------
-// ويدجت الـ Glassmorphic المخصصة للعناصر العائمة (كشريط البحث)
+// ويدجت الـ Glassmorphic المخصصة (بدون تعديلات كبيرة لأنها ممتازة)
 // -------------------------------------------------------------------
 class GlassContainer extends StatelessWidget {
   final Widget child;
@@ -272,12 +264,12 @@ class GlassContainer extends StatelessWidget {
       margin: margin,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(color: Colors.white.withOpacity(0.15), width: 1.2),
-        color: Colors.white.withOpacity(0.04),
+        border: Border.all(color: Colors.white.withOpacity(0.12), width: 1.0),
+        color: Colors.white.withOpacity(0.03),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 12,
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
             spreadRadius: 1,
           ),
         ],
@@ -285,7 +277,7 @@ class GlassContainer extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Padding(
             padding: padding ?? EdgeInsets.zero,
             child: child,
