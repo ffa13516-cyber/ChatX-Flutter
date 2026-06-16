@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart'; // 🚀 تم إضافة الـ Bloc هنا
 import 'package:chatx/screens/chat/cubit/chat_cubit.dart'; // 🚀 تم إضافة الـ Cubit هنا
 import '../../models/models.dart';
@@ -7,10 +6,7 @@ import '../../repositories/firebase_repo.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/session_manager.dart';
 import '../../widgets/widgets.dart';
-import '../group/groups_tab.dart';
-import '../channel/channels_tab.dart';
 import 'chat_screen.dart';
-import 'saved_messages_screen.dart';
 import 'new_chat_sheet.dart';
 
 class ChatsTab extends StatefulWidget {
@@ -20,18 +16,13 @@ class ChatsTab extends StatefulWidget {
   State<ChatsTab> createState() => _ChatsTabState();
 }
 
-class _ChatsTabState extends State<ChatsTab>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _ChatsTabState extends State<ChatsTab> {
   String _myUid = '';
   String _myName = '';
-  final _searchController = TextEditingController();
-  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     _loadUser();
   }
 
@@ -47,26 +38,11 @@ class _ChatsTabState extends State<ChatsTab>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
+      backgroundColor: Colors.transparent, // خليناها شفافة عشان تاخد نفس لون الـ HomeScreen
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            _buildSearchBar(),
-            _buildTabBar(),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildChatsList(),
-                  // ✅ تم إصلاح: تمرير myUid وإزالة const
-                  GroupsTab(myUid: _myUid, key: ValueKey(_myUid)), 
-                  // ✅ تم إصلاح: تمرير myUid وإزالة const
-                  ChannelsTab(myUid: _myUid, key: ValueKey(_myUid)), 
-                ],
-              ),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.only(top: 10.0), // مسافة بسيطة من فوق عشان الشكل
+          child: _buildChatsList(),
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -77,7 +53,7 @@ class _ChatsTabState extends State<ChatsTab>
             backgroundColor: Colors.transparent,
             builder: (context) => NewChatSheet(
               myUid: _myUid,
-              myName: _myName, // ✅ تم التعديل لتمرير الاسم هنا بعد تحديث الـ Sheet
+              myName: _myName,
             ),
           );
         },
@@ -87,101 +63,12 @@ class _ChatsTabState extends State<ChatsTab>
     );
   }
 
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: AppColors.primary.withOpacity(0.2),
-                child: Text(
-                  _myName.isNotEmpty ? _myName[0].toUpperCase() : 'U',
-                  style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _myName.isNotEmpty ? _myName : 'Loading...',
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const Text(
-                    'Online',
-                    style: TextStyle(color: Colors.green, fontSize: 12),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          IconButton(
-            icon: const Icon(Icons.bookmark_border_rounded, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  // ✅ تم إصلاح: تمرير myUid و myName وإزالة const
-                  builder: (_) => SavedMessagesScreen(myUid: _myUid, myName: _myName), 
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: TextField(
-        controller: _searchController,
-        style: const TextStyle(color: Colors.white),
-        decoration: InputDecoration(
-          hintText: 'Search chats...',
-          hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-          prefixIcon: Icon(Icons.search, color: Colors.white.withOpacity(0.5)),
-          fillColor: AppColors.bgSurface,
-          filled: true,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-        ),
-        onChanged: (val) {
-          setState(() {
-            _searchQuery = val.trim().toLowerCase();
-          });
-        },
-      ),
-    );
-  }
-
-  Widget _buildTabBar() {
-    return TabBar(
-      controller: _tabController,
-      indicatorColor: AppColors.primary,
-      labelColor: AppColors.primary,
-      unselectedLabelColor: Colors.white.withOpacity(0.5),
-      tabs: const [
-        Tab(text: 'Direct'),
-        Tab(text: 'Groups'),
-        Tab(text: 'Channels'),
-      ],
-    );
-  }
-
   Widget _buildChatsList() {
     if (_myUid.isEmpty) {
       return const Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
 
     return StreamBuilder<List<ChatModel>>(
-      // ✅ تم إصلاح: استخدام الاسم الصحيح للدالة observeUserChats بدلاً من observeChats
       stream: FirebaseRepo.observeUserChats(_myUid), 
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -192,10 +79,6 @@ class _ChatsTabState extends State<ChatsTab>
         }
 
         var chats = snapshot.data!;
-        
-        if (_searchQuery.isNotEmpty) {
-          // فلترة الشاتات بناءً على البحث لو محتاج تعدلها مستقبلاً
-        }
 
         if (chats.isEmpty) {
           return const Center(
@@ -207,9 +90,13 @@ class _ChatsTabState extends State<ChatsTab>
           );
         }
 
-        return ListView(
+        // استخدام ListView.builder أحسن في الأداء عشان لو الشاتات كترت
+        return ListView.builder(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          children: chats.map((chat) => _buildChatItem(chat)).toList(),
+          itemCount: chats.length,
+          itemBuilder: (context, index) {
+            return _buildChatItem(chats[index]);
+          },
         );
       },
     );
@@ -239,7 +126,6 @@ class _ChatsTabState extends State<ChatsTab>
 
             if (!mounted) return;
 
-            // 🚀 التعديل الذكي هنا: تمرير الـ myName لحل خطأ الـ Build النهائي في الكيوبيت والشاشة
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -247,14 +133,14 @@ class _ChatsTabState extends State<ChatsTab>
                   create: (context) => ChatCubit(
                     chatId: chatData.chatId,
                     myUid: _myUid,
-                    myName: _myName, // ✅ تم الإصلاح وتمرير البارامتر المطلوب
+                    myName: _myName, 
                   ),
                   child: ChatScreen(
                     chatId: chatData.chatId,
                     myUid: _myUid,
-                    myName: _myName, // ✅ تم الإصلاح وتمرير البارامتر المطلوب
-                    receiverName: name,            // الاسم الحقيقي يمرر هنا ديناميكياً
-                    receiverImage: user?.avatarUrl, // رابط الصورة يمرر هنا لو وجد
+                    myName: _myName, 
+                    receiverName: name,            
+                    receiverImage: user?.avatarUrl, 
                   ),
                 ),
               ),
@@ -263,12 +149,5 @@ class _ChatsTabState extends State<ChatsTab>
         );
       },
     );
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _searchController.dispose();
-    super.dispose();
   }
 }
