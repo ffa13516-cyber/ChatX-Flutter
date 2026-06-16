@@ -21,8 +21,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.2' # ✅ التعديل هنا: حطينا رقم الإصدار صريح عشان جيتهاب يفهمه بدون مشاكل
-          channel: 'stable'
+          channel: 'stable' # ✅ التعديل هنا: شيلنا رقم الإصدار عشان يسحب أحدث نسخة Stable في العالم فوراً
 
       - name: Prepare Clean Project
         run: |
