@@ -8,12 +8,12 @@ import '../profile/profile_screen.dart';
 import '../settings/settings_screen.dart';
 import '../../utils/app_colors.dart';
 
-class HomeScreenUI extends StatelessWidget {
+class HomeScreenUI extends StatefulWidget {
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
   final VoidCallback onCreateChannel;
   final VoidCallback onCreateGroup;
-  final ValueChanged<String> onSearch; // محتفظين بيها عشان ميعملش إيرور في الـ Constructor عندك
+  final ValueChanged<String> onSearch;
 
   const HomeScreenUI({
     super.key,
@@ -24,6 +24,14 @@ class HomeScreenUI extends StatelessWidget {
     required this.onSearch,
   });
 
+  @override
+  State<HomeScreenUI> createState() => _HomeScreenUIState();
+}
+
+class _HomeScreenUIState extends State<HomeScreenUI> {
+  bool _isSearching = false; // التحكم في حالة ظهور السيرش الممتد
+  final TextEditingController _searchController = TextEditingController();
+
   final List<Widget> _screens = const [
     ChatsTab(),
     ProfileScreen(),
@@ -31,50 +39,80 @@ class HomeScreenUI extends StatelessWidget {
   ];
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgDark,
-      extendBody: true, 
-      body: SafeArea(
-        bottom: false,
-        // 1. استخدام NestedScrollView عشان يدعم حركة إخفاء وظهور السيرش مع السكرول
-        child: NestedScrollView(
-          floatHeaderSlivers: true, // سر الحركة: يظهر أول ما ترفع لفوق سحبة خفيفة
-          headerSliverBuilder: (context, innerBoxIsScrolled) {
-            return [
-              SliverAppBar(
-                backgroundColor: AppColors.bgDark,
-                floating: true,
-                snap: true,
-                elevation: 0,
-                toolbarHeight: 60,
-                titleSpacing: 0,
-                title: _buildHeaderContent(context),
-                // دمج شريط البحث في أسفل الـ AppBar
-                bottom: PreferredSize(
-                  preferredSize: const Size.fromHeight(52), // الارتفاع الكلي لمنطقة السيرش بالهوامش
-                  child: _buildSearchBar(context),
+    // منع الخروج من التطبيق إذا كان السيرش مفتوحاً (يتم غلق السيرش أولاً مثل تليجرام)
+    return PopScope(
+      canPop: !_isSearching,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        setState(() {
+          _isSearching = false;
+          _searchController.clear();
+          widget.onSearch('');
+        });
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.bgDark,
+        extendBody: true, 
+        body: SafeArea(
+          bottom: false,
+          child: NestedScrollView(
+            floatHeaderSlivers: true, 
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return [
+                SliverAppBar(
+                  backgroundColor: AppColors.bgDark,
+                  floating: true,
+                  snap: true,
+                  elevation: 0,
+                  toolbarHeight: 65,
+                  titleSpacing: 0,
+                  // الانتقال السلس والمطور بين الهيدر العادي وشريط البحث
+                  title: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    transitionBuilder: (Widget child, Animation<double> animation) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0.0, -0.05),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: _isSearching 
+                        ? _buildExpandedSearchBar(context) 
+                        : _buildHeaderContent(context),
+                  ),
                 ),
-              ),
-            ];
-          },
-          // محتوى الشاشات يتمرر هنا جوه الـ body
-          body: IndexedStack(
-            index: currentIndex,
-            children: _screens,
+              ];
+            },
+            body: IndexedStack(
+              index: widget.currentIndex,
+              children: _screens,
+            ),
           ),
         ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.only(bottom: 16.0, left: 40.0, right: 40.0),
-        child: _buildFloatingIslandNavBar(),
+        bottomNavigationBar: Padding(
+          padding: const EdgeInsets.only(bottom: 16.0, left: 40.0, right: 40.0),
+          child: _buildFloatingIslandNavBar(),
+        ),
       ),
     );
   }
 
-  // الهيدر العلوي (تم تحويله لـ Content داخل الـ SliverAppBar)
+  // الهيدر الافتراضي (العنوان + زر البحث الاستراتيجي + القائمة)
   Widget _buildHeaderContent(BuildContext context) {
     return Padding(
+      key: const ValueKey('NormalHeader'),
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -88,94 +126,132 @@ class HomeScreenUI extends StatelessWidget {
               letterSpacing: 1.2,
             ),
           ),
-          Theme(
-            data: Theme.of(context).copyWith(
-              splashColor: Colors.transparent,
-              highlightColor: Colors.transparent,
-            ),
-            child: PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: Colors.white),
-              color: Colors.black.withOpacity(0.5), 
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(color: Colors.white.withOpacity(0.1)),
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.search_rounded, color: Colors.white, size: 26),
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  setState(() {
+                    _isSearching = true;
+                  });
+                },
               ),
-              onSelected: (value) {
-                if (value == 'channel') onCreateChannel();
-                if (value == 'group') onCreateGroup();
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'channel',
-                  child: Row(
-                    children: [
-                      Icon(Icons.campaign_rounded, color: Colors.white70),
-                      SizedBox(width: 12),
-                      Text('Create Channel', style: TextStyle(color: Colors.white)),
-                    ],
-                  ),
+              Theme(
+                data: Theme.of(context).copyWith(
+                  splashColor: Colors.transparent,
+                  highlightColor: Colors.transparent,
                 ),
-                const PopupMenuItem(
-                  value: 'group',
-                  child: Row(
-                    children: [
-                      Icon(Icons.group_add_rounded, color: Colors.white70),
-                      SizedBox(width: 12),
-                      Text('Create Group', style: TextStyle(color: Colors.white)),
-                    ],
+                child: PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: Colors.white, size: 26),
+                  color: Colors.black.withOpacity(0.7), 
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(color: Colors.white.withOpacity(0.1)),
                   ),
+                  onSelected: (value) {
+                    if (value == 'channel') widget.onCreateChannel();
+                    if (value == 'group') widget.onCreateGroup();
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'channel',
+                      child: Row(
+                        children: [
+                          Icon(Icons.campaign_rounded, color: Colors.white70),
+                          SizedBox(width: 12),
+                          Text('Create Channel', style: TextStyle(color: Colors.white)),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'group',
+                      child: Row(
+                        children: [
+                          Icon(Icons.group_add_rounded, color: Colors.white70),
+                          SizedBox(width: 12),
+                          Text('Create Group', style: TextStyle(color: Colors.white)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // شريط البحث المطور (تصميم كبسولة بريميوم، ملموم، وجاهز للانتقال)
-  Widget _buildSearchBar(BuildContext context) {
+  // شريط البحث الذكي الممتد مع كبسولة Glassmorphism
+  Widget _buildExpandedSearchBar(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 20, right: 20, bottom: 10),
-      child: SizedBox(
-        height: 42, // المقاس المثالي عشان يكون نحيف وشيك
-        child: GestureDetector(
-          onTap: () {
-            HapticFeedback.lightImpact(); // هزة تفاعلية فخمة عند الضغط
-            
-            // TODO: هنا هتحط كود الانتقال لشاشتك الكاملة، كمثال:
-            // Navigator.push(context, MaterialPageRoute(builder: (context) => SearchScreen()));
-          },
-          child: GlassContainer(
-            borderRadius: 24, // حواف دائرية ناعمة جداً تليق بتطبيق بريميوم
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.search_rounded, 
-                    size: 20, 
-                    color: Colors.white.withOpacity(0.5),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Search...',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.4), 
-                      fontSize: 15,
+      key: const ValueKey('ExpandedSearch'),
+      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              setState(() {
+                _isSearching = false;
+                _searchController.clear();
+                widget.onSearch('');
+              });
+            },
+          ),
+          Expanded(
+            child: SizedBox(
+              height: 46,
+              child: GlassContainer(
+                borderRadius: 24,
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Center(
+                  child: TextField(
+                    controller: _searchController,
+                    autofocus: true, 
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    onChanged: (value) {
+                      widget.onSearch(value);
+                      setState(() {}); // لتحديث ظهور واختفاء زر الـ X لحظياً وبدون تأخير
+                    },
+                    cursorColor: AppColors.primary,
+                    decoration: InputDecoration(
+                      hintText: 'Search chats...',
+                      hintStyle: TextStyle(
+                        color: Colors.white.withOpacity(0.4), 
+                        fontSize: 15,
+                      ),
+                      border: InputBorder.none,
+                      isDense: true,
+                      suffixIcon: _searchController.text.isNotEmpty 
+                          ? IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: Icon(Icons.close_rounded, color: Colors.white.withOpacity(0.6), size: 20),
+                              onPressed: () {
+                                _searchController.clear();
+                                widget.onSearch('');
+                                setState(() {});
+                              },
+                            )
+                          : null,
                     ),
                   ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
+          const SizedBox(width: 8),
+        ],
       ),
     );
   }
 
-  // الجزيرة العائمة (كما هي بدون تعديل)
+  // الجزيرة العائمة المتطورة للملاحة
   Widget _buildFloatingIslandNavBar() {
     return SafeArea(
       top: false,
@@ -216,12 +292,12 @@ class HomeScreenUI extends StatelessWidget {
   }
 
   Widget _buildIslandNavItem(IconData icon, IconData activeIcon, int index) {
-    final isSelected = currentIndex == index;
+    final isSelected = widget.currentIndex == index;
 
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact(); 
-        onTabSelected(index);
+        widget.onTabSelected(index);
       },
       behavior: HitTestBehavior.opaque,
       child: Container(
@@ -272,7 +348,7 @@ class HomeScreenUI extends StatelessWidget {
   }
 }
 
-// ويدجت الـ Glassmorphic (كما هي بدون تغيير)
+// ويدجت الـ Glassmorphic Capsule المستقلة لتأثير الشفافية الفخم
 class GlassContainer extends StatelessWidget {
   final Widget child;
   final double borderRadius;
