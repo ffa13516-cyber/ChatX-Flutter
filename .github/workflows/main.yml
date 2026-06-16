@@ -21,7 +21,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable' # ✅ التعديل هنا: شيلنا رقم الإصدار عشان يسحب أحدث نسخة Stable في العالم فوراً
+          channel: 'stable'
 
       - name: Prepare Clean Project
         run: |
@@ -35,16 +35,16 @@ jobs:
           
           cd temp_project/android
           
-          # 3. التعديل الجراحي لنسخ الكوتلن والجرادل داخل ملفات فلاتر الأصلية
-          sed -i 's/id "org.jetbrains.kotlin.android" version .*/id "org.jetbrains.kotlin.android" version "1.8.22" apply false/' settings.gradle
-          sed -i 's/id "com.android.application" version .*/id "com.android.application" version "7.4.2" apply false/' settings.gradle
-          sed -i 's/gradle-.*-all.zip/gradle-7.5-all.zip/' gradle/wrapper/gradle-wrapper.properties
+          # 3. الحقن الذكي لملفات الفايربيز (يدعم kts الجديد و gradle العادي)
+          if [ -f "settings.gradle.kts" ]; then
+            sed -i '/id("org.jetbrains.kotlin.android")/a \    id("com.google.gms.google-services") version "4.3.15" apply false' settings.gradle.kts
+            sed -i '/id("com.android.application")/a \    id("com.google.gms.google-services")' app/build.gradle.kts
+          elif [ -f "settings.gradle" ]; then
+            sed -i '/id "org.jetbrains.kotlin.android"/a \    id "com.google.gms.google-services" version "4.3.15" apply false' settings.gradle
+            sed -i '/id "com.android.application"/a \    id "com.google.gms.google-services"' app/build.gradle
+          fi
           
-          # 4. إضافة ملفات الفايربيز بالطريقة الصحيحة
-          sed -i '/id "org.jetbrains.kotlin.android"/a \    id "com.google.gms.google-services" version "4.3.15" apply false' settings.gradle
-          sed -i '/id "com.android.application"/a \    id "com.google.gms.google-services"' app/build.gradle
-          
-          # إنشاء ملف الجيسون الخاص بـ Firebase
+          # 4. إنشاء ملف الجيسون الخاص بـ Firebase
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
 
       - name: Get packages
