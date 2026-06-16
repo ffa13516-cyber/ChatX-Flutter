@@ -29,7 +29,7 @@ class HomeScreenUI extends StatefulWidget {
 }
 
 class _HomeScreenUIState extends State<HomeScreenUI> {
-  bool _isSearching = false; // التحكم في حالة ظهور السيرش الممتد
+  bool _isSearching = false; // إدارة حالة البحث التفاعلي
   final TextEditingController _searchController = TextEditingController();
 
   final List<Widget> _screens = const [
@@ -46,7 +46,7 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
 
   @override
   Widget build(BuildContext context) {
-    // منع الخروج من التطبيق إذا كان السيرش مفتوحاً (يتم غلق السيرش أولاً مثل تليجرام)
+    // استخدام ميزة حماية الرجوع الذكي المحدثة في الإصدارات المستقرة الجديدة
     return PopScope(
       canPop: !_isSearching,
       onPopInvokedWithResult: (didPop, result) {
@@ -73,7 +73,7 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
                   elevation: 0,
                   toolbarHeight: 65,
                   titleSpacing: 0,
-                  // الانتقال السلس والمطور بين الهيدر العادي وشريط البحث
+                  // أنيميشن فخم وسلس أثناء الانتقال لطور البحث
                   title: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 220),
                     transitionBuilder: (Widget child, Animation<double> animation) {
@@ -109,7 +109,7 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
     );
   }
 
-  // الهيدر الافتراضي (العنوان + زر البحث الاستراتيجي + القائمة)
+  // الهيدر الرئيسي الافتراضي
   Widget _buildHeaderContent(BuildContext context) {
     return Padding(
       key: const ValueKey('NormalHeader'),
@@ -185,7 +185,7 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
     );
   }
 
-  // شريط البحث الذكي الممتد مع كبسولة Glassmorphism
+  // شريط البحث الممتد والذكي (Glassmorphism Capsule) يعمل 100% الآن
   Widget _buildExpandedSearchBar(BuildContext context) {
     return Padding(
       key: const ValueKey('ExpandedSearch'),
@@ -216,7 +216,7 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
                     style: const TextStyle(color: Colors.white, fontSize: 16),
                     onChanged: (value) {
                       widget.onSearch(value);
-                      setState(() {}); // لتحديث ظهور واختفاء زر الـ X لحظياً وبدون تأخير
+                      setState(() {}); // لتحديث حالة زر الـ X التفاعلي فوراً
                     },
                     cursorColor: AppColors.primary,
                     decoration: InputDecoration(
@@ -251,7 +251,7 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
     );
   }
 
-  // الجزيرة العائمة المتطورة للملاحة
+  // الجزيرة العائمة الفخمة للملاحة السفلى
   Widget _buildFloatingIslandNavBar() {
     return SafeArea(
       top: false,
@@ -348,7 +348,7 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
   }
 }
 
-// ويدجت الـ Glassmorphic Capsule المستقلة لتأثير الشفافية الفخم
+// ويدجت الـ Glassmorphic المخصصة للكبسولات
 class GlassContainer extends StatelessWidget {
   final Widget child;
   final double borderRadius;
