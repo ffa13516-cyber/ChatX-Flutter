@@ -21,7 +21,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0'
+          flutter-version: 'stable' # تم التحديث لأحدث إصدار مستقر لمواكبة التطور وحل المشكلة
           channel: 'stable'
 
       - name: Prepare Clean Project
@@ -32,7 +32,7 @@ jobs:
           # 2. نقل ملفاتك (الكود الخاص بيك) للمشروع الجديد
           cp -r lib temp_project/
           cp pubspec.yaml temp_project/
-          cp -r assets temp_project/   # ✅ ده التعديل المهم
+          cp -r assets temp_project/   
           
           cd temp_project/android
           
@@ -41,7 +41,7 @@ jobs:
           sed -i 's/id "com.android.application" version .*/id "com.android.application" version "7.4.2" apply false/' settings.gradle
           sed -i 's/gradle-.*-all.zip/gradle-7.5-all.zip/' gradle/wrapper/gradle-wrapper.properties
           
-          # 4. إضافة ملفات الفايربيز بالطريقة الصحيحة لنسخة فلاتر 3.19
+          # 4. إضافة ملفات الفايربيز بالطريقة الصحيحة
           sed -i '/id "org.jetbrains.kotlin.android"/a \    id "com.google.gms.google-services" version "4.3.15" apply false' settings.gradle
           sed -i '/id "com.android.application"/a \    id "com.google.gms.google-services"' app/build.gradle
           
