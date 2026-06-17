@@ -23,13 +23,19 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Prepare Clean Project
+      - name: Architect Clean Environment & Setup
         run: |
-          flutter create --org com.chatx --project-name app temp_project
-          cp -r lib temp_project/
-          cp pubspec.yaml temp_project/
-          cp -r assets temp_project/
-          cd temp_project/android
+          # 1. تنظيف مسارات الأندرويد القديمة وأي مشاريع مؤقتة
+          rm -rf android/ temp_project/
+          
+          # 2. بناء مجلد الأندرويد من الصفر في المسار الرئيسي
+          flutter create . --org com.chatx --project-name app
+          
+          # 3. خطوة استباقية: حقن صلاحية الإنترنت لضمان عمل Firebase
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
+          
+          # 4. إعداد Google Services بشكل آمن
+          cd android
           if [ -f "settings.gradle.kts" ]; then
             sed -i '/id("org.jetbrains.kotlin.android")/a \    id("com.google.gms.google-services") version "4.3.15" apply false' settings.gradle.kts
             sed -i '/id("com.android.application")/a \    id("com.google.gms.google-services")' app/build.gradle.kts
@@ -37,35 +43,21 @@ jobs:
             sed -i '/id "org.jetbrains.kotlin.android"/a \    id "com.google.gms.google-services" version "4.3.15" apply false' settings.gradle
             sed -i '/id "com.android.application"/a \    id "com.google.gms.google-services"' app/build.gradle
           fi
-          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
-          echo '' >> build.gradle
-          echo 'subprojects {' >> build.gradle
-          echo '    afterEvaluate { project ->' >> build.gradle
-          echo '        if (project.hasProperty("android")) {' >> build.gradle
-          echo '            project.android {' >> build.gradle
-          echo '                compileSdkVersion 36' >> build.gradle
-          echo '            }' >> build.gradle
-          echo '        }' >> build.gradle
-          echo '    }' >> build.gradle
-          echo '}' >> build.gradle
+          
+          # 5. حقن ملف الجيسون الخاص بـ Firebase
+          cd ..
+          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
 
-      - name: Get packages
+      - name: Get & Upgrade Packages
         run: |
-          cd temp_project
           flutter pub get
-
-      - name: Upgrade packages
-        run: |
-          cd temp_project
           flutter pub upgrade
 
       - name: Build Release APK
-        run: |
-          cd temp_project
-          flutter build apk --release --no-tree-shake-icons
+        run: flutter build apk --release --no-tree-shake-icons
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ChatX-APK
-          path: temp_project/build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
