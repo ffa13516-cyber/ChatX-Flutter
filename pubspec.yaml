@@ -1,3 +1,4 @@
+
 name: chatx
 description: ChatX - Modern Messenger App
 publish_to: 'none'
@@ -25,7 +26,7 @@ dependencies:
   flutter_animate: ^4.3.0
   cached_network_image: ^3.3.1
   
-  # State Management (Added to fix build errors)
+  # State Management
   flutter_bloc: ^8.1.3
   
   # Media Processing
@@ -33,7 +34,7 @@ dependencies:
   http: ^1.2.1                
   
   # File Management & Utils
-  file_picker: ^8.0.0         
+  file_picker: ^9.0.0
   path_provider: ^2.1.2       
   path: ^1.9.0
   uuid: ^4.3.3                
