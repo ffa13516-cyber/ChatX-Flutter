@@ -25,17 +25,11 @@ jobs:
 
       - name: Prepare Clean Project
         run: |
-          # 1. إنشاء مشروع فلاتر نظيف بالهيكل الرسمي
           flutter create --org com.chatx --project-name app temp_project
-          
-          # 2. نقل ملفاتك (الكود الخاص بيك) للمشروع الجديد
           cp -r lib temp_project/
           cp pubspec.yaml temp_project/
-          cp -r assets temp_project/   
-          
+          cp -r assets temp_project/
           cd temp_project/android
-          
-          # 3. الحقن الذكي لملفات الفايربيز (يدعم kts الجديد و gradle العادي)
           if [ -f "settings.gradle.kts" ]; then
             sed -i '/id("org.jetbrains.kotlin.android")/a \    id("com.google.gms.google-services") version "4.3.15" apply false' settings.gradle.kts
             sed -i '/id("com.android.application")/a \    id("com.google.gms.google-services")' app/build.gradle.kts
@@ -43,22 +37,30 @@ jobs:
             sed -i '/id "org.jetbrains.kotlin.android"/a \    id "com.google.gms.google-services" version "4.3.15" apply false' settings.gradle
             sed -i '/id "com.android.application"/a \    id "com.google.gms.google-services"' app/build.gradle
           fi
-          
-          # 4. إنشاء ملف الجيسون الخاص بـ Firebase
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
+          cd ..
+          cat >> android/build.gradle << 'EOF'
+
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            project.android {
+                compileSdkVersion 36
+            }
+        }
+    }
+}
+EOF
 
       - name: Get packages
         run: |
           cd temp_project
           flutter pub get
 
-      - name: Build Release APK
+      - name: Upgrade packages
         run: |
           cd temp_project
-          flutter build apk --release --no-tree-shake-icons
+          flutter pub upgrade
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: ChatX-APK
-          path: temp_project/build/app/outputs/flutter-apk/app-release.apk
+      - name: Build Release APK
+        run: |
