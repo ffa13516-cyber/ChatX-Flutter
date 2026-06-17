@@ -38,19 +38,16 @@ jobs:
             sed -i '/id "com.android.application"/a \    id "com.google.gms.google-services"' app/build.gradle
           fi
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
-          cd ..
-          cat >> android/build.gradle << 'EOF'
-
-subprojects {
-    afterEvaluate { project ->
-        if (project.hasProperty('android')) {
-            project.android {
-                compileSdkVersion 36
-            }
-        }
-    }
-}
-EOF
+          echo '' >> build.gradle
+          echo 'subprojects {' >> build.gradle
+          echo '    afterEvaluate { project ->' >> build.gradle
+          echo '        if (project.hasProperty("android")) {' >> build.gradle
+          echo '            project.android {' >> build.gradle
+          echo '                compileSdkVersion 36' >> build.gradle
+          echo '            }' >> build.gradle
+          echo '        }' >> build.gradle
+          echo '    }' >> build.gradle
+          echo '}' >> build.gradle
 
       - name: Get packages
         run: |
@@ -64,3 +61,11 @@ EOF
 
       - name: Build Release APK
         run: |
+          cd temp_project
+          flutter build apk --release --no-tree-shake-icons
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChatX-APK
+          path: temp_project/build/app/outputs/flutter-apk/app-release.apk
