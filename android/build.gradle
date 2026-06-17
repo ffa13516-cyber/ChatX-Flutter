@@ -17,11 +17,15 @@ allprojects {
         mavenCentral()
     }
 }
+
 subprojects {
     afterEvaluate { project ->
         if (project.hasProperty('android')) {
             project.android {
                 compileSdkVersion 36
+                if (it.defaultConfig) {
+                    it.defaultConfig.targetSdkVersion 36
+                }
             }
         }
     }
