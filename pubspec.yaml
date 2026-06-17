@@ -1,4 +1,3 @@
-
 name: chatx
 description: ChatX - Modern Messenger App
 publish_to: 'none'
@@ -11,30 +10,24 @@ dependencies:
   flutter:
     sdk: flutter
   
-  # Firebase Core & Auth
   firebase_core: ^2.24.2
   firebase_auth: ^4.16.0
-  
-  # Storage & Databases
   firebase_database: ^10.4.0
   firebase_storage: ^11.6.0
   shared_preferences: ^2.2.2
   
-  # UI & Design System (Lean & Premium)
   cupertino_icons: ^1.0.6
   google_fonts: ^6.1.0
   flutter_animate: ^4.3.0
   cached_network_image: ^3.3.1
   
-  # State Management
   flutter_bloc: ^8.1.3
   
-  # Media Processing
   image: ^4.1.7               
   http: ^1.2.1                
   
-  # File Management & Utils
   file_picker: ^9.0.0
+  flutter_plugin_android_lifecycle: ^2.0.21
   path_provider: ^2.1.2       
   path: ^1.9.0
   uuid: ^4.3.3                
