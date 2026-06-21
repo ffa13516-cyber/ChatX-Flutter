@@ -113,6 +113,9 @@ class ChatModel {
   final String lastMessage;
   final int lastMessageTime;
   final String lastMessageSenderId;
+  // ✅ الحقول الجديدة لميزات الـ UI المتقدمة
+  final Map<String, int> unreadCounts; 
+  final List<String> pinnedBy;        
 
   ChatModel({
     required this.chatId,
@@ -120,15 +123,27 @@ class ChatModel {
     this.lastMessage = '',
     this.lastMessageTime = 0,
     this.lastMessageSenderId = '',
+    this.unreadCounts = const {}, // قيمة افتراضية
+    this.pinnedBy = const [],     // قيمة افتراضية
   });
 
   factory ChatModel.fromMap(Map<dynamic, dynamic> map) {
+    // ✅ معالجة آمنة تماماً لخريطة الـ unreadCounts لتجنب الكراش
+    final Map<String, int> parsedUnread = {};
+    if (map['unreadCounts'] is Map) {
+      (map['unreadCounts'] as Map).forEach((key, value) {
+        parsedUnread[key.toString()] = int.tryParse(value.toString()) ?? 0;
+      });
+    }
+
     return ChatModel(
       chatId: map['chatId'] ?? '',
       participants: List<String>.from(map['participants'] ?? []),
       lastMessage: map['lastMessage'] ?? '',
       lastMessageTime: map['lastMessageTime'] ?? 0,
       lastMessageSenderId: map['lastMessageSenderId'] ?? '',
+      unreadCounts: parsedUnread,
+      pinnedBy: List<String>.from(map['pinnedBy'] ?? []),
     );
   }
 
@@ -138,7 +153,30 @@ class ChatModel {
     'lastMessage': lastMessage,
     'lastMessageTime': lastMessageTime,
     'lastMessageSenderId': lastMessageSenderId,
+    'unreadCounts': unreadCounts,
+    'pinnedBy': pinnedBy,
   };
+
+  // ✅ إضافة دالة copyWith لدعم الـ State Management
+  ChatModel copyWith({
+    String? chatId,
+    List<String>? participants,
+    String? lastMessage,
+    int? lastMessageTime,
+    String? lastMessageSenderId,
+    Map<String, int>? unreadCounts,
+    List<String>? pinnedBy,
+  }) {
+    return ChatModel(
+      chatId: chatId ?? this.chatId,
+      participants: participants ?? this.participants,
+      lastMessage: lastMessage ?? this.lastMessage,
+      lastMessageTime: lastMessageTime ?? this.lastMessageTime,
+      lastMessageSenderId: lastMessageSenderId ?? this.lastMessageSenderId,
+      unreadCounts: unreadCounts ?? this.unreadCounts,
+      pinnedBy: pinnedBy ?? this.pinnedBy,
+    );
+  }
 }
 
 // models/group_model.dart
