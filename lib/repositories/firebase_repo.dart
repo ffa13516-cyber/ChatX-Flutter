@@ -7,6 +7,7 @@ import '../screens/chat/models/message_model.dart';
 class FirebaseRepo {
   static final _db = FirebaseDatabase.instanceFor(
     app: Firebase.app(),
+    // 🛡️ ملاحظة أمنية: يُفضل مستقبلاً وضع هذا الرابط في ملف بيئة (.env)
     databaseURL: 'https://messengerapp-d6e7c-default-rtdb.firebaseio.com',
   );
   static const _uuid = Uuid();
@@ -83,19 +84,18 @@ class FirebaseRepo {
           .map((v) => ChatModel.fromMap(v as Map))
           .where((c) => c.participants.contains(uid))
           .toList();
-      // الترتيب الأساسي هنا هو بالوقت، الترتيب بناءً على التثبيت يتم في الـ UI
       list.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
       return list;
     });
   }
 
-  // 🔥 NEW: دالة تبديل حالة تثبيت المحادثة (Pin / Unpin)
+  // ✅ تم تأمين الدالة ضد أخطاء تحويل الأنواع (Type Casting)
   static Future<void> togglePinChat(String chatId, String myUid) async {
     final chatRef = chatsRef.child(chatId);
     final snap = await chatRef.child('pinnedBy').get();
     
     List<String> pinnedBy = [];
-    if (snap.exists) {
+    if (snap.exists && snap.value is List) {
       pinnedBy = List<String>.from((snap.value as List).map((e) => e.toString()));
     }
 
@@ -108,12 +108,10 @@ class FirebaseRepo {
     await chatRef.update({'pinnedBy': pinnedBy});
   }
 
-  // 🔥 NEW: تصفير العداد الخاص بك عند الدخول للمحادثة
   static Future<void> resetUnreadCount(String chatId, String myUid) async {
     await chatsRef.child(chatId).child('unreadCounts').child(myUid).set(0);
   }
 
-  // 🔥 NEW: زيادة عداد الرسائل للطرف الآخر
   static Future<void> _incrementUnreadCountForOther(String chatId, String otherUid) async {
     final unreadRef = chatsRef.child(chatId).child('unreadCounts').child(otherUid);
     final snap = await unreadRef.get();
@@ -129,7 +127,6 @@ class FirebaseRepo {
   // ───────────────────────── Messages ─────────────────────────
 
   static Future<void> sendMessage(String chatId, Message message) async {
-    // ✅ SECURITY: نتحقق إن الـ senderId موجود
     if (message.senderId == null || message.senderId!.isEmpty) {
       throw Exception('senderId is required');
     }
@@ -142,7 +139,6 @@ class FirebaseRepo {
       throw Exception('Unauthorized: sender not in this chat');
     }
 
-    // إيجاد الطرف الآخر لزيادة عداده
     final otherUid = participants.firstWhere((id) => id != message.senderId, orElse: () => '');
 
     final msgRef = messagesRef.child(chatId).push();
@@ -166,19 +162,18 @@ class FirebaseRepo {
             : message.text;
     }
 
-    // تحديث المحادثة بآخر رسالة
     await chatsRef.child(chatId).update({
       'lastMessage': lastMessageText,
       'lastMessageTime': ServerValue.timestamp,
       'lastMessageSenderId': message.senderId ?? '',
     });
 
-    // 🔥 NEW: زيادة عداد الرسائل للطرف الآخر بعد إرسال الرسالة
     if (otherUid.isNotEmpty) {
       await _incrementUnreadCountForOther(chatId, otherUid);
     }
   }
 
+  // 🚀 تحسين الأداء: تقليل تعقيد البحث والوصول المباشر للمفتاح
   static Future<void> deleteMessage(
     String chatId,
     String messageId,
@@ -191,14 +186,15 @@ class FirebaseRepo {
     if (!snap.exists) return;
 
     final map = snap.value as Map;
-    for (var e in map.entries) {
-      final msg = e.value as Map;
-      if (msg['senderId'] == myUid) {
-        await ref.child(e.key).remove();
-      }
+    final msgKey = map.keys.first;
+    final msgData = map[msgKey] as Map;
+
+    if (msgData['senderId'] == myUid) {
+      await ref.child(msgKey.toString()).remove();
     }
   }
 
+  // 🚀 تحسين الأداء: التخلص من الـ loop لتقليل المعالجة
   static Future<void> updateMessage(
     String chatId,
     String messageId,
@@ -213,19 +209,22 @@ class FirebaseRepo {
     if (!snap.exists) return;
 
     final map = snap.value as Map;
-    for (var e in map.entries) {
-      final msg = e.value as Map;
-      if (msg['senderId'] == myUid) {
-        await ref.child(e.key).update({
-          'text': newText.trim(),
-          'isEdited': true,
-          'editedAt': ServerValue.timestamp,
-        });
-      }
+    final msgKey = map.keys.first;
+    final msgData = map[msgKey] as Map;
+
+    if (msgData['senderId'] == myUid) {
+      await ref.child(msgKey.toString()).update({
+        'text': newText.trim(),
+        'isEdited': true,
+        'editedAt': ServerValue.timestamp,
+      });
     }
   }
 
+  // ✅ حل مشكلة تعليق العداد: تصفير العداد قبل أي شرط عودة (return)
   static Future<void> markAsSeen(String chatId, String myUid) async {
+    await resetUnreadCount(chatId, myUid);
+
     final ref = messagesRef.child(chatId);
     final snap = await ref
         .orderByChild('status')
@@ -246,9 +245,6 @@ class FirebaseRepo {
     if (updates.isNotEmpty) {
       await ref.update(updates);
     }
-    
-    // 🔥 NEW: تصفير العداد الخاص بك لأنك قرأت الرسائل للتو
-    await resetUnreadCount(chatId, myUid);
   }
 
   static Future<void> markAsDelivered(String chatId, String messageId) async {
@@ -281,6 +277,7 @@ class FirebaseRepo {
 
   // ───────────────────────── Reactions ─────────────────────────
 
+  // 🚀 تحسين الأداء: التخلص من البحث الزائد إذا لم يكن ضرورياً
   static Future<void> addReaction(
     String chatId,
     String messageId,
@@ -305,7 +302,7 @@ class FirebaseRepo {
     final map = snap.value as Map;
     final msgKey = map.keys.first;
 
-    await ref.child(msgKey).child('reactions').child(uid).set(emoji);
+    await ref.child(msgKey.toString()).child('reactions').child(uid).set(emoji);
   }
 
   static Future<void> removeReaction(
@@ -321,7 +318,7 @@ class FirebaseRepo {
 
     final map = snap.value as Map;
     final msgKey = map.keys.first;
-    await ref.child(msgKey).child('reactions').child(uid).remove();
+    await ref.child(msgKey.toString()).child('reactions').child(uid).remove();
   }
 
   // ───────────────────────── Groups ─────────────────────────
