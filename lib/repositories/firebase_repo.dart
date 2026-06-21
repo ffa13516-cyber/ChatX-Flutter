@@ -19,7 +19,7 @@ class FirebaseRepo {
   static DatabaseReference get channelsRef => _db.ref('channels');
   static DatabaseReference get channelMsgsRef => _db.ref('channelMessages');
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ───────────────────────── Users ─────────────────────────
 
   static Future<void> saveUser(UserModel user) async {
     await usersRef.child(user.uid).set(user.toMap());
@@ -59,7 +59,7 @@ class FirebaseRepo {
     });
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Chats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ───────────────────────── Chats & UX Features ─────────────────────────
 
   static String getChatId(String uid1, String uid2) {
     final ids = [uid1, uid2]..sort();
@@ -83,19 +83,57 @@ class FirebaseRepo {
           .map((v) => ChatModel.fromMap(v as Map))
           .where((c) => c.participants.contains(uid))
           .toList();
+      // الترتيب الأساسي هنا هو بالوقت، الترتيب بناءً على التثبيت يتم في الـ UI
       list.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
       return list;
     });
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Messages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // 🔥 NEW: دالة تبديل حالة تثبيت المحادثة (Pin / Unpin)
+  static Future<void> togglePinChat(String chatId, String myUid) async {
+    final chatRef = chatsRef.child(chatId);
+    final snap = await chatRef.child('pinnedBy').get();
+    
+    List<String> pinnedBy = [];
+    if (snap.exists) {
+      pinnedBy = List<String>.from((snap.value as List).map((e) => e.toString()));
+    }
+
+    if (pinnedBy.contains(myUid)) {
+      pinnedBy.remove(myUid); // Unpin
+    } else {
+      pinnedBy.add(myUid);    // Pin
+    }
+
+    await chatRef.update({'pinnedBy': pinnedBy});
+  }
+
+  // 🔥 NEW: تصفير العداد الخاص بك عند الدخول للمحادثة
+  static Future<void> resetUnreadCount(String chatId, String myUid) async {
+    await chatsRef.child(chatId).child('unreadCounts').child(myUid).set(0);
+  }
+
+  // 🔥 NEW: زيادة عداد الرسائل للطرف الآخر
+  static Future<void> _incrementUnreadCountForOther(String chatId, String otherUid) async {
+    final unreadRef = chatsRef.child(chatId).child('unreadCounts').child(otherUid);
+    final snap = await unreadRef.get();
+    
+    int currentCount = 0;
+    if (snap.exists) {
+      currentCount = int.tryParse(snap.value.toString()) ?? 0;
+    }
+    
+    await unreadRef.set(currentCount + 1);
+  }
+
+  // ───────────────────────── Messages ─────────────────────────
 
   static Future<void> sendMessage(String chatId, Message message) async {
-    // âœ… SECURITY: Ø¨Ù†ØªØ­Ù‚Ù‚ Ø¥Ù† Ø§Ù„Ù€ chatId ÙŠØ­ØªÙˆÙŠ Ø¹Ù„Ù‰ Ø§Ù„Ù€ myUid
+    // ✅ SECURITY: نتحقق إن الـ senderId موجود
     if (message.senderId == null || message.senderId!.isEmpty) {
       throw Exception('senderId is required');
     }
-    // âœ… Ø¨Ù†ØªØ­Ù‚Ù‚ Ø¥Ù† Ø§Ù„Ù€ sender Ø¬Ø²Ø¡ Ù…Ù† Ø§Ù„Ù€ chat
+    
     final chatSnap = await chatsRef.child(chatId).get();
     if (!chatSnap.exists) throw Exception('Chat not found');
     final chatData = chatSnap.value as Map;
@@ -103,6 +141,9 @@ class FirebaseRepo {
     if (!participants.contains(message.senderId)) {
       throw Exception('Unauthorized: sender not in this chat');
     }
+
+    // إيجاد الطرف الآخر لزيادة عداده
+    final otherUid = participants.firstWhere((id) => id != message.senderId, orElse: () => '');
 
     final msgRef = messagesRef.child(chatId).push();
     final data = message.toMap();
@@ -114,23 +155,28 @@ class FirebaseRepo {
     String lastMessageText;
     switch (message.type) {
       case MessageType.image:
-        lastMessageText = "ðŸ“· Photo";
+        lastMessageText = "📸 Photo";
         break;
       case MessageType.voice:
-        lastMessageText = "ðŸŽ¤ Voice message";
+        lastMessageText = "🎤 Voice message";
         break;
       default:
-        // âœ… SECURITY: Ø¨Ù†Ø­Ø¯ Ø·ÙˆÙ„ Ø§Ù„Ù€ lastMessage Ø¹Ø´Ø§Ù† Ù…ÙŠØ£Ø«Ø±Ø´ Ø¹Ù„Ù‰ Ø§Ù„Ù€ DB
         lastMessageText = message.text.length > 200
             ? message.text.substring(0, 200)
             : message.text;
     }
 
+    // تحديث المحادثة بآخر رسالة
     await chatsRef.child(chatId).update({
       'lastMessage': lastMessageText,
       'lastMessageTime': ServerValue.timestamp,
       'lastMessageSenderId': message.senderId ?? '',
     });
+
+    // 🔥 NEW: زيادة عداد الرسائل للطرف الآخر بعد إرسال الرسالة
+    if (otherUid.isNotEmpty) {
+      await _incrementUnreadCountForOther(chatId, otherUid);
+    }
   }
 
   static Future<void> deleteMessage(
@@ -138,7 +184,6 @@ class FirebaseRepo {
     String messageId,
     String myUid,
   ) async {
-    // âœ… SECURITY: Ø¨Ù†ØªØ­Ù‚Ù‚ Ù…Ù† Ø§Ù„Ù€ inputs
     if (messageId.trim().isEmpty || myUid.trim().isEmpty) return;
 
     final ref = messagesRef.child(chatId);
@@ -161,7 +206,6 @@ class FirebaseRepo {
     String myUid,
   ) async {
     if (newText.trim().isEmpty) return;
-    // âœ… SECURITY: Ø¨Ù†Ø­Ø¯ Ø·ÙˆÙ„ Ø§Ù„Ù€ text
     if (newText.length > 4000) throw Exception('Message too long');
 
     final ref = messagesRef.child(chatId);
@@ -202,6 +246,9 @@ class FirebaseRepo {
     if (updates.isNotEmpty) {
       await ref.update(updates);
     }
+    
+    // 🔥 NEW: تصفير العداد الخاص بك لأنك قرأت الرسائل للتو
+    await resetUnreadCount(chatId, myUid);
   }
 
   static Future<void> markAsDelivered(String chatId, String messageId) async {
@@ -232,21 +279,17 @@ class FirebaseRepo {
     });
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Reactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ───────────────────────── Reactions ─────────────────────────
 
-  /// âœ… FIX: Ø¨Ø¯Ù„Ù†Ø§ FirebaseFirestore Ø¨Ù€ Realtime Database
-  /// Ø§Ù„Ù…Ø³Ø§Ø±: messages/{chatId}/{messageKey}/reactions/{uid}
   static Future<void> addReaction(
     String chatId,
     String messageId,
     String emoji,
     String uid,
   ) async {
-    // âœ… SECURITY: validation Ø¹Ù„Ù‰ Ø§Ù„Ù€ inputs
     if (chatId.trim().isEmpty || messageId.trim().isEmpty) return;
     if (uid.trim().isEmpty || emoji.trim().isEmpty) return;
 
-    // âœ… Ø¨Ù†ØªØ£ÙƒØ¯ Ø¥Ù† Ø§Ù„Ù€ user Ø¬Ø²Ø¡ Ù…Ù† Ø§Ù„Ù€ chat Ù‚Ø¨Ù„ Ù…Ø§ ÙŠØ¶ÙŠÙ reaction
     final chatSnap = await chatsRef.child(chatId).get();
     if (!chatSnap.exists) throw Exception('Chat not found');
     final chatData = chatSnap.value as Map;
@@ -255,19 +298,16 @@ class FirebaseRepo {
       throw Exception('Unauthorized: user not in this chat');
     }
 
-    // âœ… Ø¨Ù†Ø¯ÙˆØ± Ø¹Ù„Ù‰ Ø§Ù„Ù€ message Ø¨Ø§Ù„Ù€ messageId
     final ref = messagesRef.child(chatId);
     final snap = await ref.orderByChild('messageId').equalTo(messageId).get();
     if (!snap.exists) throw Exception('Message not found');
 
     final map = snap.value as Map;
-    final msgKey = map.keys.first; // Ø£ÙˆÙ„ (ÙˆØ§Ù„ÙˆØ­ÙŠØ¯) Ù†ØªÙŠØ¬Ø©
+    final msgKey = map.keys.first;
 
-    // âœ… Ø¨Ù†Ø­Ø¯Ø« reactions/{uid} = emoji ÙÙŠ Ø§Ù„Ù€ RTDB
     await ref.child(msgKey).child('reactions').child(uid).set(emoji);
   }
 
-  /// âœ… Ø¥Ø²Ø§Ù„Ø© Ø§Ù„Ù€ reaction
   static Future<void> removeReaction(
     String chatId,
     String messageId,
@@ -284,11 +324,10 @@ class FirebaseRepo {
     await ref.child(msgKey).child('reactions').child(uid).remove();
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Groups â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ───────────────────────── Groups ─────────────────────────
 
   static Future<void> sendGroupMessage(
       String groupId, MessageModel message) async {
-    // âœ… SECURITY: Ø¨Ù†ØªØ­Ù‚Ù‚ Ø¥Ù† Ø§Ù„Ù€ sender Ø¬Ø²Ø¡ Ù…Ù† Ø§Ù„Ù€ group
     if (message.senderId == null || message.senderId!.isEmpty) {
       throw Exception('senderId is required');
     }
@@ -354,7 +393,7 @@ class FirebaseRepo {
     return groupWithId;
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Channels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ───────────────────────── Channels ─────────────────────────
 
   static Future<void> sendChannelMessage(
     String channelId,
@@ -364,7 +403,6 @@ class FirebaseRepo {
     final channel = await channelsRef.child(channelId).get();
     if (!channel.exists) return;
     final channelData = ChannelModel.fromMap(channel.value as Map);
-    // âœ… SECURITY: Ø¨Ù†ØªØ­Ù‚Ù‚ Ø¥Ù† Ø§Ù„Ù€ adminId Ù‡Ùˆ ÙØ¹Ù„Ø§Ù‹ Ø§Ù„Ù€ admin
     if (channelData.adminId != adminId) {
       throw Exception('Unauthorized: only admin can send channel messages');
     }
