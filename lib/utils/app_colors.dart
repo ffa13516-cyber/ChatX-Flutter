@@ -20,6 +20,9 @@ class AppColors {
   // خلفية الكروت أو العناصر الطافية (Elevated)
   static const Color bgElevated = Color(0xFF121214);
   
+  // **التعديل هنا:** إعادة إضافة لون bgCard لحل مشكلة الـ Build
+  static const Color bgCard = Color(0xFF1C1C1E);
+  
   // خلفية حقل البحث (Search Bar)
   static const Color bgInput = Color(0xFF1C1C1E);
 
