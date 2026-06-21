@@ -29,7 +29,7 @@ class HomeScreenUI extends StatefulWidget {
 }
 
 class _HomeScreenUIState extends State<HomeScreenUI> {
-  bool _isSearching = false; // إدارة حالة البحث التفاعلي
+  bool _isSearching = false; 
   final TextEditingController _searchController = TextEditingController();
 
   final List<Widget> _screens = const [
@@ -46,7 +46,6 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
 
   @override
   Widget build(BuildContext context) {
-    // استخدام ميزة حماية الرجوع الذكي المحدثة في الإصدارات المستقرة الجديدة
     return PopScope(
       canPop: !_isSearching,
       onPopInvokedWithResult: (didPop, result) {
@@ -67,31 +66,35 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
             headerSliverBuilder: (context, innerBoxIsScrolled) {
               return [
                 SliverAppBar(
-                  backgroundColor: AppColors.bgDark,
-                  pinned: true,   // التعديل السحري: تثبيت الهيدر مثل تليجرام
+                  backgroundColor: Colors.transparent, // جعل الخلفية شفافة لتبدو الكبسولة عائمة
+                  pinned: true,   
                   floating: false,
                   snap: false,
-                  elevation: innerBoxIsScrolled ? 2 : 0, // إضافة تأثير ظل خفيف عند السكرول لفصل الهيدر عن المحادثات
-                  toolbarHeight: 65,
+                  elevation: 0, 
+                  toolbarHeight: 70, // ارتفاع متناسق وملموم جداً للهيدر العائم
                   titleSpacing: 0,
-                  // أنيميشن فخم وسلس أثناء الانتقال لطور البحث
-                  title: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 220),
-                    transitionBuilder: (Widget child, Animation<double> animation) {
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0.0, -0.05),
-                            end: Offset.zero,
-                          ).animate(animation),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: _isSearching 
-                        ? _buildExpandedSearchBar(context) 
-                        : _buildHeaderContent(context),
+                  // وضع الكبسولة الزجاجية العائمة هنا بمسافات جانبية معقولة ومدروسة
+                  title: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+                    child: GlassContainer(
+                      borderRadius: 24, // انحناء انسيابي متناسق مع النوافذ السفلية
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        transitionBuilder: (Widget child, Animation<double> animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: ScaleTransition(
+                              scale: Tween<double>(begin: 0.98, end: 1.0).animate(animation),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: _isSearching 
+                            ? _buildExpandedSearchBar(context) 
+                            : _buildHeaderContent(context),
+                      ),
+                    ),
                   ),
                 ),
               ];
@@ -110,27 +113,28 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
     );
   }
 
-  // الهيدر الرئيسي الافتراضي
+  // محتوى الهيدر داخل الكبسولة الزجاجية
   Widget _buildHeaderContent(BuildContext context) {
-    return Padding(
+    return Container(
       key: const ValueKey('NormalHeader'),
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           const Text(
             'chatx',
             style: TextStyle(
-              fontSize: 28,
+              fontSize: 24, // حجم خط عصري ومناسب للكبسولة الملمومة
               fontWeight: FontWeight.bold,
               color: Colors.white,
-              letterSpacing: 1.2,
+              letterSpacing: 1.0,
             ),
           ),
           Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.search_rounded, color: Colors.white, size: 26),
+                icon: const Icon(Icons.search_rounded, color: Colors.white, size: 24),
                 onPressed: () {
                   HapticFeedback.mediumImpact();
                   setState(() {
@@ -144,11 +148,11 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
                   highlightColor: Colors.transparent,
                 ),
                 child: PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, color: Colors.white, size: 26),
-                  color: Colors.black.withOpacity(0.7), 
+                  icon: const Icon(Icons.more_vert, color: Colors.white, size: 24),
+                  color: Colors.black.withOpacity(0.85), 
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(16),
                     side: BorderSide(color: Colors.white.withOpacity(0.1)),
                   ),
                   onSelected: (value) {
@@ -160,9 +164,9 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
                       value: 'channel',
                       child: Row(
                         children: [
-                          Icon(Icons.campaign_rounded, color: Colors.white70),
-                          SizedBox(width: 12),
-                          Text('Create Channel', style: TextStyle(color: Colors.white)),
+                          Icon(Icons.campaign_rounded, color: Colors.white70, size: 20),
+                          SizedBox(width: 10),
+                          Text('Create Channel', style: TextStyle(color: Colors.white, fontSize: 14)),
                         ],
                       ),
                     ),
@@ -170,9 +174,9 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
                       value: 'group',
                       child: Row(
                         children: [
-                          Icon(Icons.group_add_rounded, color: Colors.white70),
-                          SizedBox(width: 12),
-                          Text('Create Group', style: TextStyle(color: Colors.white)),
+                          Icon(Icons.group_add_rounded, color: Colors.white70, size: 20),
+                          SizedBox(width: 10),
+                          Text('Create Group', style: TextStyle(color: Colors.white, fontSize: 14)),
                         ],
                       ),
                     ),
@@ -186,15 +190,15 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
     );
   }
 
-  // شريط البحث الممتد والذكي (Glassmorphism Capsule) يعمل 100% الآن
+  // شريط البحث المدمج بذكاء وانسيابية داخل نفس الكبسولة الزجاجية
   Widget _buildExpandedSearchBar(BuildContext context) {
-    return Padding(
+    return Container(
       key: const ValueKey('ExpandedSearch'),
-      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+      height: 48,
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
             onPressed: () {
               HapticFeedback.lightImpact();
               setState(() {
@@ -205,54 +209,45 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
             },
           ),
           Expanded(
-            child: SizedBox(
-              height: 46,
-              child: GlassContainer(
-                borderRadius: 24,
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Center(
-                  child: TextField(
-                    controller: _searchController,
-                    autofocus: true, 
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
-                    onChanged: (value) {
-                      widget.onSearch(value);
-                      setState(() {}); // لتحديث حالة زر الـ X التفاعلي فوراً
-                    },
-                    cursorColor: AppColors.primary,
-                    decoration: InputDecoration(
-                      hintText: 'Search chats...',
-                      hintStyle: TextStyle(
-                        color: Colors.white.withOpacity(0.4), 
-                        fontSize: 15,
-                      ),
-                      border: InputBorder.none,
-                      isDense: true,
-                      suffixIcon: _searchController.text.isNotEmpty 
-                          ? IconButton(
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              icon: Icon(Icons.close_rounded, color: Colors.white.withOpacity(0.6), size: 20),
-                              onPressed: () {
-                                _searchController.clear();
-                                widget.onSearch('');
-                                setState(() {});
-                              },
-                            )
-                          : null,
-                    ),
-                  ),
+            child: TextField(
+              controller: _searchController,
+              autofocus: true, 
+              style: const TextStyle(color: Colors.white, fontSize: 15),
+              onChanged: (value) {
+                widget.onSearch(value);
+                setState(() {}); 
+              },
+              cursorColor: AppColors.primary,
+              decoration: InputDecoration(
+                hintText: 'Search chats...',
+                hintStyle: TextStyle(
+                  color: Colors.white.withOpacity(0.35), 
+                  fontSize: 14,
                 ),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                suffixIcon: _searchController.text.isNotEmpty 
+                    ? IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: Icon(Icons.close_rounded, color: Colors.white.withOpacity(0.5), size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                          widget.onSearch('');
+                          setState(() {});
+                        },
+                      )
+                    : null,
               ),
             ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
     );
   }
 
-  // الجزيرة العائمة الفخمة للملاحة السفلى
+  // الملاحة السفلية العائمة (Floating Island NavBar)
   Widget _buildFloatingIslandNavBar() {
     return SafeArea(
       top: false,
