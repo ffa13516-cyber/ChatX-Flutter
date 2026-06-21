@@ -1,7 +1,8 @@
+import 'dart:ui'; // 🚀 مسؤولة عن تأثيرات الزجاج والـ Blur
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart'; // 🚀 مسؤولة عن تنسيق الوقت
+import 'package:intl/intl.dart';
 import 'package:chatx/screens/chat/cubit/chat_cubit.dart';
 import '../../models/models.dart';
 import '../../repositories/firebase_repo.dart';
@@ -21,8 +22,9 @@ class _ChatsTabState extends State<ChatsTab> {
   String _myUid = '';
   String _myName = '';
   
-  // ✅ التعديل 1: كاش محلي لحفظ بيانات المستخدمين لتجنب مشكلة الـ N+1 Queries أثناء الـ Scroll
+  // ✅ كاش محلي مع حماية ضد الـ Memory Leak
   final Map<String, UserModel> _usersCache = {};
+  final int _maxCacheSize = 100; // الحد الأقصى لتخزين المستخدمين
 
   @override
   void initState() {
@@ -40,19 +42,22 @@ class _ChatsTabState extends State<ChatsTab> {
     });
   }
 
-  // دالة ذكية لإرجاع اليوزر من الكاش أو جلبها من Firebase إذا لم تكن موجودة
+  // ✅ دالة ذكية لإدارة الكاش بكفاءة عالية
   Future<UserModel?> _getOrCreateUser(String uid) async {
     if (_usersCache.containsKey(uid)) {
       return _usersCache[uid];
     }
     final user = await FirebaseRepo.getUserById(uid);
     if (user != null) {
-      _usersCache[uid] = user; // حفظ في الكاش
+      if (_usersCache.length >= _maxCacheSize) {
+        // تفريغ أقدم عنصر في حال امتلاء الكاش للحفاظ على الرامات
+        _usersCache.remove(_usersCache.keys.first); 
+      }
+      _usersCache[uid] = user; 
     }
     return user;
   }
 
-  // ✅ التعديل 2: دالة معالجة وتنسيق الوقت بشكل آمن وذكي للغاية لمنع الـ Type Casting Crash
   String _formatMessageTime(dynamic timeData) {
     if (timeData == null) return '';
     
@@ -60,8 +65,8 @@ class _ChatsTabState extends State<ChatsTab> {
     try {
       if (timeData is int) {
         messageTime = DateTime.fromMillisecondsSinceEpoch(timeData);
-      } else if (timeData.runtimeType.toString() == 'Timestamp') {
-        // التعامل الآمن في حال أرجعت فايربيز كائن Timestamp
+      } else if (timeData.runtimeType.toString() == 'Timestamp' || timeData.runtimeType.toString() != 'String') {
+        // معالجة مرنة للأنواع
         messageTime = (timeData as dynamic).toDate();
       } else {
         return '';
@@ -77,13 +82,13 @@ class _ChatsTabState extends State<ChatsTab> {
     final difference = today.difference(msgDay).inDays;
 
     if (difference == 0) {
-      return DateFormat('hh:mm a').format(messageTime); // اليوم
+      return DateFormat('hh:mm a').format(messageTime);
     } else if (difference == 1) {
-      return 'Yesterday'; // أمس
+      return 'Yesterday';
     } else if (difference < 7) {
-      return DateFormat('EEEE').format(messageTime); // اسم اليوم (مثل Monday)
+      return DateFormat('EEEE').format(messageTime);
     } else {
-      return DateFormat('dd/MM/yyyy').format(messageTime); // تاريخ قديم
+      return DateFormat('dd/MM/yyyy').format(messageTime);
     }
   }
 
@@ -135,10 +140,10 @@ class _ChatsTabState extends State<ChatsTab> {
           );
         }
 
-        // ✅ ميزة 3: ترتيب المحادثات بحيث تكون "المثبتة" في الأعلى، ثم ترتيب الباقي حسب الوقت
+        // ترتيب المحادثات: المثبتة أولاً ثم الأحدث
         chats.sort((a, b) {
-          bool aPinned = (a.toMap()['pinnedBy'] as List<dynamic>?)?.contains(_myUid) ?? false;
-          bool bPinned = (b.toMap()['pinnedBy'] as List<dynamic>?)?.contains(_myUid) ?? false;
+          bool aPinned = a.pinnedBy.contains(_myUid);
+          bool bPinned = b.pinnedBy.contains(_myUid);
           
           if (aPinned && !bPinned) return -1;
           if (!aPinned && bPinned) return 1;
@@ -166,11 +171,8 @@ class _ChatsTabState extends State<ChatsTab> {
 
     if (otherUid.isEmpty) return const SizedBox.shrink();
 
-    // ✅ ميزة عداد الرسائل: جلب عدد الرسائل غير المقروءة الخاص بالمستخدم الحالي من الـ map
-    final int unreadCount = (chat.toMap()['unreadCounts']?[_myUid]) ?? 0;
-    
-    // فحص هل المحادثة مثبتة من قبلي ليتم تمريرها للـ UI
-    final bool isPinned = (chat.toMap()['pinnedBy'] as List<dynamic>?)?.contains(_myUid) ?? false;
+    final int unreadCount = chat.unreadCounts[_myUid] ?? 0;
+    final bool isPinned = chat.pinnedBy.contains(_myUid);
 
     return FutureBuilder<UserModel?>(
       future: _getOrCreateUser(otherUid),
@@ -193,10 +195,9 @@ class _ChatsTabState extends State<ChatsTab> {
           isPinned: isPinned,
           onTap: () async {
             HapticFeedback.lightImpact(); 
-            _navigateToChat(otherUid, name, user?.avatarUrl);
+            _navigateToChat(chat.chatId, otherUid, name, user?.avatarUrl);
           },
           onLongPress: () {
-            // ✅ ميزة 5: تشغيل قائمة النظرة الخاطفة واهتزاز خفيف باليد عند الضغط المطول
             HapticFeedback.mediumImpact();
             _showChatOptionsBottomSheet(context, chat, name, isPinned);
           },
@@ -205,17 +206,14 @@ class _ChatsTabState extends State<ChatsTab> {
     );
   }
 
-  // فصل دالة الانتقال للدردشة لتقليل حجم الـ build method (Clean Code / Single Responsibility)
-  void _navigateToChat(String otherUid, String name, String? avatarUrl) async {
-    final chatData = await FirebaseRepo.getOrCreateChat(_myUid, otherUid);
-    if (!mounted) return;
+  void _navigateToChat(String chatId, String otherUid, String name, String? avatarUrl) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => BlocProvider(
-          create: (context) => ChatCubit(chatId: chatData.chatId, myUid: _myUid, myName: _myName),
+          create: (context) => ChatCubit(chatId: chatId, myUid: _myUid, myName: _myName),
           child: ChatScreen(
-            chatId: chatData.chatId,
+            chatId: chatId,
             myUid: _myUid,
             myName: _myName,
             receiverName: name,
@@ -226,61 +224,85 @@ class _ChatsTabState extends State<ChatsTab> {
     );
   }
 
-  // ✅ ميزة 5: قائمة النظرة الخاطفة وخيارات التحكم السريع بالمحادثة
+  // ✅ واجهة زجاجية فضية (Silver Glassmorphism) متقدمة
   void _showChatOptionsBottomSheet(BuildContext context, ChatModel chat, String name, bool isPinned) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E1E1E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      backgroundColor: Colors.transparent, // مهم جداً لتشغيل الشفافية والبلور
+      elevation: 0,
+      isScrollControlled: true,
       builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // مقبض سحب الـ Bottom Sheet لإضافة مظهر مودرن
-                Container(
-                  width: 40,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15), // تأثير الـ Blur
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.08), // الشفافية الزجاجية
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                border: Border(
+                  top: BorderSide(color: Colors.white.withOpacity(0.2), width: 1.5), // حافة فضية مضيئة
+                ),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        name,
+                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // ✅ ربط العمليات بالفايربيز مباشرة
+                      ListTile(
+                        leading: Icon(isPinned ? Icons.push_pin_outlined : Icons.push_pin, color: Colors.white),
+                        title: Text(isPinned ? 'Unpin Chat' : 'Pin Chat', style: const TextStyle(color: Colors.white, fontSize: 16)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        tileColor: Colors.white.withOpacity(0.03),
+                        onTap: () async {
+                          Navigator.pop(context);
+                          await FirebaseRepo.togglePinChat(chat.chatId, _myUid);
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      ListTile(
+                        leading: const Icon(Icons.mark_chat_read_outlined, color: Colors.white),
+                        title: const Text('Mark as Read', style: TextStyle(color: Colors.white, fontSize: 16)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        tileColor: Colors.white.withOpacity(0.03),
+                        onTap: () async {
+                          Navigator.pop(context);
+                          await FirebaseRepo.resetUnreadCount(chat.chatId, _myUid);
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      ListTile(
+                        leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                        title: const Text('Delete Chat', style: TextStyle(color: Colors.redAccent, fontSize: 16)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        tileColor: Colors.white.withOpacity(0.03),
+                        onTap: () {
+                          Navigator.pop(context);
+                          // TODO: Implement Delete Chat Logic
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  name,
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 20),
-                
-                ListTile(
-                  leading: Icon(isPinned ? Icons.push_pin_outlined : Icons.push_pin, color: Colors.white70),
-                  title: Text(isPinned ? 'Unpin Chat' : 'Pin Chat', style: const TextStyle(color: Colors.white)),
-                  onTap: () {
-                    Navigator.pop(context);
-                    // هنا سيتم الربط البرمجي لاحقاً مع الـ Repo للتثبيت في قاعدة البيانات
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.mark_chat_read_outlined, color: Colors.white70),
-                  title: const Text('Mark as Read', style: TextStyle(color: Colors.white)),
-                  onTap: () {
-                    Navigator.pop(context);
-                    // هنا سيتم الربط البرمجي لتصفير العداد لاحقاً
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                  title: const Text('Delete Chat', style: TextStyle(color: Colors.redAccent)),
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
-                ),
-              ],
+              ),
             ),
           ),
         );
@@ -316,15 +338,16 @@ class ModernChatListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color onlineColor = const Color(0xFF00C853);
-    final Color unreadAccentColor = const Color(0xFF00E676);
+    // ✅ تم تعديل اللون للأزرق الملكي
+    final Color unreadAccentColor = const Color(0xFF246BFD); 
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         color: unreadCount > 0 
-            ? Colors.white.withOpacity(0.03) 
-            : (isPinned ? Colors.white.withOpacity(0.01) : Colors.transparent), 
+            ? unreadAccentColor.withOpacity(0.1) // لمسة خفيفة بلون العداد للخلفية
+            : (isPinned ? Colors.white.withOpacity(0.02) : Colors.transparent), 
       ),
       child: Material(
         color: Colors.transparent,
@@ -338,7 +361,6 @@ class ModernChatListItem extends StatelessWidget {
             padding: const EdgeInsets.all(12.0),
             child: Row(
               children: [
-                // 1. User Avatar & Online Status
                 Stack(
                   children: [
                     Container(
@@ -389,8 +411,6 @@ class ModernChatListItem extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(width: 16),
-                
-                // 2. Name & Message
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -411,7 +431,6 @@ class ModernChatListItem extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          // إظهار أيقونة الدبوس مائلة وبشكل أنيق إذا كانت المحادثة مثبتة
                           if (isPinned)
                             Padding(
                               padding: const EdgeInsets.only(left: 4.0),
@@ -437,8 +456,6 @@ class ModernChatListItem extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-
-                // 3. Time & Unread Badge
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -458,12 +475,19 @@ class ModernChatListItem extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: unreadAccentColor, 
                           borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: unreadAccentColor.withOpacity(0.4),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            )
+                          ]
                         ),
                         child: Text(
                           unreadCount.toString(),
                           style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 10,
+                            color: Colors.white, // النص أبيض ليناسب الخلفية الزرقاء
+                            fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
