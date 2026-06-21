@@ -20,6 +20,9 @@ class ChatsTab extends StatefulWidget {
 class _ChatsTabState extends State<ChatsTab> {
   String _myUid = '';
   String _myName = '';
+  
+  // ✅ التعديل 1: كاش محلي لحفظ بيانات المستخدمين لتجنب مشكلة الـ N+1 Queries أثناء الـ Scroll
+  final Map<String, UserModel> _usersCache = {};
 
   @override
   void initState() {
@@ -30,10 +33,58 @@ class _ChatsTabState extends State<ChatsTab> {
   Future<void> _loadUser() async {
     final uid = await SessionManager.instance.getUid();
     final name = await SessionManager.instance.getName();
+    if (!mounted) return;
     setState(() {
       _myUid = uid;
       _myName = name;
     });
+  }
+
+  // دالة ذكية لإرجاع اليوزر من الكاش أو جلبها من Firebase إذا لم تكن موجودة
+  Future<UserModel?> _getOrCreateUser(String uid) async {
+    if (_usersCache.containsKey(uid)) {
+      return _usersCache[uid];
+    }
+    final user = await FirebaseRepo.getUserById(uid);
+    if (user != null) {
+      _usersCache[uid] = user; // حفظ في الكاش
+    }
+    return user;
+  }
+
+  // ✅ التعديل 2: دالة معالجة وتنسيق الوقت بشكل آمن وذكي للغاية لمنع الـ Type Casting Crash
+  String _formatMessageTime(dynamic timeData) {
+    if (timeData == null) return '';
+    
+    DateTime messageTime;
+    try {
+      if (timeData is int) {
+        messageTime = DateTime.fromMillisecondsSinceEpoch(timeData);
+      } else if (timeData.runtimeType.toString() == 'Timestamp') {
+        // التعامل الآمن في حال أرجعت فايربيز كائن Timestamp
+        messageTime = (timeData as dynamic).toDate();
+      } else {
+        return '';
+      }
+    } catch (e) {
+      debugPrint("Error formatting time: $e");
+      return '';
+    }
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final msgDay = DateTime(messageTime.year, messageTime.month, messageTime.day);
+    final difference = today.difference(msgDay).inDays;
+
+    if (difference == 0) {
+      return DateFormat('hh:mm a').format(messageTime); // اليوم
+    } else if (difference == 1) {
+      return 'Yesterday'; // أمس
+    } else if (difference < 7) {
+      return DateFormat('EEEE').format(messageTime); // اسم اليوم (مثل Monday)
+    } else {
+      return DateFormat('dd/MM/yyyy').format(messageTime); // تاريخ قديم
+    }
   }
 
   @override
@@ -61,13 +112,18 @@ class _ChatsTabState extends State<ChatsTab> {
       stream: FirebaseRepo.observeUserChats(_myUid),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.redAccent)));
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}', 
+              style: const TextStyle(color: Colors.redAccent),
+            ),
+          );
         }
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3));
         }
 
-        var chats = snapshot.data!;
+        final chats = snapshot.data!;
 
         if (chats.isEmpty) {
           return const Center(
@@ -97,37 +153,27 @@ class _ChatsTabState extends State<ChatsTab> {
   Widget _buildChatItem(ChatModel chat) {
     final otherUid = chat.participants.firstWhere((id) => id != _myUid, orElse: () => '');
 
+    if (otherUid.isEmpty) return const SizedBox.shrink();
+
     return FutureBuilder<UserModel?>(
-      future: FirebaseRepo.getUserById(otherUid),
+      future: _getOrCreateUser(otherUid),
       builder: (context, snapshot) {
+        // ✅ التعديل 3: استخدام الـ Skeleton المخصص بدلاً من الفراغ الأبيض الثابت لتحسين الـ UX
         if (!snapshot.hasData && snapshot.connectionState == ConnectionState.waiting) {
-           return const SizedBox(height: 76); 
+           return const ModernChatListItemSkeleton(); 
         }
 
         final user = snapshot.data;
         final name = user?.displayName ?? 'Unknown User';
-        
-        // ✅ التعديل 1: معالجة الوقت الفعلي بدلاً من الوقت الثابت مع حل مشكلة الـ DateTime
-        String formattedTime = '';
-        try {
-          if (chat.lastMessageTime != null) {
-            // تحويل الرقم (int أو Timestamp) إلى DateTime أولاً
-            // هنا بنفترض إن lastMessageTime هو int بالمللي ثانية (milliseconds)
-            DateTime messageTime = DateTime.fromMillisecondsSinceEpoch(chat.lastMessageTime as int);
-            formattedTime = DateFormat('hh:mm a').format(messageTime);
-          }
-        } catch (e) {
-          // في حال حدوث خطأ أثناء قراءة الوقت
-          debugPrint("Error formatting time: $e");
-        }
+        final formattedTime = _formatMessageTime(chat.lastMessageTime);
 
         return ModernChatListItem(
           name: name,
           lastMessage: chat.lastMessage.isNotEmpty ? chat.lastMessage : 'Tap to chat',
-          time: formattedTime, // ✅ تم ربط الوقت هنا
+          time: formattedTime, 
           avatarUrl: user?.avatarUrl,
           isOnline: user?.isOnline ?? false,
-          unreadCount: 0, 
+          unreadCount: 0, // يمكنك ربطها لاحقاً بـ chat.unreadCount إن وُجدت
           onTap: () async {
             HapticFeedback.lightImpact(); 
             final chatData = await FirebaseRepo.getOrCreateChat(_myUid, otherUid);
@@ -182,6 +228,10 @@ class ModernChatListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ التعديل 4: تجميع الألوان في متغيرات لتسهيل الصيانة ودعم الـ Themes مستقبلاً
+    final Color onlineColor = const Color(0xFF00C853);
+    final Color unreadAccentColor = const Color(0xFF00E676);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -207,7 +257,6 @@ class ModernChatListItem extends StatelessWidget {
                       height: 54,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        // ✅ التعديل 2: تفعيل ألوان الأفاتار من ملف AppColors
                         color: (avatarUrl == null || avatarUrl!.isEmpty) 
                             ? AppColors.avatarColor(name) 
                             : Colors.transparent,
@@ -239,7 +288,7 @@ class ModernChatListItem extends StatelessWidget {
                           width: 16,
                           height: 16,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF00C853), 
+                            color: onlineColor, 
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: AppColors.bgDark, 
@@ -290,11 +339,10 @@ class ModernChatListItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // ✅ تم تمرير متغير الوقت الفعلي هنا
                     Text(
                       time,
                       style: TextStyle(
-                        color: unreadCount > 0 ? const Color(0xFF00E676) : Colors.white.withOpacity(0.4),
+                        color: unreadCount > 0 ? unreadAccentColor : Colors.white.withOpacity(0.4),
                         fontSize: 12,
                         fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
                       ),
@@ -304,7 +352,7 @@ class ModernChatListItem extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00E676), 
+                          color: unreadAccentColor, 
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -324,6 +372,68 @@ class ModernChatListItem extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ✅ التعديل 5: إضافة الـ Skeleton المخصص لمنع الـ Flicker وإعطاء تجربة تحميل بصرية سلسة ومحترفة
+class ModernChatListItemSkeleton extends StatelessWidget {
+  const ModernChatListItemSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.all(12.0),
+      child: Row(
+        children: [
+          // صور الحساب الوهمية
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.04),
+            ),
+          ),
+          const SizedBox(width: 16),
+          // النصوص الوهمية
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 120,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(4),
+                    color: Colors.white.withOpacity(0.04),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: 180,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(4),
+                    color: Colors.white.withOpacity(0.02),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // الوقت الوهمي
+          Container(
+            width: 40,
+            height: 12,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(4),
+              color: Colors.white.withOpacity(0.02),
+            ),
+          ),
+        ],
       ),
     );
   }
