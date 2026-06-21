@@ -135,6 +135,17 @@ class _ChatsTabState extends State<ChatsTab> {
           );
         }
 
+        // ✅ ميزة 3: ترتيب المحادثات بحيث تكون "المثبتة" في الأعلى، ثم ترتيب الباقي حسب الوقت
+        chats.sort((a, b) {
+          bool aPinned = (a.toMap()['pinnedBy'] as List<dynamic>?)?.contains(_myUid) ?? false;
+          bool bPinned = (b.toMap()['pinnedBy'] as List<dynamic>?)?.contains(_myUid) ?? false;
+          
+          if (aPinned && !bPinned) return -1;
+          if (!aPinned && bPinned) return 1;
+          
+          return b.lastMessageTime.compareTo(a.lastMessageTime); 
+        });
+
         return ListView.separated(
           padding: const EdgeInsets.only(top: 16, bottom: 100, left: 8, right: 8), 
           itemCount: chats.length,
@@ -155,10 +166,15 @@ class _ChatsTabState extends State<ChatsTab> {
 
     if (otherUid.isEmpty) return const SizedBox.shrink();
 
+    // ✅ ميزة عداد الرسائل: جلب عدد الرسائل غير المقروءة الخاص بالمستخدم الحالي من الـ map
+    final int unreadCount = (chat.toMap()['unreadCounts']?[_myUid]) ?? 0;
+    
+    // فحص هل المحادثة مثبتة من قبلي ليتم تمريرها للـ UI
+    final bool isPinned = (chat.toMap()['pinnedBy'] as List<dynamic>?)?.contains(_myUid) ?? false;
+
     return FutureBuilder<UserModel?>(
       future: _getOrCreateUser(otherUid),
       builder: (context, snapshot) {
-        // ✅ التعديل 3: استخدام الـ Skeleton المخصص بدلاً من الفراغ الأبيض الثابت لتحسين الـ UX
         if (!snapshot.hasData && snapshot.connectionState == ConnectionState.waiting) {
            return const ModernChatListItemSkeleton(); 
         }
@@ -173,33 +189,100 @@ class _ChatsTabState extends State<ChatsTab> {
           time: formattedTime, 
           avatarUrl: user?.avatarUrl,
           isOnline: user?.isOnline ?? false,
-          unreadCount: 0, // يمكنك ربطها لاحقاً بـ chat.unreadCount إن وُجدت
+          unreadCount: unreadCount, 
+          isPinned: isPinned,
           onTap: () async {
             HapticFeedback.lightImpact(); 
-            final chatData = await FirebaseRepo.getOrCreateChat(_myUid, otherUid);
+            _navigateToChat(otherUid, name, user?.avatarUrl);
+          },
+          onLongPress: () {
+            // ✅ ميزة 5: تشغيل قائمة النظرة الخاطفة واهتزاز خفيف باليد عند الضغط المطول
+            HapticFeedback.mediumImpact();
+            _showChatOptionsBottomSheet(context, chat, name, isPinned);
+          },
+        );
+      },
+    );
+  }
 
-            if (!mounted) return;
+  // فصل دالة الانتقال للدردشة لتقليل حجم الـ build method (Clean Code / Single Responsibility)
+  void _navigateToChat(String otherUid, String name, String? avatarUrl) async {
+    final chatData = await FirebaseRepo.getOrCreateChat(_myUid, otherUid);
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BlocProvider(
+          create: (context) => ChatCubit(chatId: chatData.chatId, myUid: _myUid, myName: _myName),
+          child: ChatScreen(
+            chatId: chatData.chatId,
+            myUid: _myUid,
+            myName: _myName,
+            receiverName: name,
+            receiverImage: avatarUrl,
+          ),
+        ),
+      ),
+    );
+  }
 
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => BlocProvider(
-                  create: (context) => ChatCubit(
-                    chatId: chatData.chatId,
-                    myUid: _myUid,
-                    myName: _myName,
-                  ),
-                  child: ChatScreen(
-                    chatId: chatData.chatId,
-                    myUid: _myUid,
-                    myName: _myName,
-                    receiverName: name,
-                    receiverImage: user?.avatarUrl,
+  // ✅ ميزة 5: قائمة النظرة الخاطفة وخيارات التحكم السريع بالمحادثة
+  void _showChatOptionsBottomSheet(BuildContext context, ChatModel chat, String name, bool isPinned) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // مقبض سحب الـ Bottom Sheet لإضافة مظهر مودرن
+                Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-              ),
-            );
-          },
+                const SizedBox(height: 20),
+                Text(
+                  name,
+                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+                
+                ListTile(
+                  leading: Icon(isPinned ? Icons.push_pin_outlined : Icons.push_pin, color: Colors.white70),
+                  title: Text(isPinned ? 'Unpin Chat' : 'Pin Chat', style: const TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    // هنا سيتم الربط البرمجي لاحقاً مع الـ Repo للتثبيت في قاعدة البيانات
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.mark_chat_read_outlined, color: Colors.white70),
+                  title: const Text('Mark as Read', style: TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    // هنا سيتم الربط البرمجي لتصفير العداد لاحقاً
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                  title: const Text('Delete Chat', style: TextStyle(color: Colors.redAccent)),
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
@@ -213,7 +296,9 @@ class ModernChatListItem extends StatelessWidget {
   final String? avatarUrl;
   final bool isOnline;
   final int unreadCount;
+  final bool isPinned;
   final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   const ModernChatListItem({
     super.key,
@@ -223,12 +308,13 @@ class ModernChatListItem extends StatelessWidget {
     this.avatarUrl,
     required this.isOnline,
     this.unreadCount = 0,
+    this.isPinned = false,
     required this.onTap,
+    required this.onLongPress,
   });
 
   @override
   Widget build(BuildContext context) {
-    // ✅ التعديل 4: تجميع الألوان في متغيرات لتسهيل الصيانة ودعم الـ Themes مستقبلاً
     final Color onlineColor = const Color(0xFF00C853);
     final Color unreadAccentColor = const Color(0xFF00E676);
 
@@ -236,7 +322,9 @@ class ModernChatListItem extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        color: unreadCount > 0 ? Colors.white.withOpacity(0.03) : Colors.transparent, 
+        color: unreadCount > 0 
+            ? Colors.white.withOpacity(0.03) 
+            : (isPinned ? Colors.white.withOpacity(0.01) : Colors.transparent), 
       ),
       child: Material(
         color: Colors.transparent,
@@ -245,6 +333,7 @@ class ModernChatListItem extends StatelessWidget {
           splashColor: Colors.white.withOpacity(0.05),
           highlightColor: Colors.white.withOpacity(0.02),
           onTap: onTap,
+          onLongPress: onLongPress,
           child: Padding(
             padding: const EdgeInsets.all(12.0),
             child: Row(
@@ -307,16 +396,31 @@ class ModernChatListItem extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        name,
-                        style: TextStyle(
-                          color: unreadCount > 0 ? Colors.white : Colors.white.withOpacity(0.9),
-                          fontSize: 16,
-                          fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.w600,
-                          letterSpacing: 0.3,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              name,
+                              style: TextStyle(
+                                color: unreadCount > 0 ? Colors.white : Colors.white.withOpacity(0.9),
+                                fontSize: 16,
+                                fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.w600,
+                                letterSpacing: 0.3,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          // إظهار أيقونة الدبوس مائلة وبشكل أنيق إذا كانت المحادثة مثبتة
+                          if (isPinned)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 4.0),
+                              child: Transform.rotate(
+                                angle: 0.5,
+                                child: Icon(Icons.push_pin, color: Colors.white.withOpacity(0.4), size: 14),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -377,7 +481,6 @@ class ModernChatListItem extends StatelessWidget {
   }
 }
 
-// ✅ التعديل 5: إضافة الـ Skeleton المخصص لمنع الـ Flicker وإعطاء تجربة تحميل بصرية سلسة ومحترفة
 class ModernChatListItemSkeleton extends StatelessWidget {
   const ModernChatListItemSkeleton({super.key});
 
@@ -388,7 +491,6 @@ class ModernChatListItemSkeleton extends StatelessWidget {
       padding: const EdgeInsets.all(12.0),
       child: Row(
         children: [
-          // صور الحساب الوهمية
           Container(
             width: 54,
             height: 54,
@@ -398,7 +500,6 @@ class ModernChatListItemSkeleton extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          // النصوص الوهمية
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -424,7 +525,6 @@ class ModernChatListItemSkeleton extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          // الوقت الوهمي
           Container(
             width: 40,
             height: 12,
