@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart'; // 🚀 تأكد من إضافة باكيدج intl في pubspec.yaml لتنسيق الوقت
+import 'package:intl/intl.dart'; // 🚀 مسؤولة عن تنسيق الوقت
 import 'package:chatx/screens/chat/cubit/chat_cubit.dart';
 import '../../models/models.dart';
 import '../../repositories/firebase_repo.dart';
@@ -51,7 +51,7 @@ class _ChatsTabState extends State<ChatsTab> {
     if (_myUid.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(
-          color: Colors.white, // تعديل للون أنيق
+          color: Colors.white, 
           strokeWidth: 3,
         ),
       );
@@ -80,11 +80,11 @@ class _ChatsTabState extends State<ChatsTab> {
         }
 
         return ListView.separated(
-          padding: const EdgeInsets.only(top: 16, bottom: 100, left: 8, right: 8), // مساحة سفلية عشان الـ NavBar
+          padding: const EdgeInsets.only(top: 16, bottom: 100, left: 8, right: 8), 
           itemCount: chats.length,
           separatorBuilder: (context, index) => Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Divider(color: Colors.white.withOpacity(0.05), height: 1), // فاصل شفاف وأنيق جداً
+            child: Divider(color: Colors.white.withOpacity(0.05), height: 1), 
           ),
           itemBuilder: (context, index) {
             return _buildChatItem(chats[index]);
@@ -100,29 +100,34 @@ class _ChatsTabState extends State<ChatsTab> {
     return FutureBuilder<UserModel?>(
       future: FirebaseRepo.getUserById(otherUid),
       builder: (context, snapshot) {
-        // تأثير تحميل ناعم لو البيانات لسه بتيجي (اختياري بس بيخلي الـ UX عالي)
         if (!snapshot.hasData && snapshot.connectionState == ConnectionState.waiting) {
-           return const SizedBox(height: 76); // مساحة افتراضية لمنع القفز البصري
+           return const SizedBox(height: 76); 
         }
 
         final user = snapshot.data;
         final name = user?.displayName ?? 'Unknown User';
         
-        // 🚀 معالجة الوقت (افترضنا أن الـ chat فيها حقل timestamp، لو مش موجود ضيفه في الموديل)
-        // String formattedTime = '';
-        // if (chat.lastMessageTime != null) {
-        //   formattedTime = DateFormat('hh:mm a').format(chat.lastMessageTime!);
-        // }
+        // ✅ التعديل 1: معالجة الوقت الفعلي بدلاً من الوقت الثابت
+        String formattedTime = '';
+        try {
+          if (chat.lastMessageTime != null) {
+            // تحويل الوقت لصيغة الساعات والدقائق (مثال: 10:30 AM)
+            formattedTime = DateFormat('hh:mm a').format(chat.lastMessageTime!);
+          }
+        } catch (e) {
+          // في حال حدوث خطأ أثناء قراءة الوقت
+          debugPrint("Error formatting time: $e");
+        }
 
         return ModernChatListItem(
           name: name,
           lastMessage: chat.lastMessage.isNotEmpty ? chat.lastMessage : 'Tap to chat',
-          time: '12:30 PM', // استبدلها بـ formattedTime بعد تفعيل الـ timestamp
+          time: formattedTime, // ✅ تم ربط الوقت هنا
           avatarUrl: user?.avatarUrl,
           isOnline: user?.isOnline ?? false,
-          unreadCount: 0, // 🚀 ضيف الحقل ده في الـ Firebase عندك عشان تظهر عدد الرسائل
+          unreadCount: 0, 
           onTap: () async {
-            HapticFeedback.lightImpact(); // تجاوب لمسي مع الضغطة
+            HapticFeedback.lightImpact(); 
             final chatData = await FirebaseRepo.getOrCreateChat(_myUid, otherUid);
 
             if (!mounted) return;
@@ -153,7 +158,6 @@ class _ChatsTabState extends State<ChatsTab> {
   }
 }
 
-// 🚀 الويدجت السحرية اللي هتحول شكل الشات لتصميم عالمي
 class ModernChatListItem extends StatelessWidget {
   final String name;
   final String lastMessage;
@@ -180,7 +184,6 @@ class ModernChatListItem extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        // تأثير ضوء خفيف جداً لما يكون فيه رسائل جديدة
         color: unreadCount > 0 ? Colors.white.withOpacity(0.03) : Colors.transparent, 
       ),
       child: Material(
@@ -202,24 +205,21 @@ class ModernChatListItem extends StatelessWidget {
                       height: 54,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: avatarUrl == null
-                            ? const LinearGradient(
-                                colors: [Color(0xFF8A2387), Color(0xFFE94057), Color(0xFFF27121)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              )
-                            : null,
-                        image: avatarUrl != null && avatarUrl!.isNotEmpty
+                        // ✅ التعديل 2: تفعيل ألوان الأفاتار من ملف AppColors
+                        color: (avatarUrl == null || avatarUrl!.isEmpty) 
+                            ? AppColors.avatarColor(name) 
+                            : Colors.transparent,
+                        image: (avatarUrl != null && avatarUrl!.isNotEmpty)
                             ? DecorationImage(
                                 image: NetworkImage(avatarUrl!),
                                 fit: BoxFit.cover,
                               )
                             : null,
                       ),
-                      child: avatarUrl == null || avatarUrl!.isEmpty
+                      child: (avatarUrl == null || avatarUrl!.isEmpty)
                           ? Center(
                               child: Text(
-                                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : '?',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -237,10 +237,10 @@ class ModernChatListItem extends StatelessWidget {
                           width: 16,
                           height: 16,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF00C853), // لون أخضر عصري
+                            color: const Color(0xFF00C853), 
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: AppColors.bgDark, // 🚀 الـ Cut-out effect
+                              color: AppColors.bgDark, 
                               width: 3,
                             ),
                           ),
@@ -288,6 +288,7 @@ class ModernChatListItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    // ✅ تم تمرير متغير الوقت الفعلي هنا
                     Text(
                       time,
                       style: TextStyle(
@@ -301,7 +302,7 @@ class ModernChatListItem extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00E676), // أخضر فاقع للفت الانتباه
+                          color: const Color(0xFF00E676), 
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -314,7 +315,7 @@ class ModernChatListItem extends StatelessWidget {
                         ),
                       )
                     else
-                      const SizedBox(height: 20), // للحفاظ على التوازن البصري لو مفيش رسائل
+                      const SizedBox(height: 20), 
                   ],
                 ),
               ],
