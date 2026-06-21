@@ -63,14 +63,15 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
         body: SafeArea(
           bottom: false,
           child: NestedScrollView(
-            floatHeaderSlivers: true, 
+            floatHeaderSlivers: false, 
             headerSliverBuilder: (context, innerBoxIsScrolled) {
               return [
                 SliverAppBar(
                   backgroundColor: AppColors.bgDark,
-                  floating: true,
-                  snap: true,
-                  elevation: 0,
+                  pinned: true,   // التعديل السحري: تثبيت الهيدر مثل تليجرام
+                  floating: false,
+                  snap: false,
+                  elevation: innerBoxIsScrolled ? 2 : 0, // إضافة تأثير ظل خفيف عند السكرول لفصل الهيدر عن المحادثات
                   toolbarHeight: 65,
                   titleSpacing: 0,
                   // أنيميشن فخم وسلس أثناء الانتقال لطور البحث
