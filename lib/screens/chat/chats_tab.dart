@@ -107,12 +107,14 @@ class _ChatsTabState extends State<ChatsTab> {
         final user = snapshot.data;
         final name = user?.displayName ?? 'Unknown User';
         
-        // ✅ التعديل 1: معالجة الوقت الفعلي بدلاً من الوقت الثابت
+        // ✅ التعديل 1: معالجة الوقت الفعلي بدلاً من الوقت الثابت مع حل مشكلة الـ DateTime
         String formattedTime = '';
         try {
           if (chat.lastMessageTime != null) {
-            // تحويل الوقت لصيغة الساعات والدقائق (مثال: 10:30 AM)
-            formattedTime = DateFormat('hh:mm a').format(chat.lastMessageTime!);
+            // تحويل الرقم (int أو Timestamp) إلى DateTime أولاً
+            // هنا بنفترض إن lastMessageTime هو int بالمللي ثانية (milliseconds)
+            DateTime messageTime = DateTime.fromMillisecondsSinceEpoch(chat.lastMessageTime as int);
+            formattedTime = DateFormat('hh:mm a').format(messageTime);
           }
         } catch (e) {
           // في حال حدوث خطأ أثناء قراءة الوقت
