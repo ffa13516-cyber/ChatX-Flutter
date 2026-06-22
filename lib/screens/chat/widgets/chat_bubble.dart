@@ -3,6 +3,7 @@
 // ✨ Enterprise Level Optimization & UX Refinement
 // ============================================================
 
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -227,9 +228,8 @@ class _ChatBubbleState extends State<ChatBubble>
                   ),
                 ),
               ),
-            ),
-          ],
-        );
+            ],
+          );
       },
     );
   }
@@ -330,7 +330,7 @@ class _ChatBubbleState extends State<ChatBubble>
               Text(
                 '$totalCount',
                 style: const TextStyle(
-                  color: Colors.whiteEE,
+                  color: Color(0xFFEEEEEE),
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   letterSpacing: -0.5, // Enterprise styling
@@ -618,7 +618,7 @@ class _ImageContent extends StatelessWidget {
                 color: Colors.black26,
                 child: Text(
                   time,
-                  style: const TextStyle(color: Colors.whiteD9, fontSize: 11, fontWeight: FontWeight.w500),
+                  style: const TextStyle(color: Color(0xFFD9D9D9), fontSize: 11, fontWeight: FontWeight.w500),
                 ),
               ),
             ),
@@ -757,14 +757,14 @@ class _VoiceWaveVisualizer extends StatelessWidget {
           final isPlaying = isPlayingListenable.value;
 
           return Row(
-            mainAxisAlignment: MainAxisSize.center,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(_barHeights.length, (i) {
               
               double hFactor;
               if (isPlaying) {
                 // تأثير موجة متحركة ناعمة
                 final phase = (waveController.value - i * 0.05) % 1.0;
-                final sine = (1 + (phase * 2 * 3.14159).sin()) / 2; // 0 to 1 sinesoid
+                final sine = (1 + math.sin(phase * 2 * 3.14159)) / 2; // 0 to 1 sinesoid
                 hFactor = 0.2 + (sine * 0.8); // Clamp between 0.2 and 1.0
               } else {
                 hFactor = _barHeights[i];
@@ -1009,7 +1009,7 @@ class _MenuItem extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
-    this.color = Colors.whiteEE,
+    this.color = const Color(0xFFEEEEEE),
   });
 
   @override
