@@ -66,33 +66,42 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
             headerSliverBuilder: (context, innerBoxIsScrolled) {
               return [
                 SliverAppBar(
-                  backgroundColor: Colors.transparent, // جعل الخلفية شفافة لتبدو الكبسولة عائمة
+                  backgroundColor: Colors.transparent, 
                   pinned: true,   
                   floating: false,
                   snap: false,
                   elevation: 0, 
-                  toolbarHeight: 70, // ارتفاع متناسق وملموم جداً للهيدر العائم
+                  toolbarHeight: 70, 
                   titleSpacing: 0,
-                  // وضع الكبسولة الزجاجية العائمة هنا بمسافات جانبية معقولة ومدروسة
                   title: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
                     child: GlassContainer(
-                      borderRadius: 24, // انحناء انسيابي متناسق مع النوافذ السفلية
+                      borderRadius: 24, 
                       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        transitionBuilder: (Widget child, Animation<double> animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: ScaleTransition(
-                              scale: Tween<double>(begin: 0.98, end: 1.0).animate(animation),
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: _isSearching 
-                            ? _buildExpandedSearchBar(context) 
-                            : _buildHeaderContent(context),
+                      // AnimatedSize adds fluid expansion/contraction when search opens
+                      child: AnimatedSize(
+                        duration: const Duration(milliseconds: 350),
+                        curve: Curves.easeOutCubic,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          switchInCurve: Curves.easeOutBack,
+                          switchOutCurve: Curves.easeIn,
+                          transitionBuilder: (Widget child, Animation<double> animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0.02, 0),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: _isSearching 
+                              ? _buildExpandedSearchBar(context) 
+                              : _buildHeaderContent(context),
+                        ),
                       ),
                     ),
                   ),
@@ -106,14 +115,13 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
           ),
         ),
         bottomNavigationBar: Padding(
-          padding: const EdgeInsets.only(bottom: 16.0, left: 40.0, right: 40.0),
+          padding: const EdgeInsets.only(bottom: 24.0, left: 32.0, right: 32.0),
           child: _buildFloatingIslandNavBar(),
         ),
       ),
     );
   }
 
-  // محتوى الهيدر داخل الكبسولة الزجاجية
   Widget _buildHeaderContent(BuildContext context) {
     return Container(
       key: const ValueKey('NormalHeader'),
@@ -122,19 +130,29 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
-            'chatx',
-            style: TextStyle(
-              fontSize: 24, // حجم خط عصري ومناسب للكبسولة الملمومة
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: 1.0,
+          // إضافة لمسة جمالية للنص عبر ShaderMask (تأثير معدني خفيف)
+          ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              colors: [Colors.white, Colors.white.withOpacity(0.8)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ).createShader(bounds),
+            child: const Text(
+              'chatx',
+              style: TextStyle(
+                fontSize: 24, 
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                letterSpacing: 1.2,
+              ),
             ),
           ),
           Row(
             children: [
               IconButton(
                 icon: const Icon(Icons.search_rounded, color: Colors.white, size: 24),
+                splashColor: Colors.transparent,
+                highlightColor: Colors.transparent,
                 onPressed: () {
                   HapticFeedback.mediumImpact();
                   setState(() {
@@ -148,38 +166,21 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
                   highlightColor: Colors.transparent,
                 ),
                 child: PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, color: Colors.white, size: 24),
-                  color: Colors.black.withOpacity(0.85), 
-                  elevation: 0,
+                  icon: const Icon(Icons.more_vert_rounded, color: Colors.white, size: 24),
+                  color: AppColors.bgDark.withOpacity(0.95), 
+                  elevation: 8,
+                  shadowColor: Colors.black45,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(color: Colors.white.withOpacity(0.08)),
                   ),
                   onSelected: (value) {
                     if (value == 'channel') widget.onCreateChannel();
                     if (value == 'group') widget.onCreateGroup();
                   },
                   itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'channel',
-                      child: Row(
-                        children: [
-                          Icon(Icons.campaign_rounded, color: Colors.white70, size: 20),
-                          SizedBox(width: 10),
-                          Text('Create Channel', style: TextStyle(color: Colors.white, fontSize: 14)),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'group',
-                      child: Row(
-                        children: [
-                          Icon(Icons.group_add_rounded, color: Colors.white70, size: 20),
-                          SizedBox(width: 10),
-                          Text('Create Group', style: TextStyle(color: Colors.white, fontSize: 14)),
-                        ],
-                      ),
-                    ),
+                    _buildPopupMenuItem('channel', Icons.campaign_rounded, 'Create Channel'),
+                    _buildPopupMenuItem('group', Icons.group_add_rounded, 'Create Group'),
                   ],
                 ),
               ),
@@ -190,7 +191,33 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
     );
   }
 
-  // شريط البحث المدمج بذكاء وانسيابية داخل نفس الكبسولة الزجاجية
+  PopupMenuItem<String> _buildPopupMenuItem(String value, IconData icon, String text) {
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: Colors.white70, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            text, 
+            style: const TextStyle(
+              color: Colors.white, 
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildExpandedSearchBar(BuildContext context) {
     return Container(
       key: const ValueKey('ExpandedSearch'),
@@ -198,7 +225,9 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
             onPressed: () {
               HapticFeedback.lightImpact();
               setState(() {
@@ -212,17 +241,18 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
             child: TextField(
               controller: _searchController,
               autofocus: true, 
-              style: const TextStyle(color: Colors.white, fontSize: 15),
+              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
               onChanged: (value) {
                 widget.onSearch(value);
                 setState(() {}); 
               },
               cursorColor: AppColors.primary,
               decoration: InputDecoration(
-                hintText: 'Search chats...',
+                hintText: 'Search messages...',
                 hintStyle: TextStyle(
-                  color: Colors.white.withOpacity(0.35), 
-                  fontSize: 14,
+                  color: Colors.white.withOpacity(0.3), 
+                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
                 ),
                 border: InputBorder.none,
                 isDense: true,
@@ -231,8 +261,16 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
                     ? IconButton(
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
-                        icon: Icon(Icons.close_rounded, color: Colors.white.withOpacity(0.5), size: 18),
+                        icon: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.1),
+                          ),
+                          child: const Icon(Icons.close_rounded, color: Colors.white, size: 14),
+                        ),
                         onPressed: () {
+                          HapticFeedback.selectionClick();
                           _searchController.clear();
                           widget.onSearch('');
                           setState(() {});
@@ -247,96 +285,36 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
     );
   }
 
-  // الملاحة السفلية العائمة (Floating Island NavBar)
   Widget _buildFloatingIslandNavBar() {
     return SafeArea(
       top: false,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30), 
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.06), 
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.12),
-                width: 1.0,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 20,
-                  spreadRadius: 2,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildIslandNavItem(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 0),
-                _buildIslandNavItem(Icons.person_outline_rounded, Icons.person_rounded, 1),
-                _buildIslandNavItem(Icons.tune_rounded, Icons.tune_rounded, 2), 
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildIslandNavItem(IconData icon, IconData activeIcon, int index) {
-    final isSelected = widget.currentIndex == index;
-
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact(); 
-        widget.onTabSelected(index);
-      },
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-        color: Colors.transparent,
-        child: Column(
-          mainAxisSize: MainAxisSize.min, 
+      child: GlassContainer(
+        borderRadius: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              transitionBuilder: (Widget child, Animation<double> animation) {
-                return ScaleTransition(
-                  scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
-                  child: child,
-                );
-              },
-              child: Icon(
-                isSelected ? activeIcon : icon,
-                key: ValueKey<bool>(isSelected),
-                color: isSelected ? AppColors.primary : Colors.white.withOpacity(0.4),
-                size: 24, 
-              ),
+            _AnimatedNavItem(
+              icon: Icons.chat_bubble_outline_rounded,
+              activeIcon: Icons.chat_bubble_rounded,
+              index: 0,
+              currentIndex: widget.currentIndex,
+              onTap: widget.onTabSelected,
             ),
-            const SizedBox(height: 4),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutCubic,
-              height: 4,
-              width: isSelected ? 4 : 0, 
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.8),
-                          blurRadius: 8,
-                          spreadRadius: 1,
-                        )
-                      ]
-                    : [],
-              ),
+            _AnimatedNavItem(
+              icon: Icons.person_outline_rounded,
+              activeIcon: Icons.person_rounded,
+              index: 1,
+              currentIndex: widget.currentIndex,
+              onTap: widget.onTabSelected,
             ),
+            _AnimatedNavItem(
+              icon: Icons.tune_rounded,
+              activeIcon: Icons.tune_rounded,
+              index: 2,
+              currentIndex: widget.currentIndex,
+              onTap: widget.onTabSelected,
+            ), 
           ],
         ),
       ),
@@ -344,7 +322,106 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
   }
 }
 
-// ويدجت الـ Glassmorphic المخصصة للكبسولات
+// ==========================================
+// Widgets المساعدة المعزولة لرفع الأداء وتحسين الـ UX
+// ==========================================
+
+/// ويدجت زر الملاحة المعزول برمجياً للتعامل مع حركات الـ Spring بامتياز
+class _AnimatedNavItem extends StatefulWidget {
+  final IconData icon;
+  final IconData activeIcon;
+  final int index;
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+
+  const _AnimatedNavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.index,
+    required this.currentIndex,
+    required this.onTap,
+  });
+
+  @override
+  State<_AnimatedNavItem> createState() => _AnimatedNavItemState();
+}
+
+class _AnimatedNavItemState extends State<_AnimatedNavItem> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = widget.currentIndex == widget.index;
+
+    return GestureDetector(
+      onTapDown: (_) {
+        setState(() => _isPressed = true);
+        HapticFeedback.selectionClick();
+      },
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap(widget.index);
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedScale(
+        scale: _isPressed ? 0.85 : 1.0, // حركة انكماش فيزيائية (Spring Effect)
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOutBack,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+          color: Colors.transparent,
+          child: Column(
+            mainAxisSize: MainAxisSize.min, 
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(
+                      scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+                      child: child,
+                    ),
+                  );
+                },
+                child: Icon(
+                  isSelected ? widget.activeIcon : widget.icon,
+                  key: ValueKey<bool>(isSelected),
+                  color: isSelected ? AppColors.primary : Colors.white.withOpacity(0.4),
+                  size: 26, 
+                ),
+              ),
+              const SizedBox(height: 6),
+              // المؤشر السفلي تم تحويله إلى كبسولة دقيقة بدلاً من دائرة بسيطة
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 350),
+                curve: Curves.easeOutCubic,
+                height: 4,
+                width: isSelected ? 16 : 0, 
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(2),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.6),
+                            blurRadius: 10,
+                            spreadRadius: 1,
+                          )
+                        ]
+                      : [],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// كبسولة زجاجية محسنة بظلال عميقة وأداء عالي
 class GlassContainer extends StatelessWidget {
   final Widget child;
   final double borderRadius;
@@ -365,23 +442,46 @@ class GlassContainer extends StatelessWidget {
       margin: margin,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(color: Colors.white.withOpacity(0.12), width: 1.0),
-        color: Colors.white.withOpacity(0.03),
+        // محاكاة انعكاس الضوء على الحواف عبر جراديانت خفيف جداً
+        border: Border.all(
+          color: Colors.white.withOpacity(0.15), 
+          width: 0.5,
+        ),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.08),
+            Colors.white.withOpacity(0.02),
+          ],
+        ),
         boxShadow: [
+          // ظل ناعم للعمق العام
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            spreadRadius: 1,
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 24,
+            spreadRadius: 0,
+            offset: const Offset(0, 10),
+          ),
+          // ظل دقيق لتحديد الحواف السفلية
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            spreadRadius: -2,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Padding(
-            padding: padding ?? EdgeInsets.zero,
-            child: child,
+      // RepaintBoundary لضمان عدم تأثر باقي الشاشة بإعادة رسم الـ Blur المكلف
+      child: RepaintBoundary( 
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(borderRadius),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Padding(
+              padding: padding ?? EdgeInsets.zero,
+              child: child,
+            ),
           ),
         ),
       ),
