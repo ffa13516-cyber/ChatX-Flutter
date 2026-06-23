@@ -14,6 +14,7 @@ import '../../utils/app_colors.dart'; // افترض وجود هذا الملف
 // ✅ إعادة بناء AppBar + Search morphology لتكون أكثر تكاملاً وأناقة.
 // ✅ إضافة Purple/Blue accents على الحواف وتفاصيل الواجهة.
 // ✅ تم حل مشكلة selectionColor عبر تغليف الـ TextField بـ Theme مخصص.
+// ✅ تنحيف شريط التنقل السفلي (NavBar) وخفض موقعه لزيادة مساحة العرض.
 
 class HomeScreenUI extends StatefulWidget {
   final int currentIndex;
@@ -131,7 +132,8 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
           ),
         ),
         bottomNavigationBar: Padding(
-          padding: const EdgeInsets.only(bottom: 28.0, left: 32.0, right: 32.0),
+          // تم تقليل المسافة السفلية (bottom) لإنزال الجزيرة أكثر
+          padding: const EdgeInsets.only(bottom: 12.0, left: 32.0, right: 32.0),
           child: _buildFloatingIslandNavBar(luxuryAccentColor),
         ),
       ),
@@ -319,7 +321,8 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
       top: false,
       child: LuxuryGlassContainer(
         borderRadius: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 22.0, vertical: 12.0),
+        // تم تقليل الـ vertical padding لجعل الجزيرة أنحف
+        padding: const EdgeInsets.symmetric(horizontal: 22.0, vertical: 8.0),
         accentColor: accentColor,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -404,7 +407,8 @@ class _AnimatedNavItemState extends State<_AnimatedNavItem> {
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeOutBack,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          // تم تقليل الـ vertical padding هنا أيضاً لتقليل الارتفاع الكلي
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
           color: Colors.transparent,
           child: Column(
             mainAxisSize: MainAxisSize.min, 
@@ -428,7 +432,8 @@ class _AnimatedNavItemState extends State<_AnimatedNavItem> {
                   size: 26, 
                 ),
               ),
-              const SizedBox(height: 8),
+              // تم تقليل المسافة بين الأيقونة والمؤشر لتكون أدمج
+              const SizedBox(height: 4),
               // المؤشر السفلي تم تحويله إلى كبسولة دقيقة بدلاً من دائرة بسيطة
               AnimatedContainer(
                 duration: const Duration(milliseconds: 350),
