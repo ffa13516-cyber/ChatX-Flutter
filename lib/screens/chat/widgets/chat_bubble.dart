@@ -1,13 +1,12 @@
 // ============================================================
 // chat_bubble.dart — ChatX Message Bubble
-// ✨ Enterprise Level Optimization & UX Refinement
+// ✨ Enterprise Level Optimization & Telegram UX Refinement
 // ============================================================
 
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// نعتبر أن MessageModel تم تحسينه أيضاً ليدعم Equality checks بشكل صحيح
 import '../models/message_model.dart';
 
 // ✅ استخدام const constructor لتقليل تكلفة إعادة إنشاء الـ Widget
@@ -35,7 +34,6 @@ class ChatBubble extends StatefulWidget {
   State<ChatBubble> createState() => _ChatBubbleState();
 }
 
-// ✅ تم إضافة TickerProviderStateMixin لدعم أكثر من AnimationController إذا لزم
 class _ChatBubbleState extends State<ChatBubble>
     with TickerProviderStateMixin {
   
@@ -57,9 +55,7 @@ class _ChatBubbleState extends State<ChatBubble>
 
   @override
   void dispose() {
-    // 🟢 Performance Fix #8: وقّف الـ animation قبل الـ dispose.
-    // لو المستخدم سكرول فبعد الـ bubble من الـ viewport وهي شغالة،
-    // الـ controller كان يفضل يـ tick في الخلفية. Stop قبل dispose = no leak.
+    // 🟢 Performance Fix: وقّف الـ animation قبل الـ dispose لمنع الـ Memory Leak
     _waveController.stop();
     _waveController.dispose();
     _isPressedListenable.dispose();
@@ -77,33 +73,30 @@ class _ChatBubbleState extends State<ChatBubble>
   }
 
   // ─────────────────────────────────────────
-  // Action Menu — ✅ تحسين الحركة والجمالية
+  // Action Menu — Telegram Pop-up UI
   // ─────────────────────────────────────────
 
   void _showActionMenu(BuildContext rootContext) {
-    HapticFeedback.heavyImpact(); // ✅ UX: رد فعل اهتزازي أقوى للقائمة
+    HapticFeedback.heavyImpact(); // ✅ UX: رد فعل اهتزازي قوي للقائمة
     
     final isMe = widget.message.isMe;
     final box = rootContext.findRenderObject() as RenderBox?;
     if (box == null) return;
 
     final offset = box.localToGlobal(Offset.zero);
-    // تحسين حساب الموضع ليشمل padding جمالي
-    double topPos = offset.dy - 130;
+    double topPos = offset.dy - 140;
     if (topPos < 80) topPos = offset.dy + box.size.height + 16;
 
     showGeneralDialog(
       context: rootContext,
       barrierDismissible: true,
       barrierLabel: 'dismiss',
-      // ✅ UX: لون خلفية أعمق قليلاً لتركيز الانتباه
-      barrierColor: Colors.black45,
+      barrierColor: Colors.black54, // تعميق الخلفية لزيادة التركيز
       transitionDuration: const Duration(milliseconds: 250),
       pageBuilder: (dialogCtx, animation, secondaryAnimation) {
-        // ✅ UX & Performance: استخدام CurvedAnimation لحركة أكثر طبيعية
         final curvedAnim = CurvedAnimation(
           parent: animation,
-          curve: Curves.easeOutBack, // حركة مطاطية خفيفة وفخمة
+          curve: Curves.easeOutBack, // حركة مطاطية فخمة جداً كالتليجرام
           reverseCurve: Curves.easeIn,
         );
 
@@ -115,11 +108,10 @@ class _ChatBubbleState extends State<ChatBubble>
                 child: const ColoredBox(color: Colors.transparent),
               ),
             ),
-
             Positioned(
               top: topPos,
-              left: isMe ? null : 20,
-              right: isMe ? 20 : null,
+              left: isMe ? null : 16,
+              right: isMe ? 16 : null,
               child: ScaleTransition(
                 scale: curvedAnim,
                 alignment: isMe ? Alignment.topRight : Alignment.topLeft,
@@ -130,55 +122,25 @@ class _ChatBubbleState extends State<ChatBubble>
                         ? CrossAxisAlignment.end
                         : CrossAxisAlignment.start,
                     children: [
-                      // ── Quick Reactions Row ────────────────
-                      _GlassCard(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 6),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ...['❤️', '👍', '🔥', '😂', '😮', '😢'].map(
-                              (emoji) => _ReactionEmojiItem(
-                                emoji: emoji,
-                                onTap: () {
-                                  Navigator.pop(dialogCtx);
-                                  widget.onReact?.call(emoji);
-                                },
-                              ),
-                            ),
-                            // More emojis button
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.pop(dialogCtx);
-                                WidgetsBinding.instance
-                                    .addPostFrameCallback((_) {
-                                  _showEmojiSheet(rootContext);
-                                });
-                              },
-                              child: Container(
-                                margin:
-                                    const EdgeInsets.only(left: 4, right: 2),
-                                padding: const EdgeInsets.all(7),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.12),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.keyboard_arrow_down_rounded,
-                                  color: Colors.white,
-                                  size: 22,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      // ── Quick Reactions Row (Telegram Horizontal Scroll Style) ──
+                      _TelegramReactionsStrip(
+                        onReact: (emoji) {
+                          Navigator.pop(dialogCtx);
+                          widget.onReact?.call(emoji);
+                        },
+                        onExpand: () {
+                          Navigator.pop(dialogCtx);
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            _showEmojiSheet(rootContext);
+                          });
+                        },
                       ),
-
-                      const SizedBox(height: 10),
+                      
+                      const SizedBox(height: 12),
 
                       // ── Context Menu ──────────────────────
                       _GlassCard(
-                        width: 200,
+                        width: 210,
                         padding: const EdgeInsets.symmetric(vertical: 6),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -200,8 +162,6 @@ class _ChatBubbleState extends State<ChatBubble>
                                   Clipboard.setData(
                                     ClipboardData(text: widget.message.text),
                                   );
-                                  // ✅ UX Note: يفضل استخدام custom toast
-                                  // لـ Enterprise UI بدل الـ SnackBar الافتراضي.
                                 },
                               ),
                             if (isMe) ...[
@@ -245,23 +205,20 @@ class _ChatBubbleState extends State<ChatBubble>
 
   void _showEmojiSheet(BuildContext ctx) {
     if (!ctx.mounted) return;
-
     showModalBottomSheet(
       context: ctx,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      // ✅ UX: إضافة تأثير بلور خلف الـ sheet للفخامة
       builder: (sheetCtx) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+        filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
         child: Container(
-          height: MediaQuery.of(ctx).size.height * 0.5,
+          height: MediaQuery.of(ctx).size.height * 0.55,
           decoration: const BoxDecoration(
-            color: Color(0xFF17181C), // أغمق قليلاً للتباين
+            color: Color(0xFF17181C),
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Column(
             children: [
-              // Handlebar
               Container(
                 margin: const EdgeInsets.symmetric(vertical: 16),
                 width: 40,
@@ -274,14 +231,12 @@ class _ChatBubbleState extends State<ChatBubble>
               Expanded(
                 child: GridView.builder(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                  //🟢 Performance: تحسين الـ Grid parameters
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 7,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
                   ),
                   itemCount: _allEmojis.length,
-                  //🟢 Performance: استخدام const (لو أمكن) أو عزل الـ item
                   itemBuilder: (_, i) => _EmojiGridItem(
                     emoji: _allEmojis[i],
                     onTap: (selectedEmoji) {
@@ -299,13 +254,10 @@ class _ChatBubbleState extends State<ChatBubble>
   }
 
   // ─────────────────────────────────────────
-  // Reactions Pill — ✅ UX تحسين التصميم
+  // Reactions Pill (Overlapped On Bubble)
   // ─────────────────────────────────────────
 
   Widget _buildReactionsPill() {
-    // 🟢 Performance Fix #10: حساب grouped مرة واحدة واستخدامه في كل الـ children.
-    // القديم: grouped.keys.toList() كانت بتخلق List جديدة في كل build حتى لو الـ
-    // reactions لم تتغير، لأن groupedReactions getter بيُعاد حسابه كل مرة.
     final grouped = widget.message.groupedReactions;
     if (grouped.isEmpty) return const SizedBox.shrink();
 
@@ -315,14 +267,14 @@ class _ChatBubbleState extends State<ChatBubble>
     return GestureDetector(
       onTap: () => _showActionMenu(context),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
-          color: const Color(0xFF2B2C31),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withOpacity(0.08)),
+          color: const Color(0xFF1E1F23), // لون كبسولة تليجرام الداكن والمميز
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withOpacity(0.12), width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withOpacity(0.3),
               blurRadius: 5,
               offset: const Offset(0, 2),
             ),
@@ -333,14 +285,14 @@ class _ChatBubbleState extends State<ChatBubble>
           children: [
             _ReactionsStack(emojis: emojiKeys),
             if (totalCount > 1) ...[
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
               Text(
                 '$totalCount',
                 style: const TextStyle(
                   color: Color(0xFFEEEEEE),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.5, // Enterprise styling
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.3,
                 ),
               ),
             ],
@@ -351,43 +303,41 @@ class _ChatBubbleState extends State<ChatBubble>
   }
 
   // ─────────────────────────────────────────
-  // Build
+  // Build Method
   // ─────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final isMe = widget.message.isMe;
     final hasReactions = widget.message.hasReactions;
-    // 🟢 Performance Fix #7: MediaQuery يتحسب مرة واحدة هنا بدل ما يتحسب في كل _Bubble.
-    final maxBubbleWidth = MediaQuery.of(context).size.width * 0.75;
+    final maxBubbleWidth = MediaQuery.of(context).size.width * 0.78;
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        // ✅ UX Refinement: تقليص المسافة مع حواف الشاشة لتكون 6 تماماً كالتليجرام
+        padding: const EdgeInsets.symmetric(horizontal: 6),
         child: GestureDetector(
           onTapDown: (_) {
             _isPressedListenable.value = true;
-            HapticFeedback.selectionClick(); // ✅ UX: تغذية مرتدة ناعمة
+            HapticFeedback.selectionClick();
           },
           onTapUp: (_) => _isPressedListenable.value = false,
           onTapCancel: () => _isPressedListenable.value = false,
           onLongPress: () => _showActionMenu(context),
-          //🟢 Performance: استخدام ValueListenableBuilder لعزل تأثير الحركة
           child: ValueListenableBuilder<bool>(
             valueListenable: _isPressedListenable,
             builder: (context, isPressed, child) {
               return AnimatedScale(
-                scale: isPressed ? 0.96 : 1.0, // تأثير ضغط أعمق قليلاً
+                scale: isPressed ? 0.97 : 1.0,
                 duration: const Duration(milliseconds: 110),
                 curve: Curves.easeInOut,
                 child: child,
               );
             },
             child: Stack(
-              clipBehavior: Clip.none,
+              clipBehavior: Clip.none, // مهم جداً للسماح بالتداخل الخارجي للإيموجي
               children: [
-                //🟢 Performance: تمرير الـ ValueNotifier لداخل الـ Bubble لعزل الـ repaints
                 _Bubble(
                   message: widget.message,
                   isHighlighted: widget.isHighlighted,
@@ -400,9 +350,10 @@ class _ChatBubbleState extends State<ChatBubble>
                 ),
                 if (hasReactions)
                   Positioned(
-                    bottom: -12, // تحسين الموضع
-                    right: isMe ? 16 : null,
-                    left: isMe ? null : 16,
+                    // ✅ Telegram Style: وضع التفاعلات مدمجة ومباشرة فوق حافة البابل السفلية
+                    bottom: -6, 
+                    right: isMe ? 12 : null,
+                    left: isMe ? null : 12,
                     child: _buildReactionsPill(),
                   ),
               ],
@@ -415,7 +366,7 @@ class _ChatBubbleState extends State<ChatBubble>
 
   static const _allEmojis = [
     '❤️','👍','🔥','😂','😮','😢','✅','💯','🎉','✨','🙏','👏','💪','👀','🤝','🫶',
-    '💀','🤡','🥳','😎','🤔','🤫','🤯','🥵','🥶','🥺','😭','😤','😠','🚫','🤡','👻',
+    '💀','🤡','🥳','😎','🤔','🤫','🤯','🥵','🥶','🥺','😭','😤','😠','🚫','👻','🤖',
     '😀','😁','🤣','😃','😄','😅','😆','😉','😊','😋','😍','🥰','😘','😗','🤩','😏',
     '😒','😞','😔','😟','😕','🙁','😣','😖','😫','😩','🤥','😶','😐','😑','😬','🙄',
   ];
@@ -430,12 +381,9 @@ class _Bubble extends StatelessWidget {
   final bool isHighlighted;
   final bool hasReactions;
   final Function(String)? onTapReply;
-  //🟢 Performance: نستقبل Listenable مش الـ State
   final ValueNotifier<bool> isPlayingListenable; 
   final AnimationController waveController;
   final VoidCallback onTogglePlay;
-  // 🟢 Performance Fix #7: maxWidth يتحسب مرة واحدة في الـ parent ويتمرر لكل bubble.
-  // القديم: MediaQuery.of(context) في كل bubble في كل rebuild = N lookups بدل 1.
   final double maxWidth;
 
   const _Bubble({
@@ -454,7 +402,6 @@ class _Bubble extends StatelessWidget {
     final isMe = message.isMe;
     final time = _formatTime(message.time);
     
-    // ✅ UI UX: شكل عصري واحترافي بدلاً من الشكل الدائري المبالغ فيه
     final radius = BorderRadius.only(
       topLeft: const Radius.circular(16),
       topRight: const Radius.circular(16),
@@ -462,20 +409,19 @@ class _Bubble extends StatelessWidget {
       bottomRight: Radius.circular(isMe ? 4 : 16),
     );
 
-    //🟢 Performance: استخراج الـ Border color لتجنب حسابه في الـ build
     final bubbleColor = isMe ? const Color(0xFF387CFF) : const Color(0xFF2B2C31);
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 250),
       curve: Curves.fastOutSlowIn,
       constraints: BoxConstraints(maxWidth: maxWidth),
       margin: EdgeInsets.only(
         top: 2,
-        bottom: hasReactions ? 18 : 2,
+        // ✅ تم تعديل الهامش السفلي ليكون 6 فقط ليحدث التداخل المثالي مع كبسولة الإيموجي
+        bottom: hasReactions ? 6 : 2, 
       ),
       decoration: BoxDecoration(
         borderRadius: radius,
-        // ✅ UX: ظل أنعم وأكثر احترافية وتماشياً مع تصاميم الشركات الكبرى
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -497,10 +443,9 @@ class _Bubble extends StatelessWidget {
                   ),
                 ),
               Padding(
-                // ✅ UX: تقليل الـ Padding قليلاً ليكون أكثر إحكاماً مع تصغير الخط
                 padding: message.type == MessageType.image
                     ? EdgeInsets.zero
-                    : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    : const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
                 child: _buildContentByStatus(context, time, radius, isMe),
               ),
             ],
@@ -510,7 +455,6 @@ class _Bubble extends StatelessWidget {
     );
   }
 
-  //🟢 Performance/Refactor: فصل بناء المحتوى بناءً على النوع
   Widget _buildContentByStatus(BuildContext context, String time, BorderRadius radius, bool isMe) {
     if (message.type == MessageType.image) {
       return _ImageContent(message: message, time: time, radius: radius);
@@ -531,14 +475,14 @@ class _Bubble extends StatelessWidget {
         if (message.type == MessageType.voice)
           _VoiceContent(
             message: message,
-            isPlayingListenable: isPlayingListenable, // مرره للداخل
+            isPlayingListenable: isPlayingListenable,
             waveController: waveController,
             onTogglePlay: onTogglePlay,
           )
         else
           _TextContent(message: message),
         
-        const SizedBox(height: 2), // تحسين الفراغ الجمالي
+        const SizedBox(height: 2),
         _TimeRow(time: time, isMe: isMe, status: message.status, isEdited: message.isEdited),
       ],
     );
@@ -561,21 +505,16 @@ class _TextContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🟢 Performance Fix #6: Text بدل SelectableText.
-    // SelectableText ينشئ SelectionOverlay + TextSelectionControls + focus node لكل bubble.
-    // مع 100 رسالة = 100 selection engine شغالة في الخلفية بدون سبب.
-    // الـ copy موجودة في الـ long-press action menu — مفيش حاجة لـ SelectableText.
     return Text(
       message.text,
       style: const TextStyle(
         color: Colors.white,
-        fontSize: 15, // ✅ تم تصغير الخط
-        height: 1.3,  // ✅ تم ضبط المسافة بين السطور ليلائم الخط الجديد
+        fontSize: 15,
+        height: 1.3,
         fontWeight: FontWeight.w400,
         fontFamily: 'Roboto',
       ),
     );
-    // ملاحظة: الـ "تم التعديل" تم دمجها في الـ TimeRow لتوفير مساحة عمودية
   }
 }
 
@@ -592,27 +531,23 @@ class _ImageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ UX: أبعاد صور متجاوبة وأكثر فخامة
     const double imageHeight = 200;
     const double imageWidth = 260;
 
     return Stack(
       children: [
         GestureDetector(
-          onTap: () {
-            // ✅ UX: فتح الصورة بملء الشاشة (LightBox)
-          },
+          onTap: () {},
           child: ClipRRect(
             borderRadius: radius,
-            child: Hero( // لمسة جمالية عند الفتح
+            child: Hero( 
               tag: 'img_${message.id}',
               child: Image.network(
                 message.imageUrl!,
                 height: imageHeight,
                 width: imageWidth,
                 fit: BoxFit.cover,
-                //🟢 Performance: إضافة cacheWidth/Height إذا كانت الصور كبيرة
-                errorBuilder: (_, __, ___) => _ImagePlaceholder(height: imageHeight, width: imageWidth, isError: true,),
+                errorBuilder: (_, __, ___) => const _ImagePlaceholder(height: imageHeight, width: imageWidth, isError: true,),
                 loadingBuilder: (_, child, progress) {
                   if (progress == null) return child;
                   return _ImagePlaceholder(height: imageHeight, width: imageWidth, progress: progress);
@@ -621,7 +556,6 @@ class _ImageContent extends StatelessWidget {
             ),
           ),
         ),
-        // Time overlay optimized
         Positioned(
           bottom: 8,
           right: 8,
@@ -658,7 +592,7 @@ class _ImagePlaceholder extends StatelessWidget {
     return Container(
       height: height,
       width: width,
-      color: const Color(0xFF1E1F23), // Dark placeholder
+      color: const Color(0xFF1E1F23),
       child: Center(
         child: isError 
           ? const Icon(Icons.broken_image_outlined, color: Colors.white24, size: 40,)
@@ -692,14 +626,11 @@ class _VoiceContent extends StatelessWidget {
     final duration = message.voiceDuration != null
         ? _formatDuration(message.voiceDuration!)
         : '0:00';
-
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        //🟢 Performance: عزل الـ Icon في Widget تستمع للـ Listenable
         _VoicePlayButton(isPlayingListenable: isPlayingListenable, onTogglePlay: onTogglePlay),
         const SizedBox(width: 12),
-        //🟢 Performance: عزل الـ Visualizer في Widget مستقلة
         _VoiceWaveVisualizer(waveController: waveController, isPlayingListenable: isPlayingListenable),
         const SizedBox(width: 10),
         Text(
@@ -756,7 +687,6 @@ class _VoiceWaveVisualizer extends StatelessWidget {
   final ValueNotifier<bool> isPlayingListenable;
 
   const _VoiceWaveVisualizer({required this.waveController, required this.isPlayingListenable});
-
   static const _barHeights = [0.2, 0.5, 0.8, 0.3, 0.9, 0.6, 0.8, 0.2, 0.7, 1.0, 0.4, 0.9, 0.3, 0.8];
 
   @override
@@ -764,9 +694,6 @@ class _VoiceWaveVisualizer extends StatelessWidget {
     return SizedBox(
       height: 30,
       width: 100,
-      // 🟢 Performance Fix #1: استبدال 14 Container بـ CustomPainter واحد.
-      // القديم كان يخلق 840+ object/ثانية على 60fps (14 Container × 60).
-      // الجديد: zero allocation per frame — الـ painter يرسم على الـ Canvas مباشرة.
       child: AnimatedBuilder(
         animation: waveController,
         builder: (context, _) {
@@ -797,7 +724,7 @@ class _WaveBarPainter extends CustomPainter {
   static const _colorA = Color(0xFF8AB4F8);
   static const _colorB = Colors.white;
   static const _barWidth = 2.5;
-  static const _barSpacing = 2.4; // margin 1.2 × 2
+  static const _barSpacing = 2.4;
   static const _minHeight = 4.0;
   static const _maxExtraHeight = 22.0;
   static const _cornerRadius = Radius.circular(2);
@@ -821,8 +748,6 @@ class _WaveBarPainter extends CustomPainter {
       final barHeight = _minHeight + (hFactor * _maxExtraHeight);
       final x = startX + i * totalBarWidth;
       final y = (size.height - barHeight) / 2;
-
-      // Color.lerp بس مرة واحدة لكل bar — مش per-frame object
       paint.color = Color.lerp(_colorA, _colorB, hFactor)!
           .withOpacity(isPlaying ? 1.0 : 0.6);
 
@@ -863,10 +788,10 @@ class _ReplyPreview extends StatelessWidget {
         icon = Icons.mic_rounded;
         previewText = 'رسالة صوتية';
         break;
-      case MessageType.text: break;
+      case MessageType.text: 
+        break;
     }
 
-    // ✅ UX: تصميم رد مدمج وأنيق (Telegram style refined)
     final lineColor = isMe ? Colors.white70 : const Color(0xFF387CFF);
 
     return GestureDetector(
@@ -877,13 +802,11 @@ class _ReplyPreview extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.black.withOpacity(0.15),
           borderRadius: BorderRadius.circular(10),
-          // إضاءة خفيفة جهة اليسار للردود المستلمة
           border: isMe ? null : Border(left: BorderSide(color: lineColor.withOpacity(0.5), width: 0.5)),
         ),
         child: IntrinsicHeight(
           child: Row(
             children: [
-              // Vertical accent line
               Container(
                 width: 3,
                 decoration: BoxDecoration(
@@ -940,8 +863,6 @@ class _TimeRow extends StatelessWidget {
   final String time;
   final bool isMe;
   final MessageStatus status;
-  // 🟢 Performance Fix #2: تمرير isEdited مباشرة بدل findAncestorWidgetOfExactType.
-  // القديم كان يمشي فوق الـ widget tree في كل build — O(n) traversal مجاني.
   final bool isEdited;
 
   const _TimeRow({
@@ -954,7 +875,6 @@ class _TimeRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final showEdited = isEdited;
-
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -971,7 +891,7 @@ class _TimeRow extends StatelessWidget {
             color: Colors.white.withOpacity(0.4),
             fontSize: 11,
             fontWeight: FontWeight.w400,
-            fontFeatures: const [FontFeature.tabularFigures()], // محاذاة الأرقام
+            fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
         if (isMe) ...[
@@ -1003,7 +923,7 @@ class _StatusIcon extends StatelessWidget {
         break;
       case MessageStatus.seen:
         icon = Icons.done_all_rounded;
-        color = const Color(0xFF8AB4F8); // لون أزرق فاتح مميز للقراءة
+        color = const Color(0xFF8AB4F8);
         break;
     }
 
@@ -1012,8 +932,130 @@ class _StatusIcon extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-// ✅ UI Components Isolated (Optimization & UX)
+// ✅ UI Components (Telegram Custom Strip & Glass)
 // ─────────────────────────────────────────────
+
+class _TelegramReactionsStrip extends StatelessWidget {
+  final Function(String) onReact;
+  final VoidCallback onExpand;
+
+  // قائمة الإيموجي الأكثر استخداماً تظهر في الشريط السريع القابل للسكرول
+  static const _quickEmojis = ['❤️', '👍', '🔥', '😂', '😮', '😢', '🎉', '💯', '🙏', '👏', '👀', '✨', '💀', '💩'];
+
+  const _TelegramReactionsStrip({
+    required this.onReact,
+    required this.onExpand,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            height: 48,
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.80,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2B2C31).withOpacity(0.85),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white.withOpacity(0.1), width: 0.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.25),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    shrinkWrap: true,
+                    itemCount: _quickEmojis.length,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    itemBuilder: (context, index) {
+                      return _ReactionEmojiItem(
+                        emoji: _quickEmojis[index],
+                        onTap: () => onReact(_quickEmojis[index]),
+                      );
+                    },
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 22,
+                  color: Colors.white.withOpacity(0.15),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                ),
+                GestureDetector(
+                  onTap: onExpand,
+                  child: Container(
+                    padding: const EdgeInsets.only(left: 6, right: 12),
+                    color: Colors.transparent, // توسيع الـ Hitbox للضغط المريح
+                    child: const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: Colors.white80,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReactionEmojiItem extends StatefulWidget {
+  final String emoji;
+  final VoidCallback onTap;
+
+  const _ReactionEmojiItem({required this.emoji, required this.onTap});
+
+  @override
+  State<_ReactionEmojiItem> createState() => _ReactionEmojiItemState();
+}
+
+class _ReactionEmojiItemState extends State<_ReactionEmojiItem> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onPanDown: (_) => setState(() => _isPressed = true),
+      onPanCancel: () => setState(() => _isPressed = false),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        widget.onTap();
+      },
+      child: AnimatedScale(
+        scale: _isPressed ? 1.35 : 1.0, // تكبير مطاطي مميز عند اللمس
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOutBack,
+        child: Container(
+          color: Colors.transparent,
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+          alignment: Alignment.center,
+          child: Text(
+            widget.emoji,
+            style: const TextStyle(fontSize: 25),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _GlassCard extends StatelessWidget {
   final Widget child;
@@ -1024,8 +1066,6 @@ class _GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🟢 Performance Fix #3: RepaintBoundary يعزل الـ BackdropFilter عن باقي الـ tree.
-    // بدونه الـ GPU كان يعيد رسم كل حاجة تحت الـ blur في كل rebuild.
     return RepaintBoundary(
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
@@ -1035,7 +1075,7 @@ class _GlassCard extends StatelessWidget {
             width: width,
             padding: padding,
             decoration: BoxDecoration(
-              color: const Color(0xFF2B2C31).withOpacity(0.7),
+              color: const Color(0xFF2B2C31).withOpacity(0.75),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: Colors.white.withOpacity(0.08)),
             ),
@@ -1062,7 +1102,6 @@ class _MenuItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ UX: استخدام Splash effect احترافي
     return InkWell(
       onTap: onTap,
       splashColor: Colors.white.withOpacity(0.05),
@@ -1089,28 +1128,6 @@ class _MenuItem extends StatelessWidget {
   }
 }
 
-//🟢 Performance: عزل الـ Emoji items لتجنب الـ rebuild
-class _ReactionEmojiItem extends StatelessWidget {
-  final String emoji;
-  final VoidCallback onTap;
-
-  const _ReactionEmojiItem({required this.emoji, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        child: Text(
-          emoji,
-          style: const TextStyle(fontSize: 24),
-        ),
-      ),
-    );
-  }
-}
-
 class _EmojiGridItem extends StatelessWidget {
   final String emoji;
   final Function(String) onTap;
@@ -1122,7 +1139,6 @@ class _EmojiGridItem extends StatelessWidget {
     return InkWell(
       onTap: () => onTap(emoji),
       borderRadius: BorderRadius.circular(12),
-      // ✅ UX: تأثير ناعم عند الاختيار
       splashColor: const Color(0xFF387CFF).withOpacity(0.2), 
       child: Center(
         child: Text(emoji, style: const TextStyle(fontSize: 28)),
@@ -1138,12 +1154,11 @@ class _ReactionsStack extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // عرض أول 3 إيموجي بتداخل جمالي
     final displayEmojis = emojis.take(3).toList();
     
     return SizedBox(
       height: 18,
-      width: 14.0 + (displayEmojis.length - 1) * 10.0, // حساب العرض المتغير
+      width: 14.0 + (displayEmojis.length - 1) * 10.0; // حساب العرض الديناميكي المتداخل
       child: Stack(
         children: List.generate(displayEmojis.length, (i) {
           return Positioned(
