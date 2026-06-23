@@ -454,12 +454,12 @@ class _Bubble extends StatelessWidget {
     final isMe = message.isMe;
     final time = _formatTime(message.time);
     
-    // ✅ UX: تصميم زوايا أكثر عصرية ونعومة
+    // ✅ UI UX: شكل عصري واحترافي بدلاً من الشكل الدائري المبالغ فيه
     final radius = BorderRadius.only(
-      topLeft: const Radius.circular(20),
-      topRight: const Radius.circular(20),
-      bottomLeft: Radius.circular(isMe ? 20 : 6),
-      bottomRight: Radius.circular(isMe ? 6 : 20),
+      topLeft: const Radius.circular(16),
+      topRight: const Radius.circular(16),
+      bottomLeft: Radius.circular(isMe ? 16 : 4),
+      bottomRight: Radius.circular(isMe ? 4 : 16),
     );
 
     //🟢 Performance: استخراج الـ Border color لتجنب حسابه في الـ build
@@ -475,12 +475,12 @@ class _Bubble extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         borderRadius: radius,
-        // ✅ UX: ظل أنعم وأكثر انتشاراً (Soft Shadow)
+        // ✅ UX: ظل أنعم وأكثر احترافية وتماشياً مع تصاميم الشركات الكبرى
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
@@ -497,9 +497,10 @@ class _Bubble extends StatelessWidget {
                   ),
                 ),
               Padding(
+                // ✅ UX: تقليل الـ Padding قليلاً ليكون أكثر إحكاماً مع تصغير الخط
                 padding: message.type == MessageType.image
                     ? EdgeInsets.zero
-                    : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 child: _buildContentByStatus(context, time, radius, isMe),
               ),
             ],
@@ -568,8 +569,8 @@ class _TextContent extends StatelessWidget {
       message.text,
       style: const TextStyle(
         color: Colors.white,
-        fontSize: 16,
-        height: 1.4,
+        fontSize: 15, // ✅ تم تصغير الخط
+        height: 1.3,  // ✅ تم ضبط المسافة بين السطور ليلائم الخط الجديد
         fontWeight: FontWeight.w400,
         fontFamily: 'Roboto',
       ),
