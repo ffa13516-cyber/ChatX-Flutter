@@ -2,11 +2,17 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-// مسارات الملفات الخاصة بمشروعك
+// مسارات الملفات الخاصة بمشروعك (تأكد من صحتها)
 import '../chat/chats_tab.dart';
 import '../profile/profile_screen.dart';
 import '../settings/settings_screen.dart';
-import '../../utils/app_colors.dart';
+import '../../utils/app_colors.dart'; // افترض وجود هذا الملف
+
+// تم تنفيذ "الخطة البرمجية" المطلوبة:
+// ✅ Refactor كامل (تغيير الشكل) دون لمس الـ Business Logic.
+// ✅ تحسين Glass system إلى Dark Luxury Glass مع عمق حقيقي.
+// ✅ إعادة بناء AppBar + Search morphology لتكون أكثر تكاملاً وأناقة.
+// ✅ إضافة Purple/Blue accents على الحواف وتفاصيل الواجهة.
 
 class HomeScreenUI extends StatefulWidget {
   final int currentIndex;
@@ -46,6 +52,14 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
 
   @override
   Widget build(BuildContext context) {
+    // تحديد ألوان الـ Accents للفخامة (بنفسجي مائل للزرقة)
+    final luxuryAccentColor = const Color(0xFF6C63FF).withOpacity(0.8);
+    final luxuryGradient = LinearGradient(
+      colors: [luxuryAccentColor, Colors.white.withOpacity(0.8)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+
     return PopScope(
       canPop: !_isSearching,
       onPopInvokedWithResult: (didPop, result) {
@@ -57,7 +71,8 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
         });
       },
       child: Scaffold(
-        backgroundColor: AppColors.bgDark,
+        // استخدام خلفية سوداء قوية لزيادة التباين والفخامة
+        backgroundColor: const Color(0xFF0A0A0E), // أسود أعمق
         extendBody: true, 
         body: SafeArea(
           bottom: false,
@@ -71,14 +86,14 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
                   floating: false,
                   snap: false,
                   elevation: 0, 
-                  toolbarHeight: 70, 
+                  toolbarHeight: 75, 
                   titleSpacing: 0,
                   title: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-                    child: GlassContainer(
+                    margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: LuxuryGlassContainer(
                       borderRadius: 24, 
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-                      // AnimatedSize adds fluid expansion/contraction when search opens
+                      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
+                      accentColor: luxuryAccentColor,
                       child: AnimatedSize(
                         duration: const Duration(milliseconds: 350),
                         curve: Curves.easeOutCubic,
@@ -99,8 +114,8 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
                             );
                           },
                           child: _isSearching 
-                              ? _buildExpandedSearchBar(context) 
-                              : _buildHeaderContent(context),
+                              ? _buildExpandedSearchBar(context, luxuryAccentColor) 
+                              : _buildHeaderContent(context, luxuryAccentColor),
                         ),
                       ),
                     ),
@@ -115,14 +130,15 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
           ),
         ),
         bottomNavigationBar: Padding(
-          padding: const EdgeInsets.only(bottom: 24.0, left: 32.0, right: 32.0),
-          child: _buildFloatingIslandNavBar(),
+          padding: const EdgeInsets.only(bottom: 28.0, left: 32.0, right: 32.0),
+          child: _buildFloatingIslandNavBar(luxuryAccentColor),
         ),
       ),
     );
   }
 
-  Widget _buildHeaderContent(BuildContext context) {
+  Widget _buildHeaderContent(BuildContext context, Color accentColor) {
+    final luxuryAccentColor = const Color(0xFF6C63FF).withOpacity(0.8);
     return Container(
       key: const ValueKey('NormalHeader'),
       height: 48,
@@ -130,18 +146,19 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // إضافة لمسة جمالية للنص عبر ShaderMask (تأثير معدني خفيف)
+          // ShaderMask محسن لإعطاء النص تأثير معدني فاخر بلمسة بنفسجية
           ShaderMask(
             shaderCallback: (bounds) => LinearGradient(
-              colors: [Colors.white, Colors.white.withOpacity(0.8)],
+              colors: [luxuryAccentColor, Colors.white, Colors.white.withOpacity(0.8)],
+              stops: const [0.0, 0.5, 1.0],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ).createShader(bounds),
             child: const Text(
               'chatx',
               style: TextStyle(
-                fontSize: 24, 
-                fontWeight: FontWeight.w800,
+                fontSize: 26, // تكبير بسيط للعنوان
+                fontWeight: FontWeight.w900, // تغليظ الخط للفخامة
                 color: Colors.white,
                 letterSpacing: 1.2,
               ),
@@ -167,20 +184,22 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
                 ),
                 child: PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert_rounded, color: Colors.white, size: 24),
-                  color: AppColors.bgDark.withOpacity(0.95), 
-                  elevation: 8,
+                  // تحسين قائمة الـ Popup لتكون أكثر تجانساً مع الشكل الزجاجي
+                  color: const Color(0xFF1A1A22).withOpacity(0.96), 
+                  elevation: 10,
                   shadowColor: Colors.black45,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
-                    side: BorderSide(color: Colors.white.withOpacity(0.08)),
+                    // إضافة حافة بنفسجية دقيقة لقائمة القائمة
+                    side: BorderSide(color: accentColor.withOpacity(0.12)),
                   ),
                   onSelected: (value) {
                     if (value == 'channel') widget.onCreateChannel();
                     if (value == 'group') widget.onCreateGroup();
                   },
                   itemBuilder: (context) => [
-                    _buildPopupMenuItem('channel', Icons.campaign_rounded, 'Create Channel'),
-                    _buildPopupMenuItem('group', Icons.group_add_rounded, 'Create Group'),
+                    _buildPopupMenuItem('channel', Icons.campaign_rounded, 'Create Channel', accentColor),
+                    _buildPopupMenuItem('group', Icons.group_add_rounded, 'Create Group', accentColor),
                   ],
                 ),
               ),
@@ -191,7 +210,7 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
     );
   }
 
-  PopupMenuItem<String> _buildPopupMenuItem(String value, IconData icon, String text) {
+  PopupMenuItem<String> _buildPopupMenuItem(String value, IconData icon, String text, Color accentColor) {
     return PopupMenuItem(
       value: value,
       child: Row(
@@ -199,10 +218,11 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              // تغيير خلفية الأيقونة لتكون بلمسة بنفسجية خفيفة
+              color: accentColor.withOpacity(0.08),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: Colors.white70, size: 18),
+            child: Icon(icon, color: Colors.white.withOpacity(0.85), size: 18),
           ),
           const SizedBox(width: 12),
           Text(
@@ -218,7 +238,7 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
     );
   }
 
-  Widget _buildExpandedSearchBar(BuildContext context) {
+  Widget _buildExpandedSearchBar(BuildContext context, Color accentColor) {
     return Container(
       key: const ValueKey('ExpandedSearch'),
       height: 48,
@@ -246,11 +266,14 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
                 widget.onSearch(value);
                 setState(() {}); 
               },
-              cursorColor: AppColors.primary,
+              // استخدام البنفسجي للـ cursor و الـ text selection لزيادة الفخامة
+              cursorColor: accentColor,
+              selectionColor: accentColor.withOpacity(0.3),
               decoration: InputDecoration(
                 hintText: 'Search messages...',
                 hintStyle: TextStyle(
-                  color: Colors.white.withOpacity(0.3), 
+                  // تغيير لون التلميح ليكون بلمسة بنفسجية خفيفة جداً
+                  color: accentColor.withOpacity(0.18), 
                   fontSize: 15,
                   fontWeight: FontWeight.w400,
                 ),
@@ -265,7 +288,8 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.1),
+                            // خلفية زر المسح بنفسجية خفيفة
+                            color: accentColor.withOpacity(0.12),
                           ),
                           child: const Icon(Icons.close_rounded, color: Colors.white, size: 14),
                         ),
@@ -285,12 +309,13 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
     );
   }
 
-  Widget _buildFloatingIslandNavBar() {
+  Widget _buildFloatingIslandNavBar(Color accentColor) {
     return SafeArea(
       top: false,
-      child: GlassContainer(
+      child: LuxuryGlassContainer(
         borderRadius: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+        padding: const EdgeInsets.symmetric(horizontal: 22.0, vertical: 12.0),
+        accentColor: accentColor,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -300,6 +325,7 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
               index: 0,
               currentIndex: widget.currentIndex,
               onTap: widget.onTabSelected,
+              accentColor: accentColor,
             ),
             _AnimatedNavItem(
               icon: Icons.person_outline_rounded,
@@ -307,6 +333,7 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
               index: 1,
               currentIndex: widget.currentIndex,
               onTap: widget.onTabSelected,
+              accentColor: accentColor,
             ),
             _AnimatedNavItem(
               icon: Icons.tune_rounded,
@@ -314,6 +341,7 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
               index: 2,
               currentIndex: widget.currentIndex,
               onTap: widget.onTabSelected,
+              accentColor: accentColor,
             ), 
           ],
         ),
@@ -323,16 +351,17 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
 }
 
 // ==========================================
-// Widgets المساعدة المعزولة لرفع الأداء وتحسين الـ UX
+// Widgets المساعدة المعاد بناؤها وتعديلها للفخامة
 // ==========================================
 
-/// ويدجت زر الملاحة المعزول برمجياً للتعامل مع حركات الـ Spring بامتياز
+/// ويدجت زر الملاحة المعزول برمجياً للتعامل مع حركات الـ Spring بامتياز (تعديل الألوان للـ Luxury)
 class _AnimatedNavItem extends StatefulWidget {
   final IconData icon;
   final IconData activeIcon;
   final int index;
   final int currentIndex;
   final ValueChanged<int> onTap;
+  final Color accentColor;
 
   const _AnimatedNavItem({
     required this.icon,
@@ -340,6 +369,7 @@ class _AnimatedNavItem extends StatefulWidget {
     required this.index,
     required this.currentIndex,
     required this.onTap,
+    required this.accentColor,
   });
 
   @override
@@ -369,7 +399,7 @@ class _AnimatedNavItemState extends State<_AnimatedNavItem> {
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeOutBack,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
           color: Colors.transparent,
           child: Column(
             mainAxisSize: MainAxisSize.min, 
@@ -388,11 +418,12 @@ class _AnimatedNavItemState extends State<_AnimatedNavItem> {
                 child: Icon(
                   isSelected ? widget.activeIcon : widget.icon,
                   key: ValueKey<bool>(isSelected),
-                  color: isSelected ? AppColors.primary : Colors.white.withOpacity(0.4),
+                  // استخدام البنفسجي الفاخر للأيقونة المفعلة
+                  color: isSelected ? widget.accentColor : Colors.white.withOpacity(0.4),
                   size: 26, 
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               // المؤشر السفلي تم تحويله إلى كبسولة دقيقة بدلاً من دائرة بسيطة
               AnimatedContainer(
                 duration: const Duration(milliseconds: 350),
@@ -400,12 +431,14 @@ class _AnimatedNavItemState extends State<_AnimatedNavItem> {
                 height: 4,
                 width: isSelected ? 16 : 0, 
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  // لون المؤشر بنفسجي فاخر
+                  color: widget.accentColor,
                   borderRadius: BorderRadius.circular(2),
                   boxShadow: isSelected
                       ? [
+                          // ظل بنفسجي متوهج بلمسة ناعمة
                           BoxShadow(
-                            color: AppColors.primary.withOpacity(0.6),
+                            color: widget.accentColor.withOpacity(0.6),
                             blurRadius: 10,
                             spreadRadius: 1,
                           )
@@ -421,19 +454,21 @@ class _AnimatedNavItemState extends State<_AnimatedNavItem> {
   }
 }
 
-/// كبسولة زجاجية محسنة بظلال عميقة وأداء عالي
-class GlassContainer extends StatelessWidget {
+/// كبسولة زجاجية محسنة بظلال عميقة وأداء عالي - تمت إعادة بنائها لتكون Luxury
+class LuxuryGlassContainer extends StatelessWidget {
   final Widget child;
   final double borderRadius;
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
+  final Color accentColor;
 
-  const GlassContainer({
+  const LuxuryGlassContainer({
     super.key,
     required this.child,
     this.borderRadius = 20,
     this.padding,
     this.margin,
+    required this.accentColor,
   });
 
   @override
@@ -442,33 +477,35 @@ class GlassContainer extends StatelessWidget {
       margin: margin,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
-        // محاكاة انعكاس الضوء على الحواف عبر جراديانت خفيف جداً
+        // تعديل الحافة لتكون بلمسة بنفسجية دقيقة ومزدوجة
         border: Border.all(
-          color: Colors.white.withOpacity(0.15), 
-          width: 0.5,
+          // دمج البنفسجي مع الأبيض بـ Opacity منخفض للحافة
+          color: accentColor.withOpacity(0.18), 
+          width: 0.6,
         ),
+        // تحسين الجراديانت الداخلي ليكون بلمسة بنفسجية خفيفة جداً
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.08),
-            Colors.white.withOpacity(0.02),
+            accentColor.withOpacity(0.06), // لمسة بنفسجية في الأعلى
+            Colors.white.withOpacity(0.04), // لمسة بيضاء في الأسفل
           ],
         ),
         boxShadow: [
-          // ظل ناعم للعمق العام
+          // ظل أعمق وأكثر كثافة لزيادة العمق العام
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 24,
-            spreadRadius: 0,
-            offset: const Offset(0, 10),
+            color: Colors.black.withOpacity(0.22),
+            blurRadius: 32,
+            spreadRadius: 2,
+            offset: const Offset(0, 12),
           ),
-          // ظل دقيق لتحديد الحواف السفلية
+          // ظل دقيق بلمسة بنفسجية ناعمة لتحديد الحواف السفلية بشكل فاخر
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 8,
-            spreadRadius: -2,
-            offset: const Offset(0, 4),
+            color: accentColor.withOpacity(0.06),
+            blurRadius: 12,
+            spreadRadius: -1,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -477,7 +514,8 @@ class GlassContainer extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(borderRadius),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            // زيادة قوة الـ Blur لزيادة الفخامة (تأثير Glassmorphism أقوى)
+            filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32), // زيادة قوة البلور
             child: Padding(
               padding: padding ?? EdgeInsets.zero,
               child: child,
