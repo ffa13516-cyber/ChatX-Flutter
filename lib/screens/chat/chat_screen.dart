@@ -69,6 +69,16 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
+  // ✅ FIX #1: scroll للأسفل (index 0 في reverse list = أحدث رسالة)
+  void _scrollToBottom() {
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      0.0,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+  }
+
   void _measureHeader() {
     final ctx = _headerKey.currentContext;
     if (ctx == null) return;
@@ -145,8 +155,8 @@ class _ChatScreenState extends State<ChatScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(dialogCtx);
-              // Ù†Ø³ØªØ®Ø¯Ù… context Ø£ØµÙ„ÙŠ Ù…Ø´ dialogCtx
-              ctx.read<ChatCubit>().deleteMessage(messageId);
+              // ✅ FIX: _cubit مباشرة — ctx.read كان بيكسر لو ctx اتعمله dispose
+              _cubit.deleteMessage(messageId);
             },
             child: const Text(
               'Ø­Ø°Ù',
@@ -175,7 +185,7 @@ class _ChatScreenState extends State<ChatScreen> {
       builder: (dialogCtx) => _EditDialog(
         message: message,
         textController: textController,
-        onSave: (newText) => ctx.read<ChatCubit>().editMessage(message.id, newText),
+        onSave: (newText) => _cubit.editMessage(message.id, newText),
       ),
     ).whenComplete(textController.dispose);
   }
@@ -247,6 +257,19 @@ class _ChatScreenState extends State<ChatScreen> {
                 final replyingTo = state is ChatLoaded ? state.replyingTo : null;
                 final cubit = context.read<ChatCubit>();
                 final isLoading = state is ChatLoading || state is ChatInitial;
+
+                // ✅ FIX #1: اسكرول للأسفل بس لو:
+                // (أ) الرسالة الجديدة مني أنا — عشان بعد ما أبعت أنزل معاها
+                // (ب) أو اليوزر أصلاً في الأسفل (offset قريب من 0 في reverse list)
+                //     عشان الرسايل الجديدة من التاني تظهر تلقائي لو هو مش بيسكرول فوق
+                if (state is ChatLoaded && messages.isNotEmpty) {
+                  final atBottom = !_scrollController.hasClients ||
+                      _scrollController.offset <= 80.0;
+                  final lastIsMine = messages.first.isMe;
+                  if (lastIsMine || atBottom) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+                  }
+                }
 
                 return Stack(
                   children: [
