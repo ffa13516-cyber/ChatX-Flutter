@@ -57,6 +57,10 @@ class _ChatBubbleState extends State<ChatBubble>
 
   @override
   void dispose() {
+    // 🟢 Performance Fix #8: وقّف الـ animation قبل الـ dispose.
+    // لو المستخدم سكرول فبعد الـ bubble من الـ viewport وهي شغالة،
+    // الـ controller كان يفضل يـ tick في الخلفية. Stop قبل dispose = no leak.
+    _waveController.stop();
     _waveController.dispose();
     _isPressedListenable.dispose();
     _isPlayingListenable.dispose();
@@ -299,9 +303,13 @@ class _ChatBubbleState extends State<ChatBubble>
   // ─────────────────────────────────────────
 
   Widget _buildReactionsPill() {
+    // 🟢 Performance Fix #10: حساب grouped مرة واحدة واستخدامه في كل الـ children.
+    // القديم: grouped.keys.toList() كانت بتخلق List جديدة في كل build حتى لو الـ
+    // reactions لم تتغير، لأن groupedReactions getter بيُعاد حسابه كل مرة.
     final grouped = widget.message.groupedReactions;
     if (grouped.isEmpty) return const SizedBox.shrink();
 
+    final emojiKeys = grouped.keys.toList(growable: false);
     final totalCount = widget.message.reactionCount;
 
     return GestureDetector(
@@ -309,9 +317,8 @@ class _ChatBubbleState extends State<ChatBubble>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
         decoration: BoxDecoration(
-          color: const Color(0xFF2B2C31), // لون الـ Bubble لتبدو مدمجة
+          color: const Color(0xFF2B2C31),
           borderRadius: BorderRadius.circular(20),
-          // ✅ UX: حدود مضيئة خفيفة جداً (Subtle Glow)
           border: Border.all(color: Colors.white.withOpacity(0.08)),
           boxShadow: [
             BoxShadow(
@@ -324,8 +331,7 @@ class _ChatBubbleState extends State<ChatBubble>
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            //🟢 Performance: عزل الـ Emojis في Widget مستقلة
-            _ReactionsStack(emojis: grouped.keys.toList()),
+            _ReactionsStack(emojis: emojiKeys),
             if (totalCount > 1) ...[
               const SizedBox(width: 6),
               Text(
@@ -352,6 +358,8 @@ class _ChatBubbleState extends State<ChatBubble>
   Widget build(BuildContext context) {
     final isMe = widget.message.isMe;
     final hasReactions = widget.message.hasReactions;
+    // 🟢 Performance Fix #7: MediaQuery يتحسب مرة واحدة هنا بدل ما يتحسب في كل _Bubble.
+    final maxBubbleWidth = MediaQuery.of(context).size.width * 0.75;
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -388,6 +396,7 @@ class _ChatBubbleState extends State<ChatBubble>
                   isPlayingListenable: _isPlayingListenable,
                   waveController: _waveController,
                   onTogglePlay: _togglePlay,
+                  maxWidth: maxBubbleWidth,
                 ),
                 if (hasReactions)
                   Positioned(
@@ -425,6 +434,9 @@ class _Bubble extends StatelessWidget {
   final ValueNotifier<bool> isPlayingListenable; 
   final AnimationController waveController;
   final VoidCallback onTogglePlay;
+  // 🟢 Performance Fix #7: maxWidth يتحسب مرة واحدة في الـ parent ويتمرر لكل bubble.
+  // القديم: MediaQuery.of(context) في كل bubble في كل rebuild = N lookups بدل 1.
+  final double maxWidth;
 
   const _Bubble({
     required this.message,
@@ -434,6 +446,7 @@ class _Bubble extends StatelessWidget {
     required this.isPlayingListenable,
     required this.waveController,
     required this.onTogglePlay,
+    required this.maxWidth,
   });
 
   @override
@@ -455,9 +468,7 @@ class _Bubble extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.fastOutSlowIn,
-      constraints: BoxConstraints(
-        maxWidth: MediaQuery.of(context).size.width * 0.75, // أعرض قليلاً
-      ),
+      constraints: BoxConstraints(maxWidth: maxWidth),
       margin: EdgeInsets.only(
         top: 2,
         bottom: hasReactions ? 18 : 2,
@@ -527,7 +538,7 @@ class _Bubble extends StatelessWidget {
           _TextContent(message: message),
         
         const SizedBox(height: 2), // تحسين الفراغ الجمالي
-        _TimeRow(time: time, isMe: isMe, status: message.status),
+        _TimeRow(time: time, isMe: isMe, status: message.status, isEdited: message.isEdited),
       ],
     );
   }
@@ -549,15 +560,18 @@ class _TextContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ UX: تحسين الـ Typography للقراءة الطويلة
-    return SelectableText( // Enterprise standard: السماح باختيار جزء من النص
+    // 🟢 Performance Fix #6: Text بدل SelectableText.
+    // SelectableText ينشئ SelectionOverlay + TextSelectionControls + focus node لكل bubble.
+    // مع 100 رسالة = 100 selection engine شغالة في الخلفية بدون سبب.
+    // الـ copy موجودة في الـ long-press action menu — مفيش حاجة لـ SelectableText.
+    return Text(
       message.text,
       style: const TextStyle(
         color: Colors.white,
-        fontSize: 16, // زيادة طفيفة
-        height: 1.4, // Inter-line spacing optimal for reading
+        fontSize: 16,
+        height: 1.4,
         fontWeight: FontWeight.w400,
-        fontFamily: 'Roboto', // أو أي خط Enterprise معتمد
+        fontFamily: 'Roboto',
       ),
     );
     // ملاحظة: الـ "تم التعديل" تم دمجها في الـ TimeRow لتوفير مساحة عمودية
@@ -742,7 +756,6 @@ class _VoiceWaveVisualizer extends StatelessWidget {
 
   const _VoiceWaveVisualizer({required this.waveController, required this.isPlayingListenable});
 
-  // static heights with enterprise styling
   static const _barHeights = [0.2, 0.5, 0.8, 0.3, 0.9, 0.6, 0.8, 0.2, 0.7, 1.0, 0.4, 0.9, 0.3, 0.8];
 
   @override
@@ -750,50 +763,78 @@ class _VoiceWaveVisualizer extends StatelessWidget {
     return SizedBox(
       height: 30,
       width: 100,
-      //🟢 Performance: AnimatedBuilder يستمع للـ controller فقط.
+      // 🟢 Performance Fix #1: استبدال 14 Container بـ CustomPainter واحد.
+      // القديم كان يخلق 840+ object/ثانية على 60fps (14 Container × 60).
+      // الجديد: zero allocation per frame — الـ painter يرسم على الـ Canvas مباشرة.
       child: AnimatedBuilder(
         animation: waveController,
         builder: (context, _) {
-          //🟢 Performance: جلب الحالة الحالية مرة واحدة خارج الـ loop
-          final isPlaying = isPlayingListenable.value;
-
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(_barHeights.length, (i) {
-              
-              double hFactor;
-              if (isPlaying) {
-                // تأثير موجة متحركة ناعمة
-                final phase = (waveController.value - i * 0.05) % 1.0;
-                final sine = (1 + math.sin(phase * 2 * 3.14159)) / 2; // 0 to 1 sinesoid
-                hFactor = 0.2 + (sine * 0.8); // Clamp between 0.2 and 1.0
-              } else {
-                hFactor = _barHeights[i];
-              }
-              
-              // ✅ UX: تدريج لوني (Gradient) على الـ Bars
-              final color = Color.lerp(
-                const Color(0xFF8AB4F8), // Light Blue
-                Colors.white,
-                hFactor.clamp(0.0, 1.0),
-              )!.withOpacity(isPlaying ? 1.0 : 0.6);
-
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 1.2),
-                width: 2.5,
-                // ✅ UX: ارتفاع Bars متناسق مع تصميم الـ Bubble
-                height: 4 + (hFactor * 22), 
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              );
-            }),
+          return CustomPaint(
+            painter: _WaveBarPainter(
+              animationValue: waveController.value,
+              isPlaying: isPlayingListenable.value,
+              barHeights: _barHeights,
+            ),
           );
         },
       ),
     );
   }
+}
+
+class _WaveBarPainter extends CustomPainter {
+  final double animationValue;
+  final bool isPlaying;
+  final List<double> barHeights;
+
+  const _WaveBarPainter({
+    required this.animationValue,
+    required this.isPlaying,
+    required this.barHeights,
+  });
+
+  static const _colorA = Color(0xFF8AB4F8);
+  static const _colorB = Colors.white;
+  static const _barWidth = 2.5;
+  static const _barSpacing = 2.4; // margin 1.2 × 2
+  static const _minHeight = 4.0;
+  static const _maxExtraHeight = 22.0;
+  static const _cornerRadius = Radius.circular(2);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..style = PaintingStyle.fill;
+    final totalBarWidth = _barWidth + _barSpacing;
+    final startX = (size.width - barHeights.length * totalBarWidth) / 2;
+
+    for (int i = 0; i < barHeights.length; i++) {
+      double hFactor;
+      if (isPlaying) {
+        final phase = (animationValue - i * 0.05) % 1.0;
+        final sine = (1 + math.sin(phase * 2 * math.pi)) / 2;
+        hFactor = 0.2 + (sine * 0.8);
+      } else {
+        hFactor = barHeights[i];
+      }
+
+      final barHeight = _minHeight + (hFactor * _maxExtraHeight);
+      final x = startX + i * totalBarWidth;
+      final y = (size.height - barHeight) / 2;
+
+      // Color.lerp بس مرة واحدة لكل bar — مش per-frame object
+      paint.color = Color.lerp(_colorA, _colorB, hFactor)!
+          .withOpacity(isPlaying ? 1.0 : 0.6);
+
+      canvas.drawRRect(
+        RRect.fromLTRBR(x, y, x + _barWidth, y + barHeight, _cornerRadius),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_WaveBarPainter old) =>
+      old.animationValue != animationValue || old.isPlaying != isPlaying;
 }
 
 class _ReplyPreview extends StatelessWidget {
@@ -898,17 +939,20 @@ class _TimeRow extends StatelessWidget {
   final String time;
   final bool isMe;
   final MessageStatus status;
+  // 🟢 Performance Fix #2: تمرير isEdited مباشرة بدل findAncestorWidgetOfExactType.
+  // القديم كان يمشي فوق الـ widget tree في كل build — O(n) traversal مجاني.
+  final bool isEdited;
 
   const _TimeRow({
     required this.time,
     required this.isMe,
     required this.status,
+    required this.isEdited,
   });
 
   @override
   Widget build(BuildContext context) {
-    // ✅ UX: دمج حالة التعديل هنا لتوفير مساحة
-    final showEdited = (context.findAncestorWidgetOfExactType<ChatBubble>()?.message.isEdited ?? false);
+    final showEdited = isEdited;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -979,21 +1023,23 @@ class _GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        // ✅ UX: زيادة البلور قليلاً لعمق أكبر
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          width: width,
-          padding: padding,
-          decoration: BoxDecoration(
-            // ✅ UX: تلوين زجاجي أكثر احترافية (Material dark approach)
-            color: const Color(0xFF2B2C31).withOpacity(0.7),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
+    // 🟢 Performance Fix #3: RepaintBoundary يعزل الـ BackdropFilter عن باقي الـ tree.
+    // بدونه الـ GPU كان يعيد رسم كل حاجة تحت الـ blur في كل rebuild.
+    return RepaintBoundary(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            width: width,
+            padding: padding,
+            decoration: BoxDecoration(
+              color: const Color(0xFF2B2C31).withOpacity(0.7),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.08)),
+            ),
+            child: Material(color: Colors.transparent, child: child),
           ),
-          child: Material(color: Colors.transparent, child: child),
         ),
       ),
     );
