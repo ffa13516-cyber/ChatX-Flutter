@@ -440,7 +440,10 @@ class _Bubble extends StatelessWidget {
     }
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      // ✅ FIX: stretch بدل end — لازم الـ Row يعرف عرض البابل الحقيقي
+      // end كانت بتخلي الـ Row يحسب عرضه من الـ content بس، مش من البابل،
+      // فالـ spaceBetween مكنش بيشتغل صح وكانت البابل بتكبر.
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (message.replyTo != null)
           _ReplyPreview(
@@ -459,7 +462,8 @@ class _Bubble extends StatelessWidget {
             onTogglePlay: onTogglePlay,
           )
         else
-          _TextContent(message: message),
+          // ✅ Align يعيد محاذاة النص يمين بعد تغيير الـ Column لـ stretch
+          Align(alignment: Alignment.centerRight, child: _TextContent(message: message)),
 
         const SizedBox(height: 4),
 
@@ -467,21 +471,28 @@ class _Bubble extends StatelessWidget {
         // على اليمين — بالظبط زي شكل تيليجرام: الـ reaction badge جوه
         // البابل نفسها مش متراكبة عليها من برة.
         if (hasReactions)
+          // ✅ FIX: mainAxisSize.max + spaceBetween بدل Spacer جوه min Row
+          // القديم: Spacer() جوه mainAxisSize.min كان بيتجاهل الـ Spacer ويخلي
+          // الـ badge والـ time يلصقوا ببعض، وفي نفس الوقت بيوسع البابل عشان
+          // الـ Column بـ crossAxisAlignment.end كانت بتاخد أعرض child.
           Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _InlineReactionsBadge(
                 message: message,
                 isMe: isMe,
                 onTap: onReactionsTap,
               ),
-              const Spacer(),
               const SizedBox(width: 10),
               _TimeRow(time: time, isMe: isMe, status: message.status, isEdited: message.isEdited),
             ],
           )
         else
-          _TimeRow(time: time, isMe: isMe, status: message.status, isEdited: message.isEdited),
+          Align(
+            alignment: Alignment.centerRight,
+            child: _TimeRow(time: time, isMe: isMe, status: message.status, isEdited: message.isEdited),
+          ),
       ],
     );
   }
@@ -1225,9 +1236,15 @@ class _ReactionsStack extends StatelessWidget {
   Widget build(BuildContext context) {
     final displayEmojis = emojis.take(3).toList();
     
+    // ✅ FIX: الـ width الصح = emoji الأولى (14) + كل emoji تانية (10) + مسافة نهاية (4)
+    // القديم: كان بيقطع الـ emoji الأخيرة لأن الـ width أقل من اللازم
+    final stackWidth = displayEmojis.isEmpty
+        ? 0.0
+        : 14.0 + (displayEmojis.length - 1) * 10.0 + 4.0;
+
     return SizedBox(
       height: 18,
-      width: 14.0 + (displayEmojis.length - 1) * 10.0, 
+      width: stackWidth,
       child: Stack(
         children: List.generate(displayEmojis.length, (i) {
           return Positioned(
