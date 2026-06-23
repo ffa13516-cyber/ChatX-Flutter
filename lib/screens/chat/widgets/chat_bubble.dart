@@ -36,10 +36,6 @@ class ChatBubble extends StatefulWidget {
 
 class _ChatBubbleState extends State<ChatBubble> with TickerProviderStateMixin {
 
-  // ✅ مقدار التركيب (overlap) بين عنصر الإيموجي وحافة البابل — لازم تكون
-  // أصغر من ارتفاع الـ pill عشان جزء منها يفضل ظاهر تحت البابل بدون قطع.
-  static const double _reactionOverlap = 10.0;
-
   // 🟢 Performance: استخدام ValueNotifier لتجنب setState للـ Bubble بالكامل
   final ValueNotifier<bool> _isPressedListenable = ValueNotifier<bool>(false);
   final ValueNotifier<bool> _isPlayingListenable = ValueNotifier<bool>(false);
@@ -135,68 +131,6 @@ class _ChatBubbleState extends State<ChatBubble> with TickerProviderStateMixin {
   }
 
   // ─────────────────────────────────────────
-  // Reactions Pill (Overlapped On Bubble)
-  // ─────────────────────────────────────────
-
-  Widget _buildReactionsPill() {
-    final grouped = widget.message.groupedReactions;
-    if (grouped.isEmpty) return const SizedBox.shrink();
-
-    final emojiKeys = grouped.keys.toList(growable: false);
-    final totalCount = widget.message.reactionCount;
-
-    // ✅ حركة ظهور مطاطية (Elastic) ناعمة جداً للإيموجي على الرسالة
-    return TweenAnimationBuilder<double>(
-      key: ValueKey(totalCount), // لتشغيل الحركة مع كل تفاعل جديد
-      tween: Tween<double>(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.elasticOut,
-      builder: (context, scale, child) {
-        return Transform.scale(
-          scale: scale,
-          child: child,
-        );
-      },
-      child: GestureDetector(
-        onTap: () => _showActionMenu(context),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E1F23), 
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withOpacity(0.12), width: 1),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 5,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _ReactionsStack(emojis: emojiKeys),
-              if (totalCount > 1) ...[
-                const SizedBox(width: 4),
-                Text(
-                  '$totalCount',
-                  style: const TextStyle(
-                    color: Color(0xFFEEEEEE),
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────
   // Build Method
   // ─────────────────────────────────────────
 
@@ -228,34 +162,16 @@ class _ChatBubbleState extends State<ChatBubble> with TickerProviderStateMixin {
                 child: child,
               );
             },
-            child: Stack(
-              clipBehavior: Clip.none, 
-              children: [
-                _Bubble(
-                  message: widget.message,
-                  isHighlighted: widget.isHighlighted,
-                  hasReactions: hasReactions,
-                  onTapReply: widget.onTapReply,
-                  isPlayingListenable: _isPlayingListenable,
-                  waveController: _waveController,
-                  onTogglePlay: _togglePlay,
-                  maxWidth: maxBubbleWidth,
-                  // ✅ الارتفاع التقريبي لعنصر الإيموجي (24) ناقص مقدار التركيب
-                  // = الجزء اللي هيفضل ظاهر تحت البابل ولازم نحجز له مكان.
-                  reservedReactionSpace: hasReactions ? (24.0 - _reactionOverlap) : 0.0,
-                ),
-                if (hasReactions)
-                  Positioned(
-                    // ✅ بتركب على حافة البابل بمقدار ثابت ومحجوز فعليًا (مش
-                    // طايحة برة حدود الـ Stack)، فمش بتتقطع لما الرسالة اللي
-                    // بعدها تتركب. القيمة دي لازم تطابق reservedReactionSpace
-                    // في _Bubble.
-                    bottom: -_reactionOverlap,
-                    right: isMe ? 10 : null,
-                    left: isMe ? null : 10,
-                    child: _buildReactionsPill(),
-                  ),
-              ],
+            child: _Bubble(
+              message: widget.message,
+              isHighlighted: widget.isHighlighted,
+              hasReactions: hasReactions,
+              onTapReply: widget.onTapReply,
+              onReactionsTap: () => _showActionMenu(context),
+              isPlayingListenable: _isPlayingListenable,
+              waveController: _waveController,
+              onTogglePlay: _togglePlay,
+              maxWidth: maxBubbleWidth,
             ),
           ),
         ),
@@ -446,22 +362,22 @@ class _Bubble extends StatelessWidget {
   final bool isHighlighted;
   final bool hasReactions;
   final Function(String)? onTapReply;
+  final VoidCallback? onReactionsTap;
   final ValueNotifier<bool> isPlayingListenable; 
   final AnimationController waveController;
   final VoidCallback onTogglePlay;
   final double maxWidth;
-  final double reservedReactionSpace;
 
   const _Bubble({
     required this.message,
     required this.isHighlighted,
     required this.hasReactions,
     required this.onTapReply,
+    this.onReactionsTap,
     required this.isPlayingListenable,
     required this.waveController,
     required this.onTogglePlay,
     required this.maxWidth,
-    this.reservedReactionSpace = 0.0,
   });
 
   @override
@@ -482,12 +398,7 @@ class _Bubble extends StatelessWidget {
       duration: const Duration(milliseconds: 250),
       curve: Curves.fastOutSlowIn,
       constraints: BoxConstraints(maxWidth: maxWidth),
-      margin: EdgeInsets.only(
-        top: 2,
-        // ✅ بدل قيمة ثابتة صغيرة (6) كانت مش كفاية لمساحة الإيموجي الحقيقية،
-        // دلوقتي بتحجز المساحة اللي فعلاً هيظهر فيها الـ pill تحت البابل.
-        bottom: hasReactions ? (reservedReactionSpace + 2) : 2,
-      ),
+      margin: const EdgeInsets.symmetric(vertical: 2),
       decoration: BoxDecoration(
         borderRadius: radius,
         boxShadow: [
@@ -549,9 +460,28 @@ class _Bubble extends StatelessWidget {
           )
         else
           _TextContent(message: message),
-        
-        const SizedBox(height: 2),
-        _TimeRow(time: time, isMe: isMe, status: message.status, isEdited: message.isEdited),
+
+        const SizedBox(height: 4),
+
+        // ✅ صف تحتاني واحد: الإيموجي (لو موجودة) على الشمال، والتوقيت/الحالة
+        // على اليمين — بالظبط زي شكل تيليجرام: الـ reaction badge جوه
+        // البابل نفسها مش متراكبة عليها من برة.
+        if (hasReactions)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _InlineReactionsBadge(
+                message: message,
+                isMe: isMe,
+                onTap: onReactionsTap,
+              ),
+              const Spacer(),
+              const SizedBox(width: 10),
+              _TimeRow(time: time, isMe: isMe, status: message.status, isEdited: message.isEdited),
+            ],
+          )
+        else
+          _TimeRow(time: time, isMe: isMe, status: message.status, isEdited: message.isEdited),
       ],
     );
   }
@@ -1212,6 +1142,75 @@ class _EmojiGridItem extends StatelessWidget {
       splashColor: const Color(0xFF387CFF).withOpacity(0.2), 
       child: Center(
         child: Text(emoji, style: const TextStyle(fontSize: 26)),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// ✅ Inline Reactions Badge — renders INSIDE the bubble (not overlapping it),
+// matching the reference clone-app screenshots: a small rounded chip sitting
+// at the bottom-left of the bubble content, next to the timestamp.
+// ─────────────────────────────────────────────
+
+class _InlineReactionsBadge extends StatelessWidget {
+  final Message message;
+  final bool isMe;
+  final VoidCallback? onTap;
+
+  const _InlineReactionsBadge({
+    required this.message,
+    required this.isMe,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final grouped = message.groupedReactions;
+    if (grouped.isEmpty) return const SizedBox.shrink();
+
+    final emojiKeys = grouped.keys.toList(growable: false);
+    final totalCount = message.reactionCount;
+
+    // ✅ خلفية أفتح بشكل بسيط من لون البابل نفسه (زي الصورة) عشان الـ badge
+    // يبان كجزء من نفس الرسالة، مش لون مختلف خالص.
+    final badgeColor = isMe
+        ? Colors.white.withOpacity(0.18)
+        : Colors.white.withOpacity(0.08);
+
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(totalCount),
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutBack,
+      builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+          decoration: BoxDecoration(
+            color: badgeColor,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _ReactionsStack(emojis: emojiKeys),
+              if (totalCount > 1) ...[
+                const SizedBox(width: 4),
+                Text(
+                  '$totalCount',
+                  style: const TextStyle(
+                    color: Color(0xFFEEEEEE),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
