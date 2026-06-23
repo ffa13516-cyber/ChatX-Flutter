@@ -1,4 +1,4 @@
-import 'dart:ui'; // 🚀 مسؤولة عن تأثيرات الزجاج والـ Blur
+import 'dart:ui'; // 🚀 مسؤولة عن تأثيرات الزجاج والـ Blur الفاخرة
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -66,7 +66,6 @@ class _ChatsTabState extends State<ChatsTab> {
       if (timeData is int) {
         messageTime = DateTime.fromMillisecondsSinceEpoch(timeData);
       } else if (timeData.runtimeType.toString() == 'Timestamp' || timeData.runtimeType.toString() != 'String') {
-        // معالجة مرنة للأنواع
         messageTime = (timeData as dynamic).toDate();
       } else {
         return '';
@@ -107,7 +106,7 @@ class _ChatsTabState extends State<ChatsTab> {
     if (_myUid.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(
-          color: Colors.white, 
+          color: Color(0xFF6C63FF), // البنفسجي الفخم كلون أساسي للتحميل
           strokeWidth: 3,
         ),
       );
@@ -125,7 +124,7 @@ class _ChatsTabState extends State<ChatsTab> {
           );
         }
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3));
+          return const Center(child: CircularProgressIndicator(color: Color(0xFF6C63FF), strokeWidth: 3));
         }
 
         final chats = snapshot.data!;
@@ -151,13 +150,10 @@ class _ChatsTabState extends State<ChatsTab> {
           return b.lastMessageTime.compareTo(a.lastMessageTime); 
         });
 
-        return ListView.separated(
-          padding: const EdgeInsets.only(top: 16, bottom: 100, left: 8, right: 8), 
+        // ✅ تحويل إلى ListView.builder لإزالة الفاصلات (Dividers) تماماً والاعتماد على المسافات الهوائية المريحة للعين
+        return ListView.builder(
+          padding: const EdgeInsets.only(top: 12, bottom: 120, left: 12, right: 12), 
           itemCount: chats.length,
-          separatorBuilder: (context, index) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Divider(color: Colors.white.withOpacity(0.05), height: 1), 
-          ),
           itemBuilder: (context, index) {
             return _buildChatItem(chats[index]);
           },
@@ -224,81 +220,88 @@ class _ChatsTabState extends State<ChatsTab> {
     );
   }
 
-  // ✅ واجهة زجاجية فضية (Silver Glassmorphism) متقدمة
+  // ✅ ترقية القائمة الزجاجية إلى Dark Luxury Glass المتناسقة مع الكود الثاني
   void _showChatOptionsBottomSheet(BuildContext context, ChatModel chat, String name, bool isPinned) {
+    final luxuryAccentColor = const Color(0xFF6C63FF);
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent, // مهم جداً لتشغيل الشفافية والبلور
+      backgroundColor: Colors.transparent, 
       elevation: 0,
       isScrollControlled: true,
       builder: (context) {
         return ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15), // تأثير الـ Blur
+            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30), // زيادة البلور للفخامة
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08), // الشفافية الزجاجية
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                // استخدام الأسود الأعمق الممزوج بشفافية الزجاج الفاخر
+                color: const Color(0xFF0A0A0E).withOpacity(0.9), 
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
                 border: Border(
-                  top: BorderSide(color: Colors.white.withOpacity(0.2), width: 1.5), // حافة فضية مضيئة
+                  // حافة علوية دقيقة باللون البنفسجي الفاخر لإضاءة الحواف
+                  top: BorderSide(color: luxuryAccentColor.withOpacity(0.25), width: 1), 
                 ),
               ),
               child: SafeArea(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 20),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        width: 48,
-                        height: 5,
+                        width: 40,
+                        height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.3),
+                          color: Colors.white.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                       const SizedBox(height: 24),
                       Text(
                         name,
-                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                        style: const TextStyle(
+                          color: Colors.white, 
+                          fontSize: 19, 
+                          fontWeight: FontWeight.w700, 
+                          letterSpacing: 0.3
+                        ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
                       
-                      // ✅ ربط العمليات بالفايربيز مباشرة
                       ListTile(
-                        leading: Icon(isPinned ? Icons.push_pin_outlined : Icons.push_pin, color: Colors.white),
-                        title: Text(isPinned ? 'Unpin Chat' : 'Pin Chat', style: const TextStyle(color: Colors.white, fontSize: 16)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        tileColor: Colors.white.withOpacity(0.03),
+                        leading: Icon(isPinned ? Icons.push_pin_outlined : Icons.push_pin, color: Colors.white.withOpacity(0.9)),
+                        title: Text(isPinned ? 'Unpin Chat' : 'Pin Chat', style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        tileColor: Colors.white.withOpacity(0.02),
                         onTap: () async {
                           Navigator.pop(context);
                           await FirebaseRepo.togglePinChat(chat.chatId, _myUid);
                         },
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       ListTile(
-                        leading: const Icon(Icons.mark_chat_read_outlined, color: Colors.white),
-                        title: const Text('Mark as Read', style: TextStyle(color: Colors.white, fontSize: 16)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        tileColor: Colors.white.withOpacity(0.03),
+                        leading: Icon(Icons.mark_chat_read_outlined, color: Colors.white.withOpacity(0.9)),
+                        title: const Text('Mark as Read', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        tileColor: Colors.white.withOpacity(0.02),
                         onTap: () async {
                           Navigator.pop(context);
                           await FirebaseRepo.resetUnreadCount(chat.chatId, _myUid);
                         },
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       ListTile(
-                        leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                        title: const Text('Delete Chat', style: TextStyle(color: Colors.redAccent, fontSize: 16)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        tileColor: Colors.white.withOpacity(0.03),
+                        leading: const Icon(Icons.delete_outline_rounded, color: Color(0xFFFF4D4D)),
+                        title: const Text('Delete Chat', style: TextStyle(color: Color(0xFFFF4D4D), fontSize: 15, fontWeight: FontWeight.w600)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        tileColor: const Color(0xFFFF4D4D).withOpacity(0.05),
                         onTap: () {
                           Navigator.pop(context);
-                          // TODO: Implement Delete Chat Logic
                         },
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 12),
                     ],
                   ),
                 ),
@@ -310,6 +313,10 @@ class _ChatsTabState extends State<ChatsTab> {
     );
   }
 }
+
+// ==========================================
+// ويدجت العناصر المعاد تصميمها لتوفير راحة بصرية فائقة
+// ==========================================
 
 class ModernChatListItem extends StatelessWidget {
   final String name;
@@ -337,35 +344,41 @@ class ModernChatListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color onlineColor = const Color(0xFF00C853);
-    // ✅ تم تعديل اللون للأزرق الملكي
-    final Color unreadAccentColor = const Color(0xFF246BFD); 
+    final Color onlineColor = const Color(0xFF00E676); // أخضر نيون نقي ومريح
+    final Color luxuryAccent = const Color(0xFF6C63FF); // التناسق التام مع حزمة الـ Luxury البنفسجية
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      // زيادة الـ vertical margin يعطي مساحات هوائية ويغني عن الفواصل التقليدية
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24), // حواف دائرية فخمة جداً متطابقة مع الـ Appbar والـ Navbar
         color: unreadCount > 0 
-            ? unreadAccentColor.withOpacity(0.1) // لمسة خفيفة بلون العداد للخلفية
+            ? luxuryAccent.withOpacity(0.06) // توهج خلفي ناعم جداً للمسجات غير المقروءة
             : (isPinned ? Colors.white.withOpacity(0.02) : Colors.transparent), 
+        border: Border.all(
+          color: unreadCount > 0 
+              ? luxuryAccent.withOpacity(0.15) // حافة دقيقة بلون التوهج
+              : (isPinned ? Colors.white.withOpacity(0.05) : Colors.transparent),
+          width: 0.8,
+        ),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          splashColor: Colors.white.withOpacity(0.05),
-          highlightColor: Colors.white.withOpacity(0.02),
+          borderRadius: BorderRadius.circular(24),
+          splashColor: Colors.white.withOpacity(0.03),
+          highlightColor: Colors.white.withOpacity(0.01),
           onTap: onTap,
           onLongPress: onLongPress,
           child: Padding(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0), // مسافات مريحة للعين أثناء القراءة
             child: Row(
               children: [
                 Stack(
                   children: [
                     Container(
-                      width: 54,
-                      height: 54,
+                      width: 56, // تكبير دقيق ومدروس للأفاتار لراحة العين
+                      height: 56,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: (avatarUrl == null || avatarUrl!.isEmpty) 
@@ -377,6 +390,7 @@ class ModernChatListItem extends StatelessWidget {
                                 fit: BoxFit.cover,
                               )
                             : null,
+                        border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
                       ),
                       child: (avatarUrl == null || avatarUrl!.isEmpty)
                           ? Center(
@@ -385,7 +399,7 @@ class ModernChatListItem extends StatelessWidget {
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 22,
+                                  fontSize: 20,
                                 ),
                               ),
                             )
@@ -393,24 +407,24 @@ class ModernChatListItem extends StatelessWidget {
                     ),
                     if (isOnline)
                       Positioned(
-                        bottom: 0,
-                        right: 0,
+                        bottom: 1,
+                        right: 1,
                         child: Container(
-                          width: 16,
-                          height: 16,
+                          width: 14,
+                          height: 14,
                           decoration: BoxDecoration(
                             color: onlineColor, 
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: AppColors.bgDark, 
-                              width: 3,
+                              color: const Color(0xFF0A0A0E), // حافة مطابقة للأسود الأعمق المعتمد في الملف الثاني
+                              width: 2.5,
                             ),
                           ),
                         ),
                       ),
                   ],
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -424,8 +438,8 @@ class ModernChatListItem extends StatelessWidget {
                               style: TextStyle(
                                 color: unreadCount > 0 ? Colors.white : Colors.white.withOpacity(0.9),
                                 fontSize: 16,
-                                fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.w600,
-                                letterSpacing: 0.3,
+                                fontWeight: unreadCount > 0 ? FontWeight.w700 : FontWeight.w600,
+                                letterSpacing: 0.2,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -433,21 +447,22 @@ class ModernChatListItem extends StatelessWidget {
                           ),
                           if (isPinned)
                             Padding(
-                              padding: const EdgeInsets.only(left: 4.0),
+                              padding: const EdgeInsets.only(left: 6.0),
                               child: Transform.rotate(
-                                angle: 0.5,
-                                child: Icon(Icons.push_pin, color: Colors.white.withOpacity(0.4), size: 14),
+                                angle: 0.4,
+                                child: Icon(Icons.push_pin_rounded, color: luxuryAccent.withOpacity(0.6), size: 14),
                               ),
                             ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
                         lastMessage,
                         style: TextStyle(
-                          color: unreadCount > 0 ? Colors.white70 : Colors.white.withOpacity(0.5),
-                          fontSize: 14,
+                          color: unreadCount > 0 ? Colors.white.withOpacity(0.85) : Colors.white.withOpacity(0.45),
+                          fontSize: 13.5,
                           fontWeight: unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
+                          letterSpacing: 0.1,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -463,37 +478,37 @@ class ModernChatListItem extends StatelessWidget {
                     Text(
                       time,
                       style: TextStyle(
-                        color: unreadCount > 0 ? unreadAccentColor : Colors.white.withOpacity(0.4),
-                        fontSize: 12,
+                        color: unreadCount > 0 ? luxuryAccent : Colors.white.withOpacity(0.35),
+                        fontSize: 11.5,
                         fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     if (unreadCount > 0)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
                         decoration: BoxDecoration(
-                          color: unreadAccentColor, 
-                          borderRadius: BorderRadius.circular(12),
+                          color: luxuryAccent, 
+                          borderRadius: BorderRadius.circular(10),
                           boxShadow: [
                             BoxShadow(
-                              color: unreadAccentColor.withOpacity(0.4),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+                              color: luxuryAccent.withOpacity(0.35),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
                             )
                           ]
                         ),
                         child: Text(
                           unreadCount.toString(),
                           style: const TextStyle(
-                            color: Colors.white, // النص أبيض ليناسب الخلفية الزرقاء
+                            color: Colors.white, 
                             fontSize: 11,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
                       )
                     else
-                      const SizedBox(height: 20), 
+                      const SizedBox(height: 19), 
                   ],
                 ),
               ],
@@ -511,38 +526,42 @@ class ModernChatListItemSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      padding: const EdgeInsets.all(12.0),
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+      padding: const EdgeInsets.all(14.0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        color: Colors.white.withOpacity(0.01),
+      ),
       child: Row(
         children: [
           Container(
-            width: 54,
-            height: 54,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.04),
+              color: Colors.white.withOpacity(0.03),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 120,
+                  width: 130,
                   height: 14,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(4),
-                    color: Colors.white.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(6),
+                    color: Colors.white.withOpacity(0.03),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Container(
-                  width: 180,
-                  height: 12,
+                  width: 190,
+                  height: 11,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(4),
-                    color: Colors.white.withOpacity(0.02),
+                    color: Colors.white.withOpacity(0.015),
                   ),
                 ),
               ],
@@ -550,11 +569,11 @@ class ModernChatListItemSkeleton extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Container(
-            width: 40,
-            height: 12,
+            width: 35,
+            height: 11,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(4),
-              color: Colors.white.withOpacity(0.02),
+              color: Colors.white.withOpacity(0.015),
             ),
           ),
         ],
