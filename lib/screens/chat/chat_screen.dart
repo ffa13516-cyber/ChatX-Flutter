@@ -74,7 +74,13 @@ class _ChatScreenState extends State<ChatScreen> {
     if (ctx == null) return;
     final box = ctx.findRenderObject() as RenderBox?;
     if (box != null && mounted) {
-      setState(() => _headerHeight = box.size.height);
+      final newHeight = box.size.height;
+      // 🟢 Performance Fix #9: setState بس لو الـ height فعلاً اتغيرت.
+      // didChangeDependencies بتتنادى كتير — بدون الـ guard ده كل InheritedWidget
+      // فوقيه بيتغير كان بيعمل rebuild للـ screen كلها حتى لو الـ height هي هي.
+      if (newHeight != _headerHeight) {
+        setState(() => _headerHeight = newHeight);
+      }
     }
   }
 
@@ -188,11 +194,19 @@ class _ChatScreenState extends State<ChatScreen> {
         body: Stack(
           children: [
             // â”€â”€ Background â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // 🟢 Performance Fix #5: RepaintBoundary يعزل الخلفية تماماً.
+            // القديم: كل state change في BlocConsumer كان يعيد رسم الـ bg image.
+            // الجديد: الـ bg layer مستقل — لا يُعاد رسمه أبداً إلا لو هو نفسه تغير.
             Positioned.fill(
-              child: Image.asset('assets/images/bg.jpg', fit: BoxFit.cover),
-            ),
-            Positioned.fill(
-              child: Container(color: Colors.black.withOpacity(0.30)),
+              child: RepaintBoundary(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.asset('assets/images/bg.jpg', fit: BoxFit.cover),
+                    ColoredBox(color: Colors.black.withOpacity(0.30)),
+                  ],
+                ),
+              ),
             ),
 
             // â”€â”€ Main Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -385,7 +399,10 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    // 🟢 Performance Fix #4a: RepaintBoundary على الـ Header يمنع الـ blur
+    // من إعادة رسم الـ messages list في كل scroll event.
+    return RepaintBoundary(
+      child: Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(26),
@@ -493,6 +510,7 @@ class _Header extends StatelessWidget {
           ),
         ),
       ),
+    ), // RepaintBoundary
     );
   }
 }
@@ -503,17 +521,21 @@ class _HeaderIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipOval(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.all(11),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withOpacity(0.08),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
+    // 🟢 Performance Fix #4b: RepaintBoundary على كل icon يمنع الـ blur
+    // من invalidate الـ parent layer عند أي تغيير.
+    return RepaintBoundary(
+      child: ClipOval(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: const EdgeInsets.all(11),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.08),
+              border: Border.all(color: Colors.white.withOpacity(0.08)),
+            ),
+            child: Icon(icon, color: Colors.white70, size: 22),
           ),
-          child: Icon(icon, color: Colors.white70, size: 22),
         ),
       ),
     );
