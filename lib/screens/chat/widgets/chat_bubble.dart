@@ -1158,7 +1158,7 @@ class _ReactionsStack extends StatelessWidget {
     
     return SizedBox(
       height: 18,
-      width: 14.0 + (displayEmojis.length - 1) * 10.0; // حساب العرض الديناميكي المتداخل
+      width: 14.0 + (displayEmojis.length - 1) * 10.0, // حساب العرض الديناميكي المتداخل
       child: Stack(
         children: List.generate(displayEmojis.length, (i) {
           return Positioned(
