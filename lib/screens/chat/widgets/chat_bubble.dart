@@ -35,7 +35,11 @@ class ChatBubble extends StatefulWidget {
 }
 
 class _ChatBubbleState extends State<ChatBubble> with TickerProviderStateMixin {
-  
+
+  // ✅ مقدار التركيب (overlap) بين عنصر الإيموجي وحافة البابل — لازم تكون
+  // أصغر من ارتفاع الـ pill عشان جزء منها يفضل ظاهر تحت البابل بدون قطع.
+  static const double _reactionOverlap = 10.0;
+
   // 🟢 Performance: استخدام ValueNotifier لتجنب setState للـ Bubble بالكامل
   final ValueNotifier<bool> _isPressedListenable = ValueNotifier<bool>(false);
   final ValueNotifier<bool> _isPlayingListenable = ValueNotifier<bool>(false);
@@ -236,12 +240,19 @@ class _ChatBubbleState extends State<ChatBubble> with TickerProviderStateMixin {
                   waveController: _waveController,
                   onTogglePlay: _togglePlay,
                   maxWidth: maxBubbleWidth,
+                  // ✅ الارتفاع التقريبي لعنصر الإيموجي (24) ناقص مقدار التركيب
+                  // = الجزء اللي هيفضل ظاهر تحت البابل ولازم نحجز له مكان.
+                  reservedReactionSpace: hasReactions ? (24.0 - _reactionOverlap) : 0.0,
                 ),
                 if (hasReactions)
                   Positioned(
-                    bottom: -6, 
-                    right: isMe ? 12 : null,
-                    left: isMe ? null : 12,
+                    // ✅ بتركب على حافة البابل بمقدار ثابت ومحجوز فعليًا (مش
+                    // طايحة برة حدود الـ Stack)، فمش بتتقطع لما الرسالة اللي
+                    // بعدها تتركب. القيمة دي لازم تطابق reservedReactionSpace
+                    // في _Bubble.
+                    bottom: -_reactionOverlap,
+                    right: isMe ? 10 : null,
+                    left: isMe ? null : 10,
                     child: _buildReactionsPill(),
                   ),
               ],
@@ -439,6 +450,7 @@ class _Bubble extends StatelessWidget {
   final AnimationController waveController;
   final VoidCallback onTogglePlay;
   final double maxWidth;
+  final double reservedReactionSpace;
 
   const _Bubble({
     required this.message,
@@ -449,6 +461,7 @@ class _Bubble extends StatelessWidget {
     required this.waveController,
     required this.onTogglePlay,
     required this.maxWidth,
+    this.reservedReactionSpace = 0.0,
   });
 
   @override
@@ -471,7 +484,9 @@ class _Bubble extends StatelessWidget {
       constraints: BoxConstraints(maxWidth: maxWidth),
       margin: EdgeInsets.only(
         top: 2,
-        bottom: hasReactions ? 6 : 2, 
+        // ✅ بدل قيمة ثابتة صغيرة (6) كانت مش كفاية لمساحة الإيموجي الحقيقية،
+        // دلوقتي بتحجز المساحة اللي فعلاً هيظهر فيها الـ pill تحت البابل.
+        bottom: hasReactions ? (reservedReactionSpace + 2) : 2,
       ),
       decoration: BoxDecoration(
         borderRadius: radius,
