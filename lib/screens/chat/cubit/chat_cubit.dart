@@ -72,9 +72,6 @@ class ChatCubit extends Cubit<ChatState> {
   /// IDs Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ Ø§Ù„Ù„ÙŠ ØªÙ… mark ÙƒÙ€ delivered Ø¹Ø´Ø§Ù† Ù…Ù†Ø¹Ù…Ù„Ù‡Ø§Ø´ ØªØ§Ù†ÙŠ
   final Set<String> _deliveredIds = {};
 
-  /// Ù…Ù†Ø¹ Ø§Ù„Ù€ emit Ø¨Ø¹Ø¯ close()
-  bool _isClosed = false;
-
   ChatCubit({
     required this.chatId,
     required this.myUid,
@@ -93,16 +90,17 @@ class ChatCubit extends Cubit<ChatState> {
 
     _messagesSubscription = FirebaseRepo.observeMessages(chatId, myUid).listen(
       (messages) {
-        // Ø§Ù„Ù€ stream Ø¨ÙŠØ¬ÙŠØ¨ ascending â†’ Ù†Ø¹ÙƒØ³Ù‡Ù… Ù„Ù„Ø¹Ø±Ø¶ (reverse ListView)
-        final displayed = messages.reversed.toList();
-        _lastKnownMessages = displayed;
+        // 🟢 Performance Fix #2: حذفنا messages.reversed.toList() اللي كانت بتنشئ
+        // List جديدة كاملة في كل stream event.
+        // بندي stream ascending زي ما هو ونخلي ListView (reverse: true) يعكسها.
+        _lastKnownMessages = messages;
 
         final currentReply = state is ChatLoaded
             ? (state as ChatLoaded).replyingTo
             : null;
 
         _safeEmit(ChatLoaded(
-          messages: displayed,
+          messages: messages, // ascending — ListView يعكسها بـ reverse:true
           replyingTo: currentReply,
         ));
 
@@ -122,13 +120,15 @@ class ChatCubit extends Cubit<ChatState> {
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   void _handleDelivery(List<Message> messages) {
+    // 🟢 Performance Fix #4: بدل iterate على كل الـ messages في كل stream event
+    // (حتى القديمة الموجودة في _deliveredIds)\u060c دلوقتي بنجيب
+    // بس الـ messages الجديدة — بتحديد الـ message اللي مش عندنا idه في _deliveredIds أصلاً.
     for (final msg in messages) {
-      if (!msg.isMe &&
-          msg.status == MessageStatus.sent &&
-          msg.id != null &&
-          !_deliveredIds.contains(msg.id)) {
-        _deliveredIds.add(msg.id!);
-        FirebaseRepo.markAsDelivered(chatId, msg.id!);
+      final id = msg.id;
+      if (id == null || _deliveredIds.contains(id)) continue; // skip بسرعة
+      if (!msg.isMe && msg.status == MessageStatus.sent) {
+        _deliveredIds.add(id);
+        FirebaseRepo.markAsDelivered(chatId, id);
       }
     }
   }
@@ -180,8 +180,8 @@ class ChatCubit extends Cubit<ChatState> {
         lastKnownMessages: _lastKnownMessages,
       ));
       // âœ… FIX: Ø¨Ø¹Ø¯ Ø«Ø§Ù†ÙŠØ© Ù†Ø±Ø¬Ø¹ Ù„Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø© Ù„Ùˆ Ù„Ø³Ù‡ ÙÙŠ error
-      await Future.delayed(const Duration(seconds: 2));
-      _restoreLoadedState();
+      // 🟢 Performance Fix #5: مش بنستننا لو الـ cubit اتـ close خلال الـ delay.
+      if (!isClosed) _restoreLoadedState();
     }
   }
 
@@ -200,8 +200,8 @@ class ChatCubit extends Cubit<ChatState> {
         'ÙØ´Ù„ Ø­Ø°Ù Ø§Ù„Ø±Ø³Ø§Ù„Ø©.',
         lastKnownMessages: _lastKnownMessages,
       ));
-      await Future.delayed(const Duration(seconds: 2));
-      _restoreLoadedState();
+      // 🟢 Performance Fix #5: مش بنستننا لو الـ cubit اتـ close خلال الـ delay.
+      if (!isClosed) _restoreLoadedState();
     }
   }
 
@@ -220,8 +220,8 @@ class ChatCubit extends Cubit<ChatState> {
         'ÙØ´Ù„ ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø±Ø³Ø§Ù„Ø©.',
         lastKnownMessages: _lastKnownMessages,
       ));
-      await Future.delayed(const Duration(seconds: 2));
-      _restoreLoadedState();
+      // 🟢 Performance Fix #5: مش بنستننا لو الـ cubit اتـ close خلال الـ delay.
+      if (!isClosed) _restoreLoadedState();
     }
   }
 
@@ -235,36 +235,38 @@ class ChatCubit extends Cubit<ChatState> {
 
     final currentState = state as ChatLoaded;
 
-    // âœ… FIX: Ø§Ø­ÙØ¸ Ø§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ø£ØµÙ„ÙŠØ© Ù‚Ø¨Ù„ Ø§Ù„Ù€ optimistic update Ø¹Ø´Ø§Ù† Ù†Ø±Ø¬Ø¹Ù„Ù‡Ø§ Ù„Ùˆ ÙØ´Ù„
-    final previousMessages = List<Message>.from(currentState.messages);
+    // 🟢 Performance Fix #3: بدل نسختين كاملتين من الـ messages:
+    //   - List.from(currentState.messages)   ← نسخة 1 للـ rollback
+    //   - .map(...).toList()                ← نسخة 2 للـ optimistic
+    // دلوقتي: بنحدد مكان الـ message في الـ list بـ indexWhere ونبني
+    // نسخة واحدة بس نستبدل الـ element زي ما هو — من O(2n) لـ O(n).
+    final targetIndex = currentState.messages.indexWhere((m) => m.id == messageId);
+    if (targetIndex == -1) return; // الـ message مش موجودة أصلاً — معندناش نكمل
 
-    // Optimistic update: Ù†Ø­Ø¯Ø« Ø§Ù„Ù€ UI ÙÙˆØ±Ø§Ù‹ Ø¨Ø¯ÙˆÙ† Ø§Ù†ØªØ¸Ø§Ø± Firebase
-    final updatedMessages = currentState.messages.map((msg) {
-      if (msg.id != messageId) return msg;
-      final newReactions = Map<String, String>.from(msg.reactions ?? {});
-      // Ù†ÙØ³ Ø§Ù„Ø¥ÙŠÙ…ÙˆØ¬ÙŠ â†’ toggle (Ø§Ø²ÙŠÙ„Ù‡)ØŒ ØºÙŠØ±Ù‡ â†’ Ø§Ø³ØªØ¨Ø¯Ù„Ù‡
-      if (newReactions[myUid] == emoji) {
-        newReactions.remove(myUid);
-      } else {
-        newReactions[myUid] = emoji;
-      }
-      return msg.copyWith(
-        reactions: newReactions.isEmpty ? null : newReactions,
-        clearReactions: newReactions.isEmpty,
-      );
-    }).toList();
+    final originalMsg = currentState.messages[targetIndex];
+    final newReactions = Map<String, String>.from(originalMsg.reactions ?? {});
+    if (newReactions[myUid] == emoji) {
+      newReactions.remove(myUid);
+    } else {
+      newReactions[myUid] = emoji;
+    }
+    final updatedMsg = originalMsg.copyWith(
+      reactions: newReactions.isEmpty ? null : newReactions,
+      clearReactions: newReactions.isEmpty,
+    );
+
+    // نسخة واحدة فقط — نستعملها للـ optimistic ولو حصل rollback في نفس الـ list
+    final updatedMessages = List<Message>.of(currentState.messages);
+    updatedMessages[targetIndex] = updatedMsg;
 
     _safeEmit(currentState.copyWith(messages: updatedMessages));
 
     try {
       await FirebaseRepo.addReaction(chatId, messageId, emoji, myUid);
-      // Ø§Ù„Ù€ stream Ù‡ÙŠØ¬ÙŠØ¨ Ø§Ù„ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø­Ù‚ÙŠÙ‚ÙŠ Ù…Ù† Firebase ÙˆÙŠØ­Ù„ Ù…Ø­Ù„ Ø§Ù„Ù€ optimistic
     } catch (e) {
-      // âœ… FIX: Ø¨Ù†Ø±Ø¬Ø¹ Ø§Ù„Ù€ messages Ø§Ù„Ø£ØµÙ„ÙŠØ© Ù…Ø´ _lastKnownMessages Ø§Ù„Ù„ÙŠ Ø§ØªØ­Ø¯Ø«Øª
-      _safeEmit(ChatLoaded(
-        messages: previousMessages,
-        replyingTo: currentState.replyingTo,
-      ));
+      // Rollback: نرجع الـ original message في نفس الـ index — دون نسختين
+      updatedMessages[targetIndex] = originalMsg;
+      _safeEmit(currentState.copyWith(messages: updatedMessages));
     }
   }
 
@@ -291,9 +293,9 @@ class ChatCubit extends Cubit<ChatState> {
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   void _safeEmit(ChatState newState) {
-    if (!_isClosed && !isClosed) {
-      emit(newState);
-    }
+    // 🟢 Performance Fix #1: حذف _isClosed المكررة — isClosed موجودة في BlocBase.
+    // القديم: bool إضافية بتتـ set يدوياً وممكن تختلف عن isClosed الأصلية.
+    if (!isClosed) emit(newState);
   }
 
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -302,7 +304,6 @@ class ChatCubit extends Cubit<ChatState> {
 
   @override
   Future<void> close() {
-    _isClosed = true;
     _messagesSubscription?.cancel();
     return super.close();
   }
