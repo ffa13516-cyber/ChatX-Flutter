@@ -34,11 +34,9 @@ class ChatBubble extends StatefulWidget {
   State<ChatBubble> createState() => _ChatBubbleState();
 }
 
-class _ChatBubbleState extends State<ChatBubble>
-    with TickerProviderStateMixin {
+class _ChatBubbleState extends State<ChatBubble> with TickerProviderStateMixin {
   
   // 🟢 Performance: استخدام ValueNotifier لتجنب setState للـ Bubble بالكامل
-  // عند تغيير حالة الضغط أو تشغيل الصوت. هذا يعزل الـ Repaint boundary.
   final ValueNotifier<bool> _isPressedListenable = ValueNotifier<bool>(false);
   final ValueNotifier<bool> _isPlayingListenable = ValueNotifier<bool>(false);
 
@@ -55,7 +53,6 @@ class _ChatBubbleState extends State<ChatBubble>
 
   @override
   void dispose() {
-    // 🟢 Performance Fix: وقّف الـ animation قبل الـ dispose لمنع الـ Memory Leak
     _waveController.stop();
     _waveController.dispose();
     _isPressedListenable.dispose();
@@ -73,11 +70,11 @@ class _ChatBubbleState extends State<ChatBubble>
   }
 
   // ─────────────────────────────────────────
-  // Action Menu — Telegram Pop-up UI
+  // Action Menu — Telegram Morphing Pop-up UI
   // ─────────────────────────────────────────
 
   void _showActionMenu(BuildContext rootContext) {
-    HapticFeedback.heavyImpact(); // ✅ UX: رد فعل اهتزازي قوي للقائمة
+    HapticFeedback.heavyImpact(); 
     
     final isMe = widget.message.isMe;
     final box = rootContext.findRenderObject() as RenderBox?;
@@ -85,171 +82,51 @@ class _ChatBubbleState extends State<ChatBubble>
 
     final offset = box.localToGlobal(Offset.zero);
     double topPos = offset.dy - 140;
-    if (topPos < 80) topPos = offset.dy + box.size.height + 16;
+    
+    // تعديل مكان الظهور لتجنب خروج القائمة الممتدة عن الشاشة
+    if (topPos < 120) topPos = offset.dy + box.size.height + 16;
 
     showGeneralDialog(
       context: rootContext,
       barrierDismissible: true,
       barrierLabel: 'dismiss',
-      barrierColor: Colors.black54, // تعميق الخلفية لزيادة التركيز
+      barrierColor: Colors.black54, 
       transitionDuration: const Duration(milliseconds: 250),
       pageBuilder: (dialogCtx, animation, secondaryAnimation) {
         final curvedAnim = CurvedAnimation(
           parent: animation,
-          curve: Curves.easeOutBack, // حركة مطاطية فخمة جداً كالتليجرام
+          curve: Curves.easeOutBack, 
           reverseCurve: Curves.easeIn,
         );
 
-        return Stack(
-          children: [
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: () => Navigator.pop(dialogCtx),
-                child: const ColoredBox(color: Colors.transparent),
-              ),
-            ),
-            Positioned(
-              top: topPos,
-              left: isMe ? null : 16,
-              right: isMe ? 16 : null,
-              child: ScaleTransition(
-                scale: curvedAnim,
-                alignment: isMe ? Alignment.topRight : Alignment.topLeft,
-                child: FadeTransition(
-                  opacity: animation,
-                  child: Column(
-                    crossAxisAlignment: isMe
-                        ? CrossAxisAlignment.end
-                        : CrossAxisAlignment.start,
-                    children: [
-                      // ── Quick Reactions Row (Telegram Horizontal Scroll Style) ──
-                      _TelegramReactionsStrip(
-                        onReact: (emoji) {
-                          Navigator.pop(dialogCtx);
-                          widget.onReact?.call(emoji);
-                        },
-                        onExpand: () {
-                          Navigator.pop(dialogCtx);
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            _showEmojiSheet(rootContext);
-                          });
-                        },
-                      ),
-                      
-                      const SizedBox(height: 12),
-
-                      // ── Context Menu ──────────────────────
-                      _GlassCard(
-                        width: 210,
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _MenuItem(
-                              icon: Icons.reply_rounded,
-                              label: 'رد',
-                              onTap: () {
-                                Navigator.pop(dialogCtx);
-                                widget.onReply?.call(widget.message);
-                              },
-                            ),
-                            if (widget.message.type == MessageType.text)
-                              _MenuItem(
-                                icon: Icons.copy_rounded,
-                                label: 'نسخ النص',
-                                onTap: () {
-                                  Navigator.pop(dialogCtx);
-                                  Clipboard.setData(
-                                    ClipboardData(text: widget.message.text),
-                                  );
-                                },
-                              ),
-                            if (isMe) ...[
-                              if (widget.message.isEditable)
-                                _MenuItem(
-                                  icon: Icons.edit_rounded,
-                                  label: 'تعديل',
-                                  onTap: () {
-                                    Navigator.pop(dialogCtx);
-                                    widget.onEdit?.call();
-                                  },
-                                ),
-                              const Divider(color: Colors.white12, height: 1),
-                              _MenuItem(
-                                icon: Icons.delete_outline_rounded,
-                                label: 'حذف الرسالة',
-                                color: Colors.redAccent.shade100,
-                                onTap: () {
-                                  Navigator.pop(dialogCtx);
-                                  widget.onDelete?.call();
-                                },
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
+        // ✅ هنا استخدمنا Widget منفصل StateFul عشان نقدر نتحكم في التمدد
+        return _ActionMenuOverlay(
+          animation: curvedAnim,
+          topPos: topPos,
+          isMe: isMe,
+          message: widget.message,
+          onReact: (emoji) {
+            Navigator.pop(dialogCtx);
+            widget.onReact?.call(emoji);
+          },
+          onReply: () {
+            Navigator.pop(dialogCtx);
+            widget.onReply?.call(widget.message);
+          },
+          onCopy: () {
+            Navigator.pop(dialogCtx);
+            Clipboard.setData(ClipboardData(text: widget.message.text));
+          },
+          onEdit: () {
+            Navigator.pop(dialogCtx);
+            widget.onEdit?.call();
+          },
+          onDelete: () {
+            Navigator.pop(dialogCtx);
+            widget.onDelete?.call();
+          },
         );
       },
-    );
-  }
-
-  // ─────────────────────────────────────────
-  // Emoji Bottom Sheet
-  // ─────────────────────────────────────────
-
-  void _showEmojiSheet(BuildContext ctx) {
-    if (!ctx.mounted) return;
-    showModalBottomSheet(
-      context: ctx,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (sheetCtx) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-        child: Container(
-          height: MediaQuery.of(ctx).size.height * 0.55,
-          decoration: const BoxDecoration(
-            color: Color(0xFF17181C),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: Column(
-            children: [
-              Container(
-                margin: const EdgeInsets.symmetric(vertical: 16),
-                width: 40,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.white12,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 7,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                  ),
-                  itemCount: _allEmojis.length,
-                  itemBuilder: (_, i) => _EmojiGridItem(
-                    emoji: _allEmojis[i],
-                    onTap: (selectedEmoji) {
-                      Navigator.pop(sheetCtx);
-                      widget.onReact?.call(selectedEmoji);
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -264,39 +141,52 @@ class _ChatBubbleState extends State<ChatBubble>
     final emojiKeys = grouped.keys.toList(growable: false);
     final totalCount = widget.message.reactionCount;
 
-    return GestureDetector(
-      onTap: () => _showActionMenu(context),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1F23), // لون كبسولة تليجرام الداكن والمميز
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withOpacity(0.12), width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 5,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _ReactionsStack(emojis: emojiKeys),
-            if (totalCount > 1) ...[
-              const SizedBox(width: 4),
-              Text(
-                '$totalCount',
-                style: const TextStyle(
-                  color: Color(0xFFEEEEEE),
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.3,
-                ),
+    // ✅ حركة ظهور مطاطية (Elastic) ناعمة جداً للإيموجي على الرسالة
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(totalCount), // لتشغيل الحركة مع كل تفاعل جديد
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.elasticOut,
+      builder: (context, scale, child) {
+        return Transform.scale(
+          scale: scale,
+          child: child,
+        );
+      },
+      child: GestureDetector(
+        onTap: () => _showActionMenu(context),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1F23), 
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withOpacity(0.12), width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 5,
+                offset: const Offset(0, 2),
               ),
             ],
-          ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _ReactionsStack(emojis: emojiKeys),
+              if (totalCount > 1) ...[
+                const SizedBox(width: 4),
+                Text(
+                  '$totalCount',
+                  style: const TextStyle(
+                    color: Color(0xFFEEEEEE),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -315,7 +205,6 @@ class _ChatBubbleState extends State<ChatBubble>
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Padding(
-        // ✅ UX Refinement: تقليص المسافة مع حواف الشاشة لتكون 6 تماماً كالتليجرام
         padding: const EdgeInsets.symmetric(horizontal: 6),
         child: GestureDetector(
           onTapDown: (_) {
@@ -336,7 +225,7 @@ class _ChatBubbleState extends State<ChatBubble>
               );
             },
             child: Stack(
-              clipBehavior: Clip.none, // مهم جداً للسماح بالتداخل الخارجي للإيموجي
+              clipBehavior: Clip.none, 
               children: [
                 _Bubble(
                   message: widget.message,
@@ -350,7 +239,6 @@ class _ChatBubbleState extends State<ChatBubble>
                 ),
                 if (hasReactions)
                   Positioned(
-                    // ✅ Telegram Style: وضع التفاعلات مدمجة ومباشرة فوق حافة البابل السفلية
                     bottom: -6, 
                     right: isMe ? 12 : null,
                     left: isMe ? null : 12,
@@ -363,13 +251,179 @@ class _ChatBubbleState extends State<ChatBubble>
       ),
     );
   }
+}
 
-  static const _allEmojis = [
-    '❤️','👍','🔥','😂','😮','😢','✅','💯','🎉','✨','🙏','👏','💪','👀','🤝','🫶',
-    '💀','🤡','🥳','😎','🤔','🤫','🤯','🥵','🥶','🥺','😭','😤','😠','🚫','👻','🤖',
-    '😀','😁','🤣','😃','😄','😅','😆','😉','😊','😋','😍','🥰','😘','😗','🤩','😏',
-    '😒','😞','😔','😟','😕','🙁','😣','😖','😫','😩','🤥','😶','😐','😑','😬','🙄',
-  ];
+// ─────────────────────────────────────────────
+// ✅ Morphing Action Menu Overlay (Telegram Style)
+// ─────────────────────────────────────────────
+
+class _ActionMenuOverlay extends StatefulWidget {
+  final Animation<double> animation;
+  final double topPos;
+  final bool isMe;
+  final Message message;
+  final Function(String) onReact;
+  final VoidCallback onReply;
+  final VoidCallback onCopy;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _ActionMenuOverlay({
+    required this.animation,
+    required this.topPos,
+    required this.isMe,
+    required this.message,
+    required this.onReact,
+    required this.onReply,
+    required this.onCopy,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  State<_ActionMenuOverlay> createState() => _ActionMenuOverlayState();
+}
+
+class _ActionMenuOverlayState extends State<_ActionMenuOverlay> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: const ColoredBox(color: Colors.transparent),
+          ),
+        ),
+        Positioned(
+          top: widget.topPos,
+          left: widget.isMe ? null : 16,
+          right: widget.isMe ? 16 : null,
+          child: ScaleTransition(
+            scale: widget.animation,
+            alignment: widget.isMe ? Alignment.topRight : Alignment.topLeft,
+            child: FadeTransition(
+              opacity: widget.animation,
+              // ✅ الـ AnimatedSize بيعمل تمدد ناعم للقائمة
+              child: AnimatedSize(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.fastLinearToSlowEaseIn,
+                alignment: widget.isMe ? Alignment.topRight : Alignment.topLeft,
+                // ✅ الـ AnimatedSwitcher بيبدل بين القائمة المصغرة والشبكة الكاملة
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: _isExpanded ? _buildExpandedGrid() : _buildCollapsedMenu(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 1. القائمة المصغرة (شريط التفاعلات السريع + المهام)
+  Widget _buildCollapsedMenu() {
+    return Column(
+      key: const ValueKey('collapsed'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: widget.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        _TelegramReactionsStrip(
+          onReact: widget.onReact,
+          onExpand: () {
+            HapticFeedback.lightImpact();
+            setState(() => _isExpanded = true);
+          },
+        ),
+        const SizedBox(height: 12),
+        _GlassCard(
+          width: 210,
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _MenuItem(icon: Icons.reply_rounded, label: 'رد', onTap: widget.onReply),
+              if (widget.message.type == MessageType.text)
+                _MenuItem(icon: Icons.copy_rounded, label: 'نسخ النص', onTap: widget.onCopy),
+              if (widget.isMe) ...[
+                if (widget.message.isEditable)
+                  _MenuItem(icon: Icons.edit_rounded, label: 'تعديل', onTap: widget.onEdit),
+                const Divider(color: Colors.white12, height: 1),
+                _MenuItem(
+                  icon: Icons.delete_outline_rounded,
+                  label: 'حذف الرسالة',
+                  color: Colors.redAccent.shade100,
+                  onTap: widget.onDelete,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 2. القائمة الممتدة (شبكة الإيموجي الكاملة في نفس المربع الزجاجي)
+  Widget _buildExpandedGrid() {
+    return _GlassCard(
+      key: const ValueKey('expanded'),
+      width: 280, // أعرض قليلاً لاستيعاب الشبكة
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // زرار الرجوع للقائمة المصغرة
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              setState(() => _isExpanded = false);
+            },
+            child: Container(
+              color: Colors.transparent,
+              padding: const EdgeInsets.only(bottom: 8, top: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 16),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text('رجوع', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          ),
+          // شبكة الإيموجي القابلة للتمرير
+          SizedBox(
+            height: 250, // طول محدد عشان مياخدش الشاشة كلها
+            child: GridView.builder(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.only(top: 8),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 6,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 8,
+              ),
+              itemCount: _allEmojis.length,
+              itemBuilder: (_, i) => _EmojiGridItem(
+                emoji: _allEmojis[i],
+                onTap: widget.onReact,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -417,7 +471,6 @@ class _Bubble extends StatelessWidget {
       constraints: BoxConstraints(maxWidth: maxWidth),
       margin: EdgeInsets.only(
         top: 2,
-        // ✅ تم تعديل الهامش السفلي ليكون 6 فقط ليحدث التداخل المثالي مع كبسولة الإيموجي
         bottom: hasReactions ? 6 : 2, 
       ),
       decoration: BoxDecoration(
@@ -939,8 +992,7 @@ class _TelegramReactionsStrip extends StatelessWidget {
   final Function(String) onReact;
   final VoidCallback onExpand;
 
-  // قائمة الإيموجي الأكثر استخداماً تظهر في الشريط السريع القابل للسكرول
-  static const _quickEmojis = ['❤️', '👍', '🔥', '😂', '😮', '😢', '🎉', '💯', '🙏', '👏', '👀', '✨', '💀', '💩'];
+  static const _quickEmojis = ['❤️', '👍', '🔥', '😂', '😮', '😢', '🎉', '💯', '🙏'];
 
   const _TelegramReactionsStrip({
     required this.onReact,
@@ -957,7 +1009,7 @@ class _TelegramReactionsStrip extends StatelessWidget {
           child: Container(
             height: 48,
             constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.80,
+              maxWidth: MediaQuery.of(context).size.width * 0.85,
             ),
             decoration: BoxDecoration(
               color: const Color(0xFF2B2C31).withOpacity(0.85),
@@ -999,10 +1051,10 @@ class _TelegramReactionsStrip extends StatelessWidget {
                   onTap: onExpand,
                   child: Container(
                     padding: const EdgeInsets.only(left: 6, right: 12),
-                    color: Colors.transparent, // توسيع الـ Hitbox للضغط المريح
+                    color: Colors.transparent, 
                     child: const Icon(
                       Icons.keyboard_arrow_down_rounded,
-                      color: const Color(0xCCFFFFFF),
+                      color: Color(0xCCFFFFFF),
                       size: 24,
                     ),
                   ),
@@ -1040,7 +1092,7 @@ class _ReactionEmojiItemState extends State<_ReactionEmojiItem> {
         widget.onTap();
       },
       child: AnimatedScale(
-        scale: _isPressed ? 1.35 : 1.0, // تكبير مطاطي مميز عند اللمس
+        scale: _isPressed ? 1.35 : 1.0, 
         duration: const Duration(milliseconds: 100),
         curve: Curves.easeOutBack,
         child: Container(
@@ -1062,7 +1114,7 @@ class _GlassCard extends StatelessWidget {
   final double? width;
   final EdgeInsetsGeometry? padding;
 
-  const _GlassCard({required this.child, this.width, this.padding});
+  const _GlassCard({super.key, required this.child, this.width, this.padding});
 
   @override
   Widget build(BuildContext context) {
@@ -1137,11 +1189,14 @@ class _EmojiGridItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => onTap(emoji),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap(emoji);
+      },
       borderRadius: BorderRadius.circular(12),
       splashColor: const Color(0xFF387CFF).withOpacity(0.2), 
       child: Center(
-        child: Text(emoji, style: const TextStyle(fontSize: 28)),
+        child: Text(emoji, style: const TextStyle(fontSize: 26)),
       ),
     );
   }
@@ -1158,7 +1213,7 @@ class _ReactionsStack extends StatelessWidget {
     
     return SizedBox(
       height: 18,
-      width: 14.0 + (displayEmojis.length - 1) * 10.0, // حساب العرض الديناميكي المتداخل
+      width: 14.0 + (displayEmojis.length - 1) * 10.0, 
       child: Stack(
         children: List.generate(displayEmojis.length, (i) {
           return Positioned(
@@ -1170,3 +1225,11 @@ class _ReactionsStack extends StatelessWidget {
     );
   }
 }
+
+// قائمة الإيموجيز مجمعة خارج الكلاس عشان نستخدمها بحرية
+const _allEmojis = [
+  '❤️','👍','🔥','😂','😮','😢','✅','💯','🎉','✨','🙏','👏','💪','👀','🤝','🫶',
+  '💀','🤡','🥳','😎','🤔','🤫','🤯','🥵','🥶','🥺','😭','😤','😠','🚫','👻','🤖',
+  '😀','😁','🤣','😃','😄','😅','😆','😉','😊','😋','😍','🥰','😘','😗','🤩','😏',
+  '😒','😞','😔','😟','😕','🙁','😣','😖','😫','😩','🤥','😶','😐','😑','😬','🙄',
+];
