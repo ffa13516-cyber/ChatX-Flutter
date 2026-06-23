@@ -13,6 +13,7 @@ import '../../utils/app_colors.dart'; // افترض وجود هذا الملف
 // ✅ تحسين Glass system إلى Dark Luxury Glass مع عمق حقيقي.
 // ✅ إعادة بناء AppBar + Search morphology لتكون أكثر تكاملاً وأناقة.
 // ✅ إضافة Purple/Blue accents على الحواف وتفاصيل الواجهة.
+// ✅ تم حل مشكلة selectionColor عبر تغليف الـ TextField بـ Theme مخصص.
 
 class HomeScreenUI extends StatefulWidget {
   final int currentIndex;
@@ -258,49 +259,53 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
             },
           ),
           Expanded(
-            child: TextField(
-              controller: _searchController,
-              autofocus: true, 
-              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
-              onChanged: (value) {
-                widget.onSearch(value);
-                setState(() {}); 
-              },
-              // استخدام البنفسجي للـ cursor و الـ text selection لزيادة الفخامة
-              cursorColor: accentColor,
-              selectionColor: accentColor.withOpacity(0.3),
-              decoration: InputDecoration(
-                hintText: 'Search messages...',
-                hintStyle: TextStyle(
-                  // تغيير لون التلميح ليكون بلمسة بنفسجية خفيفة جداً
-                  color: accentColor.withOpacity(0.18), 
-                  fontSize: 15,
-                  fontWeight: FontWeight.w400,
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                textSelectionTheme: TextSelectionThemeData(
+                  selectionColor: accentColor.withOpacity(0.3),
+                  selectionHandleColor: accentColor,
                 ),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                suffixIcon: _searchController.text.isNotEmpty 
-                    ? IconButton(
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        icon: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            // خلفية زر المسح بنفسجية خفيفة
-                            color: accentColor.withOpacity(0.12),
+              ),
+              child: TextField(
+                controller: _searchController,
+                autofocus: true, 
+                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+                onChanged: (value) {
+                  widget.onSearch(value);
+                  setState(() {}); 
+                },
+                cursorColor: accentColor,
+                decoration: InputDecoration(
+                  hintText: 'Search messages...',
+                  hintStyle: TextStyle(
+                    color: accentColor.withOpacity(0.18), 
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                  ),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  suffixIcon: _searchController.text.isNotEmpty 
+                      ? IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: accentColor.withOpacity(0.12),
+                            ),
+                            child: const Icon(Icons.close_rounded, color: Colors.white, size: 14),
                           ),
-                          child: const Icon(Icons.close_rounded, color: Colors.white, size: 14),
-                        ),
-                        onPressed: () {
-                          HapticFeedback.selectionClick();
-                          _searchController.clear();
-                          widget.onSearch('');
-                          setState(() {});
-                        },
-                      )
-                    : null,
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            _searchController.clear();
+                            widget.onSearch('');
+                            setState(() {});
+                          },
+                        )
+                      : null,
+                ),
               ),
             ),
           ),
