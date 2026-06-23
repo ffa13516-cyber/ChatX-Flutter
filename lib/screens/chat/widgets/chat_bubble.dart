@@ -1002,8 +1002,7 @@ class _TelegramReactionsStrip extends StatelessWidget {
                     color: Colors.transparent, // توسيع الـ Hitbox للضغط المريح
                     child: const Icon(
                       Icons.keyboard_arrow_down_rounded,
-                      color: Colors.white.withOpacity(0.8),
-
+                      color: const Color(0xCCFFFFFF),
                       size: 24,
                     ),
                   ),
