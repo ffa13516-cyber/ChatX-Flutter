@@ -64,7 +64,12 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(
+            builder: (_) => HomeScreen(
+              myUid: user!.uid,
+              myName: user.displayName,
+            ),
+          ),
         );
       }
     } catch (e) {
@@ -130,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 32),
                 const Center(
                   child: Text(
-                    'Welcome to ChatX 👋',
+                    'Welcome to ChatX ðŸ‘‹',
                     style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 26,
