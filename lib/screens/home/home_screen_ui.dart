@@ -7,8 +7,7 @@ import '../chat/chats_tab.dart';
 import '../profile/profile_screen.dart';
 import '../settings/settings_screen.dart';
 import '../../utils/app_colors.dart'; 
-import '../../features/search/presentation/pages/search_screen.dart';
- // تم إضافة استيراد شاشة البحث الجديدة
+import '../search/search_screen.dart';
 
 // تم تحديث الملف برؤية هندسية احترافية:
 // ✅ إزالة لوجيك البحث الداخلي (Inline Search) بالكامل لتخفيف الـ State والأداء.
@@ -23,6 +22,10 @@ class HomeScreenUI extends StatefulWidget {
   final VoidCallback onCreateGroup;
   final ValueChanged<String> onSearch;
 
+  // بيانات المستخدم الحالي — مطلوبة لتمريرها لـ SearchScreen
+  final String myUid;
+  final String myName;
+
   const HomeScreenUI({
     super.key,
     required this.currentIndex,
@@ -30,6 +33,8 @@ class HomeScreenUI extends StatefulWidget {
     required this.onCreateChannel,
     required this.onCreateGroup,
     required this.onSearch,
+    required this.myUid,
+    required this.myName,
   });
 
   @override
@@ -130,12 +135,12 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
                   // الانتقال السلس لشاشة البحث الكاملة والمنفصلة تماماً
                   Navigator.of(context).push(
                     PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) => SearchScreen(),
+                      pageBuilder: (context, animation, secondaryAnimation) => SearchScreen(
+                        myUid: widget.myUid,
+                        myName: widget.myName,
+                      ),
                       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: child,
-                        );
+                        return FadeTransition(opacity: animation, child: child);
                       },
                     ),
                   );
