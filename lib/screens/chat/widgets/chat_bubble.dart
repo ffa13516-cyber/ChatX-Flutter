@@ -439,10 +439,13 @@ class _Bubble extends StatelessWidget {
       return _ImageContent(message: message, time: time, radius: radius);
     }
 
-    return Column(
-      // ✅ FIX: stretch بدل end — لازم الـ Row يعرف عرض البابل الحقيقي
-      // end كانت بتخلي الـ Row يحسب عرضه من الـ content بس، مش من البابل،
-      // فالـ spaceBetween مكنش بيشتغل صح وكانت البابل بتكبر.
+    return IntrinsicWidth(
+      // ✅ FIX: IntrinsicWidth بيخلي الـ stretch يحسب عرضه من أعرض
+      // عنصر فعلي جوه البابل (مش من maxWidth بتاع الشاشة كله)،
+      // فكدا البابل بترجع تتمدد حسب طول النص الحقيقي مش لازم تاخد
+      // أقصى عرض مسموح، ومع ده الـ spaceBetween في صف الـ
+      // reactions/time لسه شغال صح.
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (message.replyTo != null)
@@ -494,6 +497,7 @@ class _Bubble extends StatelessWidget {
             child: _TimeRow(time: time, isMe: isMe, status: message.status, isEdited: message.isEdited),
           ),
       ],
+      ),
     );
   }
 
