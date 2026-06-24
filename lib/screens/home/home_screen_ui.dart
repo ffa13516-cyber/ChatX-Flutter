@@ -7,7 +7,8 @@ import '../chat/chats_tab.dart';
 import '../profile/profile_screen.dart';
 import '../settings/settings_screen.dart';
 import '../../utils/app_colors.dart'; 
-import '../search/presentation/pages/search_screen.dart'; // تم إضافة استيراد شاشة البحث الجديدة
+import '../../features/search/presentation/pages/search_screen.dart';
+ // تم إضافة استيراد شاشة البحث الجديدة
 
 // تم تحديث الملف برؤية هندسية احترافية:
 // ✅ إزالة لوجيك البحث الداخلي (Inline Search) بالكامل لتخفيف الـ State والأداء.
@@ -129,7 +130,7 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
                   // الانتقال السلس لشاشة البحث الكاملة والمنفصلة تماماً
                   Navigator.of(context).push(
                     PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) => const SearchScreen(),
+                      pageBuilder: (context, animation, secondaryAnimation) => SearchScreen(),
                       transitionsBuilder: (context, animation, secondaryAnimation, child) {
                         return FadeTransition(
                           opacity: animation,
