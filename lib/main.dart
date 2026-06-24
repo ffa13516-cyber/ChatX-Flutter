@@ -41,11 +41,14 @@ class _SplashDeciderState extends State<SplashDecider> {
 
   Future<void> _decide() async {
     final uid = await SessionManager.instance.getUid();
+    final name = await SessionManager.instance.getName();
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => uid.isNotEmpty ? const HomeScreen() : const LoginScreen(),
+        builder: (_) => uid.isNotEmpty
+            ? HomeScreen(myUid: uid, myName: name)
+            : const LoginScreen(),
       ),
     );
   }
