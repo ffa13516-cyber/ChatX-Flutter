@@ -90,21 +90,24 @@ class ChatCubit extends Cubit<ChatState> {
 
     _messagesSubscription = FirebaseRepo.observeMessages(chatId, myUid).listen(
       (messages) {
-        // 🟢 Performance Fix #2: حذفنا messages.reversed.toList() اللي كانت بتنشئ
-        // List جديدة كاملة في كل stream event.
-        // بندي stream ascending زي ما هو ونخلي ListView (reverse: true) يعكسها.
-        _lastKnownMessages = messages;
+        // ✅ FIX: لازم messages[0] تكون أحدث رسالة عشان reverse:true في
+        // الـ ListView يحطها تحت صح. الـ stream بيرجع ascending (الأقدم
+        // أولاً)، فلو سبناها زي ما هي، الرسالة الجديدة هتقع في آخر الـ
+        // list فتظهر فوق بدل تحت. .reversed.toList() هنا تكلفته O(n)
+        // بسيطة (مفيش allocation مضاعف) ومضمونة تطلع الترتيب صحيح دايمًا.
+        final orderedMessages = messages.reversed.toList(growable: false);
+        _lastKnownMessages = orderedMessages;
 
         final currentReply = state is ChatLoaded
             ? (state as ChatLoaded).replyingTo
             : null;
 
         _safeEmit(ChatLoaded(
-          messages: messages, // ascending — ListView يعكسها بـ reverse:true
+          messages: orderedMessages, // descending — index 0 = أحدث رسالة
           replyingTo: currentReply,
         ));
 
-        _handleDelivery(messages);
+        _handleDelivery(orderedMessages);
       },
       onError: (Object error) {
         _safeEmit(ChatError(
