@@ -268,10 +268,14 @@ class FirebaseRepo {
 
       final map = event.snapshot.value as Map;
 
+      // ✅ ترتيب تنازلي (الأحدث أولاً) من المصدر مباشرة — عشان index 0
+      // يبقى دايمًا أحدث رسالة، وده اللي الـ ListView (reverse: true) في
+      // chat_screen.dart مفترضه. كذلك بيشيل الحاجة لعكس الـ list تاني
+      // في الـ cubit.
       return map.entries
           .map((e) => Message.fromMap(e.value as Map, myUid, id: e.key))
           .toList()
-        ..sort((a, b) => a.time.compareTo(b.time));
+        ..sort((a, b) => b.time.compareTo(a.time));
     });
   }
 
