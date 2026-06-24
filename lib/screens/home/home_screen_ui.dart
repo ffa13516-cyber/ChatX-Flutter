@@ -6,15 +6,14 @@ import 'package:flutter/services.dart';
 import '../chat/chats_tab.dart';
 import '../profile/profile_screen.dart';
 import '../settings/settings_screen.dart';
-import '../../utils/app_colors.dart'; // افترض وجود هذا الملف
+import '../../utils/app_colors.dart'; 
+import '../search/presentation/pages/search_screen.dart'; // تم إضافة استيراد شاشة البحث الجديدة
 
-// تم تنفيذ "الخطة البرمجية" المطلوبة:
-// ✅ Refactor كامل (تغيير الشكل) دون لمس الـ Business Logic.
-// ✅ تحسين Glass system إلى Dark Luxury Glass مع عمق حقيقي.
-// ✅ إعادة بناء AppBar + Search morphology لتكون أكثر تكاملاً وأناقة.
-// ✅ إضافة Purple/Blue accents على الحواف وتفاصيل الواجهة.
-// ✅ تم حل مشكلة selectionColor عبر تغليف الـ TextField بـ Theme مخصص.
-// ✅ تنحيف شريط التنقل السفلي (NavBar) وخفض موقعه لزيادة مساحة العرض.
+// تم تحديث الملف برؤية هندسية احترافية:
+// ✅ إزالة لوجيك البحث الداخلي (Inline Search) بالكامل لتخفيف الـ State والأداء.
+// ✅ ربط أيقونة البحث لفتح شاشة Full-Screen Search منفصلة ومعزولة تماماً.
+// ✅ الحفاظ على الهوية البصرية الفاخرة Dark Luxury Glass والـ Accents البنفسجية.
+// ✅ الحفاظ على أبعاد شريط التنقل السفلي النحيف والكبسولة الزجاجية المحسنة.
 
 class HomeScreenUI extends StatefulWidget {
   final int currentIndex;
@@ -37,9 +36,6 @@ class HomeScreenUI extends StatefulWidget {
 }
 
 class _HomeScreenUIState extends State<HomeScreenUI> {
-  bool _isSearching = false; 
-  final TextEditingController _searchController = TextEditingController();
-
   final List<Widget> _screens = const [
     ChatsTab(),
     ProfileScreen(),
@@ -47,95 +43,50 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
   ];
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     // تحديد ألوان الـ Accents للفخامة (بنفسجي مائل للزرقة)
     final luxuryAccentColor = const Color(0xFF6C63FF).withOpacity(0.8);
-    final luxuryGradient = LinearGradient(
-      colors: [luxuryAccentColor, Colors.white.withOpacity(0.8)],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    );
 
-    return PopScope(
-      canPop: !_isSearching,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        setState(() {
-          _isSearching = false;
-          _searchController.clear();
-          widget.onSearch('');
-        });
-      },
-      child: Scaffold(
-        // استخدام خلفية سوداء قوية لزيادة التباين والفخامة
-        backgroundColor: const Color(0xFF0A0A0E), // أسود أعمق
-        extendBody: true, 
-        body: SafeArea(
-          bottom: false,
-          child: NestedScrollView(
-            floatHeaderSlivers: false, 
-            headerSliverBuilder: (context, innerBoxIsScrolled) {
-              return [
-                SliverAppBar(
-                  backgroundColor: Colors.transparent, 
-                  pinned: true,   
-                  floating: false,
-                  snap: false,
-                  elevation: 0, 
-                  toolbarHeight: 75, 
-                  titleSpacing: 0,
-                  title: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    child: LuxuryGlassContainer(
-                      borderRadius: 24, 
-                      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
-                      accentColor: luxuryAccentColor,
-                      child: AnimatedSize(
-                        duration: const Duration(milliseconds: 350),
-                        curve: Curves.easeOutCubic,
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          switchInCurve: Curves.easeOutBack,
-                          switchOutCurve: Curves.easeIn,
-                          transitionBuilder: (Widget child, Animation<double> animation) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: SlideTransition(
-                                position: Tween<Offset>(
-                                  begin: const Offset(0.02, 0),
-                                  end: Offset.zero,
-                                ).animate(animation),
-                                child: child,
-                              ),
-                            );
-                          },
-                          child: _isSearching 
-                              ? _buildExpandedSearchBar(context, luxuryAccentColor) 
-                              : _buildHeaderContent(context, luxuryAccentColor),
-                        ),
-                      ),
-                    ),
+    return Scaffold(
+      // استخدام خلفية سوداء قوية لزيادة التباين والفخامة
+      backgroundColor: const Color(0xFF0A0A0E), // أسود أعمق
+      extendBody: true, 
+      body: SafeArea(
+        bottom: false,
+        child: NestedScrollView(
+          floatHeaderSlivers: false, 
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              SliverAppBar(
+                backgroundColor: Colors.transparent, 
+                pinned: true,   
+                floating: false,
+                snap: false,
+                elevation: 0, 
+                toolbarHeight: 75, 
+                titleSpacing: 0,
+                title: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: LuxuryGlassContainer(
+                    borderRadius: 24, 
+                    padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
+                    accentColor: luxuryAccentColor,
+                    child: _buildHeaderContent(context, luxuryAccentColor),
                   ),
                 ),
-              ];
-            },
-            body: IndexedStack(
-              index: widget.currentIndex,
-              children: _screens,
-            ),
+              ),
+            ];
+          },
+          body: IndexedStack(
+            index: widget.currentIndex,
+            children: _screens,
           ),
         ),
-        bottomNavigationBar: Padding(
-          // تم تقليل المسافة السفلية (bottom) لإنزال الجزيرة أكثر
-          padding: const EdgeInsets.only(bottom: 12.0, left: 32.0, right: 32.0),
-          child: _buildFloatingIslandNavBar(luxuryAccentColor),
-        ),
+      ),
+      bottomNavigationBar: Padding(
+        // تم تقليل المسافة السفلية (bottom) لإنزال الجزيرة أكثر
+        padding: const EdgeInsets.only(bottom: 12.0, left: 32.0, right: 32.0),
+        child: _buildFloatingIslandNavBar(luxuryAccentColor),
       ),
     );
   }
@@ -160,8 +111,8 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
             child: const Text(
               'chatx',
               style: TextStyle(
-                fontSize: 26, // تكبير بسيط للعنوان
-                fontWeight: FontWeight.w900, // تغليظ الخط للفخامة
+                fontSize: 26, 
+                fontWeight: FontWeight.w900, 
                 color: Colors.white,
                 letterSpacing: 1.2,
               ),
@@ -175,9 +126,18 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
                 highlightColor: Colors.transparent,
                 onPressed: () {
                   HapticFeedback.mediumImpact();
-                  setState(() {
-                    _isSearching = true;
-                  });
+                  // الانتقال السلس لشاشة البحث الكاملة والمنفصلة تماماً
+                  Navigator.of(context).push(
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) => const SearchScreen(),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: child,
+                        );
+                      },
+                    ),
+                  );
                 },
               ),
               Theme(
@@ -234,81 +194,6 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
               color: Colors.white, 
               fontSize: 14,
               fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExpandedSearchBar(BuildContext context, Color accentColor) {
-    return Container(
-      key: const ValueKey('ExpandedSearch'),
-      height: 48,
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-            splashColor: Colors.transparent,
-            highlightColor: Colors.transparent,
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              setState(() {
-                _isSearching = false;
-                _searchController.clear();
-                widget.onSearch('');
-              });
-            },
-          ),
-          Expanded(
-            child: Theme(
-              data: Theme.of(context).copyWith(
-                textSelectionTheme: TextSelectionThemeData(
-                  selectionColor: accentColor.withOpacity(0.3),
-                  selectionHandleColor: accentColor,
-                ),
-              ),
-              child: TextField(
-                controller: _searchController,
-                autofocus: true, 
-                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
-                onChanged: (value) {
-                  widget.onSearch(value);
-                  setState(() {}); 
-                },
-                cursorColor: accentColor,
-                decoration: InputDecoration(
-                  hintText: 'Search messages...',
-                  hintStyle: TextStyle(
-                    color: accentColor.withOpacity(0.18), 
-                    fontSize: 15,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                  suffixIcon: _searchController.text.isNotEmpty 
-                      ? IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          icon: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: accentColor.withOpacity(0.12),
-                            ),
-                            child: const Icon(Icons.close_rounded, color: Colors.white, size: 14),
-                          ),
-                          onPressed: () {
-                            HapticFeedback.selectionClick();
-                            _searchController.clear();
-                            widget.onSearch('');
-                            setState(() {});
-                          },
-                        )
-                      : null,
-                ),
-              ),
             ),
           ),
         ],
@@ -525,7 +410,7 @@ class LuxuryGlassContainer extends StatelessWidget {
           borderRadius: BorderRadius.circular(borderRadius),
           child: BackdropFilter(
             // زيادة قوة الـ Blur لزيادة الفخامة (تأثير Glassmorphism أقوى)
-            filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32), // زيادة قوة البلور
+            filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32), 
             child: Padding(
               padding: padding ?? EdgeInsets.zero,
               child: child,
