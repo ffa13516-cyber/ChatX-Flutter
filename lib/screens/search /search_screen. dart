@@ -1,31 +1,18 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-// استيراد الموديلز والـ Repo الخاص بك
-import '../../models/models.dart'; // تأكد من مسار الـ UserModel الصحيح
-import '../../repositories/firebase_repo.dart';
-import 'chat_screen.dart'; // تأكد من مسار صفحة الشات
-
-class Debouncer {
-  final int milliseconds;
-  Timer? _timer;
-  Debouncer({required this.milliseconds});
-
-  void run(VoidCallback action) {
-    if (_timer?.isActive ?? false) _timer!.cancel();
-    _timer = Timer(Duration(milliseconds: milliseconds), action);
-  }
-}
+import '../../../models/models.dart';
+import '../../chat/chat_screen.dart';
+import 'search_cubit.dart';
 
 class SearchScreen extends StatefulWidget {
-  // ✅ تمرير بيانات المستخدم الحالي لتمريرها لاحقاً لصفحة الشات
   final String myUid;
   final String myName;
 
   const SearchScreen({
-    Key? key, 
-    required this.myUid, 
+    Key? key,
+    required this.myUid,
     required this.myName,
   }) : super(key: key);
 
@@ -34,125 +21,81 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  final Debouncer _debouncer = Debouncer(milliseconds: 500); // 500ms ممتاز جداً للـ UX
-  
-  // لون الفخامة الأساسي
-  final Color luxuryAccentColor = const Color(0xFF6C63FF);
-  
-  // ✅ تحويل القائمة لتستقبل UserModel بدلاً من السلسلة النصية التقليدية
-  List<UserModel> _results = [];
-  bool _isLoading = false;
+  final TextEditingController _controller = TextEditingController();
 
-  void _onSearchChanged(String query) {
-    if (query.trim().isEmpty) {
-      setState(() {
-        _results = [];
-        _isLoading = false;
-      });
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    // ✅ تشغيل الـ Debouncer لمنع الضغط الزائد على السيرفر
-    _debouncer.run(() async {
-      try {
-        // جلب المستخدم من الـ Firebase Repo بناءً على الـ username
-        final user = await FirebaseRepo.getUserByUsername(query.trim());
-        
-        if (!mounted) return; // حماية ضد أخطاء الـ Async Gaps
-
-        setState(() {
-          _isLoading = false;
-          if (user != null) {
-            _results = [user]; // الـ Repo حالياً يعيد مستخدم واحد مطرابق
-          } else {
-            _results = [];
-          }
-        });
-      } catch (e) {
-        if (!mounted) return;
-        setState(() {
-          _isLoading = false;
-          _results = [];
-        });
-        // 💡 تلميح للمستقبل: يمكنك إظهار SnackBar هنا في حالة حدوث خطأ شبكة
-      }
-    });
-  }
-
-  // ✅ دالة معالجة فتح الشات والانتقال المباشر
-  Future<void> _openChat(UserModel user) async {
-    setState(() => _isLoading = true); // إشعار المستخدم بالتحميل أثناء إنشاء الغرفة
-    
-    try {
-      final chat = await FirebaseRepo.getOrCreateChat(
-        widget.myUid,
-        user.uid,
-      );
-      
-      if (!mounted) return;
-
-      // الانتقال لشاشة الشات وتمرير البيانات المطلوبة
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ChatScreen(
-            chatId: chat.chatId,
-            myUid: widget.myUid,
-            myName: widget.myName,
-          ),
-        ),
-      ).then((_) {
-        // إعادة حالة المؤشر لوضعه الطبيعي بعد العودة من الشات
-        if (mounted) setState(() => _isLoading = false);
-      });
-    } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
-      // التعامل مع الأخطاء هنا إن وجدت
-    }
-  }
+  static const _accent = Color(0xFF6C63FF);
 
   @override
   void dispose() {
-    _searchController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0E),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // 1. شريط البحث العلوي (Luxury Style)
-            _buildSearchBar(),
-            
-            // 2. خط فاصل رفيع جداً بلمسة بنفسجية لإعطاء عمق
-            Divider(color: luxuryAccentColor.withOpacity(0.1), height: 1, thickness: 1),
-
-            // 3. عرض النتائج أو الحالة الفارغة أو التحميل
-            Expanded(
-              child: _isLoading
-                  ? Center(
-                      child: CircularProgressIndicator(
-                        color: luxuryAccentColor,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : _results.isEmpty
-                      ? _buildEmptyState()
-                      : _buildResultsList(),
+    return BlocProvider(
+      create: (_) => SearchCubit(myUid: widget.myUid),
+      child: BlocListener<SearchCubit, SearchState>(
+        listener: _handleStateChanges,
+        child: Scaffold(
+          backgroundColor: const Color(0xFF0A0A0E),
+          body: SafeArea(
+            child: Column(
+              children: [
+                _SearchBar(controller: _controller),
+                Divider(color: _accent.withOpacity(0.1), height: 1, thickness: 1),
+                const Expanded(child: _SearchBody()),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSearchBar() {
+  void _handleStateChanges(BuildContext context, SearchState state) {
+    if (state is SearchChatReady) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            chatId: state.chatId,
+            myUid: widget.myUid,
+            myName: widget.myName,
+          ),
+        ),
+      ).then((_) {
+        if (context.mounted) {
+          context.read<SearchCubit>().resetAfterNavigation();
+        }
+      });
+    }
+
+    if (state is SearchError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(state.message),
+          backgroundColor: const Color(0xFF2A1A2E),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
+  }
+}
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Search Bar Widget
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _SearchBar extends StatelessWidget {
+  final TextEditingController controller;
+  static const _accent = Color(0xFF6C63FF);
+
+  const _SearchBar({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
       child: Row(
@@ -168,51 +111,54 @@ class _SearchScreenState extends State<SearchScreen> {
             child: Container(
               height: 50,
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A22).withOpacity(0.6), 
+                color: const Color(0xFF1A1A22).withOpacity(0.6),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: luxuryAccentColor.withOpacity(0.15), width: 1),
+                border: Border.all(color: _accent.withOpacity(0.15), width: 1),
                 boxShadow: [
                   BoxShadow(
-                    color: luxuryAccentColor.withOpacity(0.05),
+                    color: _accent.withOpacity(0.05),
                     blurRadius: 10,
                     spreadRadius: 1,
-                  )
+                  ),
                 ],
               ),
               child: Theme(
                 data: Theme.of(context).copyWith(
                   textSelectionTheme: TextSelectionThemeData(
-                    selectionColor: luxuryAccentColor.withOpacity(0.3),
-                    selectionHandleColor: luxuryAccentColor,
+                    selectionColor: _accent.withOpacity(0.3),
+                    selectionHandleColor: _accent,
                   ),
                 ),
                 child: TextField(
-                  controller: _searchController,
+                  controller: controller,
                   autofocus: true,
-                  onChanged: _onSearchChanged,
                   style: const TextStyle(color: Colors.white, fontSize: 16),
-                  cursorColor: luxuryAccentColor,
+                  cursorColor: _accent,
+                  onChanged: (q) => context.read<SearchCubit>().onQueryChanged(q),
                   decoration: InputDecoration(
                     hintText: 'Search by username...',
                     hintStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 15),
-                    prefixIcon: Icon(Icons.search_rounded, color: luxuryAccentColor.withOpacity(0.7), size: 22),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: luxuryAccentColor.withOpacity(0.15),
+                    prefixIcon: Icon(Icons.search_rounded, color: _accent.withOpacity(0.7), size: 22),
+                    suffixIcon: ListenableBuilder(
+                      listenable: controller,
+                      builder: (_, __) => controller.text.isNotEmpty
+                          ? IconButton(
+                              icon: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: _accent.withOpacity(0.15),
+                                ),
+                                child: const Icon(Icons.close_rounded, color: Colors.white, size: 14),
                               ),
-                              child: const Icon(Icons.close_rounded, color: Colors.white, size: 14),
-                            ),
-                            onPressed: () {
-                              HapticFeedback.selectionClick();
-                              _searchController.clear();
-                              _onSearchChanged('');
-                            },
-                          )
-                        : null,
+                              onPressed: () {
+                                HapticFeedback.selectionClick();
+                                controller.clear();
+                                context.read<SearchCubit>().onQueryChanged('');
+                              },
+                            )
+                          : const SizedBox.shrink(),
+                    ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 14),
                   ),
@@ -225,54 +171,74 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
     );
   }
+}
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: luxuryAccentColor.withOpacity(0.05),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.manage_search_rounded, 
-              size: 70, 
-              color: luxuryAccentColor.withOpacity(0.3),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            _searchController.text.isEmpty 
-                ? 'Type a username to start chatting' 
-                : 'No user found with this username',
-            style: TextStyle(
-              fontSize: 16, 
-              color: Colors.white.withOpacity(0.5),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Body â€” ÙŠØ¹Ø±Ø¶ Ø§Ù„Ø­Ø§Ù„Ø§Øª Ø§Ù„Ù…Ø®ØªÙ„ÙØ©
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _SearchBody extends StatelessWidget {
+  const _SearchBody();
+
+  static const _accent = Color(0xFF6C63FF);
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<SearchCubit, SearchState>(
+      builder: (context, state) {
+        if (state is SearchLoading || state is SearchOpeningChat) {
+          return Center(
+            child: CircularProgressIndicator(color: _accent, strokeWidth: 2),
+          );
+        }
+
+        if (state is SearchSuccess) {
+          return _UserResultTile(
+            user: state.user,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.read<SearchCubit>().openChat(state.user);
+            },
+          );
+        }
+
+        if (state is SearchEmpty) {
+          return _EmptyState(message: 'No user found with this username');
+        }
+
+        // SearchInitial Ø£Ùˆ Ø£ÙŠ Ø­Ø§Ù„Ø© Ø£Ø®Ø±Ù‰
+        return _EmptyState(message: 'Type a username to start chatting');
+      },
     );
   }
+}
 
-  Widget _buildResultsList() {
-    return ListView.builder(
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// User Result Tile
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _UserResultTile extends StatelessWidget {
+  final UserModel user;
+  final VoidCallback onTap;
+
+  static const _accent = Color(0xFF6C63FF);
+
+  const _UserResultTile({required this.user, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
       padding: const EdgeInsets.only(top: 8),
-      itemCount: _results.length,
-      itemBuilder: (context, index) {
-        final user = _results[index];
-        return ListTile(
+      children: [
+        ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+          onTap: onTap,
           leading: CircleAvatar(
             radius: 24,
-            backgroundColor: luxuryAccentColor.withOpacity(0.1),
+            backgroundColor: _accent.withOpacity(0.1),
             backgroundImage: user.avatarUrl != null ? NetworkImage(user.avatarUrl!) : null,
             child: user.avatarUrl == null
-                ? Icon(Icons.person, color: luxuryAccentColor, size: 22)
+                ? Icon(Icons.person, color: _accent, size: 22)
                 : null,
           ),
           title: Text(
@@ -283,13 +249,57 @@ class _SearchScreenState extends State<SearchScreen> {
             '@${user.username}',
             style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13),
           ),
-          trailing: Icon(Icons.arrow_forward_ios_rounded, color: Colors.white.withOpacity(0.2), size: 14),
-          onTap: () {
-            HapticFeedback.lightImpact();
-            _openChat(user); // تفعيل بدء الشات فوراً عند الضغط
-          },
-        );
-      },
+          trailing: Icon(
+            Icons.arrow_forward_ios_rounded,
+            color: Colors.white.withOpacity(0.2),
+            size: 14,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Empty / Initial State
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _EmptyState extends StatelessWidget {
+  final String message;
+
+  static const _accent = Color(0xFF6C63FF);
+
+  const _EmptyState({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: _accent.withOpacity(0.05),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.manage_search_rounded,
+              size: 70,
+              color: _accent.withOpacity(0.3),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            message,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.white.withOpacity(0.5),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
