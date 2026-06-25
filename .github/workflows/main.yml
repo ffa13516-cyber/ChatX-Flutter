@@ -28,8 +28,8 @@ jobs:
           # 1. تنظيف مسارات الأندرويد القديمة وأي مشاريع مؤقتة
           rm -rf android/ temp_project/
           
-          # 2. بناء مجلد الأندرويد من الصفر في المسار الرئيسي
-          flutter create . --org com.chatx --project-name app
+          # 2. بناء مجلد الأندرويد من الصفر في المسار الرئيسي باسم المشروع الصحيح
+          flutter create . --org com.chatx --project-name chatx
           
           # 3. خطوة استباقية: حقن صلاحية الإنترنت لضمان عمل Firebase
           sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
@@ -48,8 +48,9 @@ jobs:
           cd ..
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
 
-      - name: Get & Upgrade Packages
+      - name: Clean and Get Packages
         run: |
+          flutter clean
           flutter pub get
           flutter pub upgrade
 
