@@ -7,7 +7,8 @@ import '../chat/chats_tab.dart';
 import '../profile/profile_screen.dart';
 import '../settings/settings_screen.dart';
 import '../../utils/app_colors.dart'; 
-import '../search/search_screen_ui.dart';
+import 'package:chatx/screens/search/search_screen_ui.dart';
+
 
 // تم تحديث الملف برؤية هندسية احترافية:
 // ✅ إزالة لوجيك البحث الداخلي (Inline Search) بالكامل لتخفيف الـ State والأداء.
