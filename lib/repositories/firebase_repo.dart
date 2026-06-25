@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart'; // تمت الإضافة من أجل debugPrint
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:uuid/uuid.dart';
@@ -10,6 +11,7 @@ class FirebaseRepo {
     // 🛡️ ملاحظة أمنية: يُفضل مستقبلاً وضع هذا الرابط في ملف بيئة (.env)
     databaseURL: 'https://messengerapp-d6e7c-default-rtdb.firebaseio.com',
   );
+
   static const _uuid = Uuid();
 
   static DatabaseReference get usersRef => _db.ref('users');
@@ -60,6 +62,47 @@ class FirebaseRepo {
     });
   }
 
+  // ───────────────────────── Presence (Online/Offline) ─────────────────────────
+
+  /// دالة ذكية لإدارة حالة الاتصال تلقائياً باستخدام Realtime Database
+  static void manageUserPresence(String uid) {
+    if (uid.trim().isEmpty) return;
+    
+    // نراقب حالة الاتصال بسيرفر الفايربيز نفسه
+    final myConnectionsRef = FirebaseDatabase.instance.ref('.info/connected');
+    final userRef = usersRef.child(uid);
+
+    myConnectionsRef.onValue.listen((event) {
+      final isConnected = event.snapshot.value as bool? ?? false;
+      if (isConnected) {
+        // 1. لما التطبيق يتصل، نخليه أونلاين
+        userRef.update({
+          'isOnline': true,
+          'lastSeen': ServerValue.timestamp,
+        });
+
+        // 2. السحر المعماري: نبلغ السيرفر إنه لما يفقد الاتصال بالموبايل، يحدث البيانات دي فوراً
+        userRef.onDisconnect().update({
+          'isOnline': false,
+          'lastSeen': ServerValue.timestamp,
+        });
+      }
+    });
+  }
+
+  /// دالة للتحديث اليدوي عند وضع التطبيق في الخلفية
+  static Future<void> updateUserPresence(String uid, bool isOnline) async {
+    if (uid.trim().isEmpty) return;
+    try {
+      await usersRef.child(uid).update({
+        'isOnline': isOnline,
+        'lastSeen': ServerValue.timestamp,
+      });
+    } catch (e) {
+      debugPrint('Error updating presence: $e');
+    }
+  }
+
   // ───────────────────────── Chats & UX Features ─────────────────────────
 
   static String getChatId(String uid1, String uid2) {
@@ -71,6 +114,7 @@ class FirebaseRepo {
     final chatId = getChatId(myUid, otherUid);
     final snap = await chatsRef.child(chatId).get();
     if (snap.exists) return ChatModel.fromMap(snap.value as Map);
+    
     final chat = ChatModel(chatId: chatId, participants: [myUid, otherUid]);
     await chatsRef.child(chatId).set(chat.toMap());
     return chat;
@@ -102,7 +146,7 @@ class FirebaseRepo {
     if (pinnedBy.contains(myUid)) {
       pinnedBy.remove(myUid); // Unpin
     } else {
-      pinnedBy.add(myUid);    // Pin
+      pinnedBy.add(myUid); // Pin
     }
 
     await chatRef.update({'pinnedBy': pinnedBy});
@@ -133,8 +177,10 @@ class FirebaseRepo {
     
     final chatSnap = await chatsRef.child(chatId).get();
     if (!chatSnap.exists) throw Exception('Chat not found');
+    
     final chatData = chatSnap.value as Map;
     final participants = List<String>.from(chatData['participants'] ?? []);
+    
     if (!participants.contains(message.senderId)) {
       throw Exception('Unauthorized: sender not in this chat');
     }
@@ -167,7 +213,7 @@ class FirebaseRepo {
       'lastMessageTime': ServerValue.timestamp,
       'lastMessageSenderId': message.senderId ?? '',
     });
-
+    
     if (otherUid.isNotEmpty) {
       await _incrementUnreadCountForOther(chatId, otherUid);
     }
@@ -180,7 +226,7 @@ class FirebaseRepo {
     String myUid,
   ) async {
     if (messageId.trim().isEmpty || myUid.trim().isEmpty) return;
-
+    
     final ref = messagesRef.child(chatId);
     final snap = await ref.orderByChild('messageId').equalTo(messageId).get();
     if (!snap.exists) return;
@@ -188,7 +234,7 @@ class FirebaseRepo {
     final map = snap.value as Map;
     final msgKey = map.keys.first;
     final msgData = map[msgKey] as Map;
-
+    
     if (msgData['senderId'] == myUid) {
       await ref.child(msgKey.toString()).remove();
     }
@@ -207,11 +253,11 @@ class FirebaseRepo {
     final ref = messagesRef.child(chatId);
     final snap = await ref.orderByChild('messageId').equalTo(messageId).get();
     if (!snap.exists) return;
-
+    
     final map = snap.value as Map;
     final msgKey = map.keys.first;
     final msgData = map[msgKey] as Map;
-
+    
     if (msgData['senderId'] == myUid) {
       await ref.child(msgKey.toString()).update({
         'text': newText.trim(),
@@ -224,17 +270,18 @@ class FirebaseRepo {
   // ✅ حل مشكلة تعليق العداد: تصفير العداد قبل أي شرط عودة (return)
   static Future<void> markAsSeen(String chatId, String myUid) async {
     await resetUnreadCount(chatId, myUid);
-
+    
     final ref = messagesRef.child(chatId);
     final snap = await ref
         .orderByChild('status')
         .equalTo('delivered')
         .get();
-
+        
     if (!snap.exists) return;
 
     final map = snap.value as Map;
     final updates = <String, dynamic>{};
+    
     for (var e in map.entries) {
       final msg = e.value as Map;
       if (msg['senderId'] != myUid) {
@@ -254,9 +301,11 @@ class FirebaseRepo {
 
     final map = snap.value as Map;
     final updates = <String, dynamic>{};
+    
     for (var e in map.entries) {
       updates['${e.key}/status'] = 'delivered';
     }
+    
     if (updates.isNotEmpty) {
       await ref.update(updates);
     }
@@ -268,10 +317,6 @@ class FirebaseRepo {
 
       final map = event.snapshot.value as Map;
 
-      // ✅ ترتيب تنازلي (الأحدث أولاً) من المصدر مباشرة — عشان index 0
-      // يبقى دايمًا أحدث رسالة، وده اللي الـ ListView (reverse: true) في
-      // chat_screen.dart مفترضه. كذلك بيشيل الحاجة لعكس الـ list تاني
-      // في الـ cubit.
       return map.entries
           .map((e) => Message.fromMap(e.value as Map, myUid, id: e.key))
           .toList()
@@ -293,8 +338,10 @@ class FirebaseRepo {
 
     final chatSnap = await chatsRef.child(chatId).get();
     if (!chatSnap.exists) throw Exception('Chat not found');
+    
     final chatData = chatSnap.value as Map;
     final participants = List<String>.from(chatData['participants'] ?? []);
+    
     if (!participants.contains(uid)) {
       throw Exception('Unauthorized: user not in this chat');
     }
@@ -302,7 +349,7 @@ class FirebaseRepo {
     final ref = messagesRef.child(chatId);
     final snap = await ref.orderByChild('messageId').equalTo(messageId).get();
     if (!snap.exists) throw Exception('Message not found');
-
+    
     final map = snap.value as Map;
     final msgKey = map.keys.first;
 
@@ -315,7 +362,7 @@ class FirebaseRepo {
     String uid,
   ) async {
     if (chatId.trim().isEmpty || messageId.trim().isEmpty || uid.trim().isEmpty) return;
-
+    
     final ref = messagesRef.child(chatId);
     final snap = await ref.orderByChild('messageId').equalTo(messageId).get();
     if (!snap.exists) return;
@@ -334,8 +381,10 @@ class FirebaseRepo {
     }
     final groupSnap = await groupsRef.child(groupId).get();
     if (!groupSnap.exists) throw Exception('Group not found');
+    
     final groupData = groupSnap.value as Map;
     final members = List<String>.from(groupData['members'] ?? []);
+    
     if (!members.contains(message.senderId)) {
       throw Exception('Unauthorized: user not in this group');
     }
@@ -348,6 +397,7 @@ class FirebaseRepo {
       text: message.text,
       timestamp: message.timestamp,
     );
+    
     await msgRef.set(msgWithId.toMap());
     await groupsRef.child(groupId).update({
       'lastMessage': message.text.length > 200
@@ -403,6 +453,7 @@ class FirebaseRepo {
   ) async {
     final channel = await channelsRef.child(channelId).get();
     if (!channel.exists) return;
+    
     final channelData = ChannelModel.fromMap(channel.value as Map);
     if (channelData.adminId != adminId) {
       throw Exception('Unauthorized: only admin can send channel messages');
@@ -416,6 +467,7 @@ class FirebaseRepo {
       text: message.text,
       timestamp: message.timestamp,
     );
+    
     await msgRef.set(msgWithId.toMap());
     await channelsRef.child(channelId).update({
       'lastMessage': message.text.length > 200
