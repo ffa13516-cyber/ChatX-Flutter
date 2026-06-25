@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../models/models.dart';
-import '../../chat/chat_screen.dart';
+import 'package:chatx/screens/chat/chat_screen.dart';
 import 'search_cubit.dart';
 
 class SearchScreen extends StatefulWidget {
