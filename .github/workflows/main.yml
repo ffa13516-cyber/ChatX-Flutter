@@ -48,6 +48,11 @@ jobs:
           cd ..
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
 
+      - name: Debug File Tree (كشف الملفات الفعلي)
+        run: |
+          echo "=== طباعة هيكل ملفات الـ lib على السيرفر ==="
+          ls -R lib/
+
       - name: Clean and Get Packages
         run: |
           flutter clean
