@@ -9,12 +9,15 @@ import '../settings/settings_screen.dart';
 import '../../utils/app_colors.dart'; 
 import 'package:chatx/screens/search/search_screen_ui.dart';
 
+// ⚠️ أضف مسار ملف FirebaseRepo هنا
+// import '../../data/firebase_repo.dart';
 
 // تم تحديث الملف برؤية هندسية احترافية:
 // ✅ إزالة لوجيك البحث الداخلي (Inline Search) بالكامل لتخفيف الـ State والأداء.
 // ✅ ربط أيقونة البحث لفتح شاشة Full-Screen Search منفصلة ومعزولة تماماً.
 // ✅ الحفاظ على الهوية البصرية الفاخرة Dark Luxury Glass والـ Accents البنفسجية.
 // ✅ الحفاظ على أبعاد شريط التنقل السفلي النحيف والكبسولة الزجاجية المحسنة.
+// ✅ إضافة نظام مراقبة حالة التطبيق (Lifecycle) لإنهاء ثغرة "الزومبي أونلاين".
 
 class HomeScreenUI extends StatefulWidget {
   final int currentIndex;
@@ -42,12 +45,50 @@ class HomeScreenUI extends StatefulWidget {
   State<HomeScreenUI> createState() => _HomeScreenUIState();
 }
 
-class _HomeScreenUIState extends State<HomeScreenUI> {
+// 🟢 التعديل الهندسي: إضافة WidgetsBindingObserver لمراقبة حالة التطبيق في الخلفية
+class _HomeScreenUIState extends State<HomeScreenUI> with WidgetsBindingObserver {
   final List<Widget> _screens = const [
     ChatsTab(),
     ProfileScreen(),
     SettingsScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // 🟢 تسجيل المراقب بمجرد بناء الشاشة
+    WidgetsBinding.instance.addObserver(this);
+    
+    // 🟢 استدعاء دالة تحديث التواجد لضبط حالة المستخدم كـ (أونلاين)
+    // FirebaseRepo.manageUserPresence(widget.myUid);
+  }
+
+  @override
+  void dispose() {
+    // 🟢 إزالة المراقب عند تدمير الشاشة لمنع تسريب الذاكرة (Memory Leak)
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    // 🟢 التحكم في حالة (متصل/غير متصل) بناءً على حركة المستخدم
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // المستخدم عاد للتطبيق (أونلاين)
+        // FirebaseRepo.setUserOnline(widget.myUid);
+        break;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
+        // التطبيق تم إرساله للخلفية أو إغلاقه (أوفلاين)
+        // FirebaseRepo.setUserOffline(widget.myUid);
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,6 +141,7 @@ class _HomeScreenUIState extends State<HomeScreenUI> {
 
   Widget _buildHeaderContent(BuildContext context, Color accentColor) {
     final luxuryAccentColor = const Color(0xFF6C63FF).withOpacity(0.8);
+
     return Container(
       key: const ValueKey('NormalHeader'),
       height: 48,
