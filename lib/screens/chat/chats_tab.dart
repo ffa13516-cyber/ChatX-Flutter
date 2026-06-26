@@ -10,7 +10,7 @@ import '../../utils/app_colors.dart';
 import '../../utils/session_manager.dart';
 import '../../widgets/widgets.dart';
 import 'chat_screen.dart';
-import '../groups/groups_tab.dart'; // âœ… Ø¹Ø´Ø§Ù† GroupChatScreen Ùˆ CreateGroupSheet
+import '../group/groups_tab.dart'; // âœ… Ø¹Ø´Ø§Ù† GroupChatScreen Ùˆ CreateGroupSheet
 
 class ChatsTab extends StatefulWidget {
   const ChatsTab({super.key});
