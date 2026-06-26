@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'home_cubit.dart';
 import 'home_screen_ui.dart';
-import '../groups/groups_tab.dart'; // âœ… Ø¹Ø´Ø§Ù† CreateGroupSheet
+import '../group/groups_tab.dart'; // âœ… Ø¹Ø´Ø§Ù† CreateGroupSheet
 
 class HomeScreen extends StatelessWidget {
   final String myUid;
