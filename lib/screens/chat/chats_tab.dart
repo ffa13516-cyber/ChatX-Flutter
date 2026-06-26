@@ -1,4 +1,4 @@
-import 'dart:ui'; // 🚀 مسؤولة عن تأثيرات الزجاج والـ Blur الفاخرة
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -10,10 +10,11 @@ import '../../utils/app_colors.dart';
 import '../../utils/session_manager.dart';
 import '../../widgets/widgets.dart';
 import 'chat_screen.dart';
+import '../groups/groups_tab.dart'; // âœ… Ø¹Ø´Ø§Ù† GroupChatScreen Ùˆ CreateGroupSheet
 
 class ChatsTab extends StatefulWidget {
   const ChatsTab({super.key});
-  
+
   @override
   State<ChatsTab> createState() => _ChatsTabState();
 }
@@ -21,10 +22,9 @@ class ChatsTab extends StatefulWidget {
 class _ChatsTabState extends State<ChatsTab> {
   String _myUid = '';
   String _myName = '';
-  
-  // ✅ كاش محلي مع حماية ضد الـ Memory Leak
+
   final Map<String, UserModel> _usersCache = {};
-  final int _maxCacheSize = 100; // الحد الأقصى لتخزين المستخدمين
+  final int _maxCacheSize = 100;
 
   @override
   void initState() {
@@ -35,7 +35,6 @@ class _ChatsTabState extends State<ChatsTab> {
   Future<void> _loadUser() async {
     final uid = await SessionManager.instance.getUid();
     final name = await SessionManager.instance.getName();
-    
     if (!mounted) return;
     setState(() {
       _myUid = uid;
@@ -43,32 +42,26 @@ class _ChatsTabState extends State<ChatsTab> {
     });
   }
 
-  // ✅ دالة ذكية لإدارة الكاش بكفاءة عالية
   Future<UserModel?> _getOrCreateUser(String uid) async {
-    if (_usersCache.containsKey(uid)) {
-      return _usersCache[uid];
-    }
-    
+    if (_usersCache.containsKey(uid)) return _usersCache[uid];
     final user = await FirebaseRepo.getUserById(uid);
     if (user != null) {
       if (_usersCache.length >= _maxCacheSize) {
-        // تفريغ أقدم عنصر في حال امتلاء الكاش للحفاظ على الرامات
         _usersCache.remove(_usersCache.keys.first);
       }
-      _usersCache[uid] = user; 
+      _usersCache[uid] = user;
     }
     return user;
   }
 
   String _formatMessageTime(dynamic timeData) {
     if (timeData == null) return '';
-    
     DateTime messageTime;
-    
     try {
       if (timeData is int) {
         messageTime = DateTime.fromMillisecondsSinceEpoch(timeData);
-      } else if (timeData.runtimeType.toString() == 'Timestamp' || timeData.runtimeType.toString() != 'String') {
+      } else if (timeData.runtimeType.toString() == 'Timestamp' ||
+          timeData.runtimeType.toString() != 'String') {
         messageTime = (timeData as dynamic).toDate();
       } else {
         return '';
@@ -80,37 +73,33 @@ class _ChatsTabState extends State<ChatsTab> {
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final msgDay = DateTime(messageTime.year, messageTime.month, messageTime.day);
-    
+    final msgDay =
+        DateTime(messageTime.year, messageTime.month, messageTime.day);
     final difference = today.difference(msgDay).inDays;
 
-    if (difference == 0) {
-      return DateFormat('hh:mm a').format(messageTime);
-    } else if (difference == 1) {
-      return 'Yesterday';
-    } else if (difference < 7) {
-      return DateFormat('EEEE').format(messageTime);
-    } else {
-      return DateFormat('dd/MM/yyyy').format(messageTime);
-    }
+    if (difference == 0) return DateFormat('hh:mm a').format(messageTime);
+    if (difference == 1) return 'Yesterday';
+    if (difference < 7) return DateFormat('EEEE').format(messageTime);
+    return DateFormat('dd/MM/yyyy').format(messageTime);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent, 
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
-        child: _buildChatsList(),
+        child: _buildCombinedList(),
       ),
     );
   }
 
-  Widget _buildChatsList() {
+  // âœ… Ø§Ù„Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ù…ÙˆØ­Ø¯Ø© â€” Ø´Ø§ØªØ³ + Ø¬Ø±ÙˆØ¨Ø§Øª ÙÙŠ Ù†ÙØ³ Ø§Ù„Ù€ scroll
+  Widget _buildCombinedList() {
     if (_myUid.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(
-          color: Color(0xFF6C63FF), // البنفسجي الفخم كلون أساسي للتحميل
+          color: Color(0xFF6C63FF),
           strokeWidth: 3,
         ),
       );
@@ -118,83 +107,143 @@ class _ChatsTabState extends State<ChatsTab> {
 
     return StreamBuilder<List<ChatModel>>(
       stream: FirebaseRepo.observeUserChats(_myUid),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              'Error: ${snapshot.error}', 
-              style: const TextStyle(color: Colors.redAccent),
-            ),
-          );
-        }
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFF6C63FF), strokeWidth: 3));
-        }
+      builder: (context, chatsSnapshot) {
+        return StreamBuilder<List<GroupModel>>(
+          stream: FirebaseRepo.observeUserGroups(_myUid),
+          builder: (context, groupsSnapshot) {
+            final chats = chatsSnapshot.data ?? [];
+            final groups = groupsSnapshot.data ?? [];
 
-        final chats = snapshot.data!;
+            // ØªØ±ØªÙŠØ¨ Ø§Ù„Ø´Ø§ØªØ³: Ø§Ù„Ù…Ø«Ø¨ØªØ© Ø£ÙˆÙ„Ø§Ù‹ Ø«Ù… Ø§Ù„Ø£Ø­Ø¯Ø«
+            chats.sort((a, b) {
+              bool aPinned = a.pinnedBy.contains(_myUid);
+              bool bPinned = b.pinnedBy.contains(_myUid);
+              if (aPinned && !bPinned) return -1;
+              if (!aPinned && bPinned) return 1;
+              return b.lastMessageTime.compareTo(a.lastMessageTime);
+            });
 
-        if (chats.isEmpty) {
-          return const Center(
-            child: EmptyStateWidget(
-              icon: Icons.chat_bubble_outline_rounded,
-              title: 'No chats yet',
-              subtitle: 'Start chatting and make friends!',
-            ),
-          );
-        }
+            final bool noData = chats.isEmpty && groups.isEmpty;
+            final bool isLoading = !chatsSnapshot.hasData && !groupsSnapshot.hasData;
 
-        // ترتيب المحادثات: المثبتة أولاً ثم الأحدث
-        chats.sort((a, b) {
-          bool aPinned = a.pinnedBy.contains(_myUid);
-          bool bPinned = b.pinnedBy.contains(_myUid);
-          
-          if (aPinned && !bPinned) return -1;
-          if (!aPinned && bPinned) return 1;
-          
-          return b.lastMessageTime.compareTo(a.lastMessageTime); 
-        });
-        
-        // ✅ تحويل إلى ListView.builder لإزالة الفاصلات (Dividers) تماماً والاعتماد على المسافات الهوائية المريحة للعين
-        return ListView.builder(
-          padding: const EdgeInsets.only(top: 12, bottom: 120, left: 12, right: 12), 
-          itemCount: chats.length,
-          itemBuilder: (context, index) {
-            return _buildChatItem(chats[index]);
+            if (isLoading) {
+              return const Center(
+                child: CircularProgressIndicator(
+                    color: Color(0xFF6C63FF), strokeWidth: 3),
+              );
+            }
+
+            if (noData) {
+              return const Center(
+                child: EmptyStateWidget(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  title: 'No chats yet',
+                  subtitle: 'Start chatting and make friends!',
+                ),
+              );
+            }
+
+            // âœ… Ø¨Ù†Ø§Ø¡ Ø§Ù„Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ù…ÙˆØ­Ø¯Ø©
+            return CustomScrollView(
+              slivers: [
+                // â”€â”€â”€â”€â”€ Ù‚Ø³Ù… Ø§Ù„Ø´Ø§ØªØ³ â”€â”€â”€â”€â”€
+                if (chats.isNotEmpty) ...[
+                  _buildSectionHeader('Messages', Icons.chat_bubble_outline_rounded),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => _buildChatItem(chats[index]),
+                        childCount: chats.length,
+                      ),
+                    ),
+                  ),
+                ],
+
+                // â”€â”€â”€â”€â”€ Ù‚Ø³Ù… Ø§Ù„Ø¬Ø±ÙˆØ¨Ø§Øª â”€â”€â”€â”€â”€
+                if (groups.isNotEmpty) ...[
+                  _buildSectionHeader('Groups', Icons.group_outlined),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => _buildGroupItem(groups[index]),
+                        childCount: groups.length,
+                      ),
+                    ),
+                  ),
+                ],
+
+                // âœ… Ø²Ø±Ø§Ø± Create Group ÙÙŠ Ø§Ù„Ø£Ø³ÙÙ„ Ù„Ùˆ ÙÙŠ Ø¬Ø±ÙˆØ¨Ø§Øª Ø£Ùˆ Ø§Ù„ÙƒÙ„ ÙØ§Ø¶ÙŠ
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+                  sliver: SliverToBoxAdapter(
+                    child: _buildCreateGroupButton(),
+                  ),
+                ),
+              ],
+            );
           },
         );
       },
     );
   }
 
+  // â”€â”€â”€â”€â”€ Section Header â”€â”€â”€â”€â”€
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+      sliver: SliverToBoxAdapter(
+        child: Row(
+          children: [
+            Icon(icon, color: const Color(0xFF6C63FF), size: 16),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.45),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // â”€â”€â”€â”€â”€ Chat Item (Ù…ÙˆØ¬ÙˆØ¯ Ù…Ù† Ù‚Ø¨Ù„) â”€â”€â”€â”€â”€
   Widget _buildChatItem(ChatModel chat) {
-    final otherUid = chat.participants.firstWhere((id) => id != _myUid, orElse: () => '');
-    
+    final otherUid =
+        chat.participants.firstWhere((id) => id != _myUid, orElse: () => '');
     if (otherUid.isEmpty) return const SizedBox.shrink();
 
     final int unreadCount = chat.unreadCounts[_myUid] ?? 0;
     final bool isPinned = chat.pinnedBy.contains(_myUid);
-    
+
     return FutureBuilder<UserModel?>(
       future: _getOrCreateUser(otherUid),
       builder: (context, snapshot) {
-        if (!snapshot.hasData && snapshot.connectionState == ConnectionState.waiting) {
-           return const ModernChatListItemSkeleton(); 
+        if (!snapshot.hasData &&
+            snapshot.connectionState == ConnectionState.waiting) {
+          return const ModernChatListItemSkeleton();
         }
-
         final user = snapshot.data;
         final name = user?.displayName ?? 'Unknown User';
         final formattedTime = _formatMessageTime(chat.lastMessageTime);
 
         return ModernChatListItem(
           name: name,
-          lastMessage: chat.lastMessage.isNotEmpty ? chat.lastMessage : 'Tap to chat',
-          time: formattedTime, 
+          lastMessage:
+              chat.lastMessage.isNotEmpty ? chat.lastMessage : 'Tap to chat',
+          time: formattedTime,
           avatarUrl: user?.avatarUrl,
           isOnline: user?.isOnline ?? false,
-          unreadCount: unreadCount, 
+          unreadCount: unreadCount,
           isPinned: isPinned,
-          onTap: () async {
-            HapticFeedback.lightImpact(); 
+          onTap: () {
+            HapticFeedback.lightImpact();
             _navigateToChat(chat.chatId, otherUid, name, user?.avatarUrl);
           },
           onLongPress: () {
@@ -206,12 +255,92 @@ class _ChatsTabState extends State<ChatsTab> {
     );
   }
 
-  void _navigateToChat(String chatId, String otherUid, String name, String? avatarUrl) {
+  // â”€â”€â”€â”€â”€ Group Item â”€â”€â”€â”€â”€
+  Widget _buildGroupItem(GroupModel group) {
+    final time = group.lastMessageTime > 0
+        ? _formatMessageTime(group.lastMessageTime)
+        : '';
+
+    return ModernChatListItem(
+      name: group.name,
+      lastMessage:
+          group.lastMessage.isNotEmpty ? group.lastMessage : 'Tap to chat',
+      time: time,
+      avatarUrl: null, // Ø§Ù„Ø¬Ø±ÙˆØ¨Ø§Øª Ù…ÙÙŠÙ‡Ø§Ø´ ØµÙˆØ±Ø© â€” Ù‡ÙŠØªØ¹Ù…Ù„ avatar Ø¨Ø§Ù„Ø­Ø±Ù Ø§Ù„Ø£ÙˆÙ„
+      isOnline: false,
+      unreadCount: 0,
+      isPinned: false,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                GroupChatScreen(group: group, myUid: _myUid),
+          ),
+        );
+      },
+      onLongPress: () {},
+    );
+  }
+
+  // â”€â”€â”€â”€â”€ Create Group Button â”€â”€â”€â”€â”€
+  Widget _buildCreateGroupButton() {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.transparent,
+          isScrollControlled: true,
+          builder: (_) => CreateGroupSheet(myUid: _myUid),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFF6C63FF).withOpacity(0.3),
+            width: 1,
+          ),
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFF6C63FF).withOpacity(0.08),
+              Colors.transparent,
+            ],
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.group_add_rounded,
+                color: const Color(0xFF6C63FF).withOpacity(0.8), size: 20),
+            const SizedBox(width: 10),
+            Text(
+              '+ Create Group',
+              style: TextStyle(
+                color: const Color(0xFF6C63FF).withOpacity(0.8),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _navigateToChat(
+      String chatId, String otherUid, String name, String? avatarUrl) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => BlocProvider(
-          create: (context) => ChatCubit(chatId: chatId, myUid: _myUid, myName: _myName),
+          create: (context) =>
+              ChatCubit(chatId: chatId, myUid: _myUid, myName: _myName),
           child: ChatScreen(
             chatId: chatId,
             myUid: _myUid,
@@ -224,33 +353,34 @@ class _ChatsTabState extends State<ChatsTab> {
     );
   }
 
-  // ✅ ترقية القائمة الزجاجية إلى Dark Luxury Glass المتناسقة مع الكود الثاني
-  void _showChatOptionsBottomSheet(BuildContext context, ChatModel chat, String name, bool isPinned) {
+  void _showChatOptionsBottomSheet(
+      BuildContext context, ChatModel chat, String name, bool isPinned) {
     final luxuryAccentColor = const Color(0xFF6C63FF);
-    
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent, 
+      backgroundColor: Colors.transparent,
       elevation: 0,
       isScrollControlled: true,
       builder: (context) {
         return ClipRRect(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30), // زيادة البلور للفخامة
+            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
             child: Container(
               decoration: BoxDecoration(
-                // استخدام الأسود الأعمق الممزوج بشفافية الزجاج الفاخر
-                color: const Color(0xFF0A0A0E).withOpacity(0.9), 
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
+                color: const Color(0xFF0A0A0E).withOpacity(0.9),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(36)),
                 border: Border(
-                  // حافة علوية دقيقة باللون البنفسجي الفاخر لإضاءة الحواف
-                  top: BorderSide(color: luxuryAccentColor.withOpacity(0.25), width: 1), 
+                  top: BorderSide(
+                      color: luxuryAccentColor.withOpacity(0.25), width: 1),
                 ),
               ),
               child: SafeArea(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 20),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 22, horizontal: 20),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -266,44 +396,64 @@ class _ChatsTabState extends State<ChatsTab> {
                       Text(
                         name,
                         style: const TextStyle(
-                          color: Colors.white, 
-                          fontSize: 19, 
-                          fontWeight: FontWeight.w700, 
-                          letterSpacing: 0.3
+                          color: Colors.white,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.3,
                         ),
                       ),
                       const SizedBox(height: 24),
-                      
                       ListTile(
-                        leading: Icon(isPinned ? Icons.push_pin_outlined : Icons.push_pin, color: Colors.white.withOpacity(0.9)),
-                        title: Text(isPinned ? 'Unpin Chat' : 'Pin Chat', style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        leading: Icon(
+                            isPinned
+                                ? Icons.push_pin_outlined
+                                : Icons.push_pin,
+                            color: Colors.white.withOpacity(0.9)),
+                        title: Text(isPinned ? 'Unpin Chat' : 'Pin Chat',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20)),
                         tileColor: Colors.white.withOpacity(0.02),
                         onTap: () async {
                           Navigator.pop(context);
-                          await FirebaseRepo.togglePinChat(chat.chatId, _myUid);
+                          await FirebaseRepo.togglePinChat(
+                              chat.chatId, _myUid);
                         },
                       ),
                       const SizedBox(height: 10),
                       ListTile(
-                        leading: Icon(Icons.mark_chat_read_outlined, color: Colors.white.withOpacity(0.9)),
-                        title: const Text('Mark as Read', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        leading: Icon(Icons.mark_chat_read_outlined,
+                            color: Colors.white.withOpacity(0.9)),
+                        title: const Text('Mark as Read',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20)),
                         tileColor: Colors.white.withOpacity(0.02),
                         onTap: () async {
                           Navigator.pop(context);
-                          await FirebaseRepo.resetUnreadCount(chat.chatId, _myUid);
+                          await FirebaseRepo.resetUnreadCount(
+                              chat.chatId, _myUid);
                         },
                       ),
                       const SizedBox(height: 10),
                       ListTile(
-                        leading: const Icon(Icons.delete_outline_rounded, color: Color(0xFFFF4D4D)),
-                        title: const Text('Delete Chat', style: TextStyle(color: Color(0xFFFF4D4D), fontSize: 15, fontWeight: FontWeight.w600)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        leading: const Icon(Icons.delete_outline_rounded,
+                            color: Color(0xFFFF4D4D)),
+                        title: const Text('Delete Chat',
+                            style: TextStyle(
+                                color: Color(0xFFFF4D4D),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20)),
                         tileColor: const Color(0xFFFF4D4D).withOpacity(0.05),
-                        onTap: () {
-                          Navigator.pop(context);
-                        },
+                        onTap: () => Navigator.pop(context),
                       ),
                       const SizedBox(height: 12),
                     ],
@@ -319,7 +469,7 @@ class _ChatsTabState extends State<ChatsTab> {
 }
 
 // ==========================================
-// ويدجت العناصر المعاد تصميمها لتوفير راحة بصرية فائقة
+// Widgets Ø§Ù„Ù…Ø³Ø§Ø¹Ø¯Ø© (Ù…Ø­ØªÙØ¸ Ø¨ÙŠÙ‡Ø§ ÙƒÙ…Ø§ Ù‡ÙŠ)
 // ==========================================
 
 class ModernChatListItem extends StatelessWidget {
@@ -348,21 +498,22 @@ class ModernChatListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color onlineColor = const Color(0xFF8C82FF); // 🔥 بنفسجي مضيء هادئ ومريح للعين
-    final Color luxuryAccent = const Color(0xFF6C63FF); // التناسق التام مع حزمة الـ Luxury البنفسجية
+    final Color onlineColor = const Color(0xFF8C82FF);
+    final Color luxuryAccent = const Color(0xFF6C63FF);
 
     return Container(
-      // زيادة الـ vertical margin يعطي مساحات هوائية ويغني عن الفواصل التقليدية
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24), // حواف دائرية فخمة جداً متطابقة مع الـ Appbar والـ Navbar
-        color: unreadCount > 0 
-            ? luxuryAccent.withOpacity(0.06) // توهج خلفي ناعم جداً للمسجات غير المقروءة
-            : (isPinned ? Colors.white.withOpacity(0.02) : Colors.transparent), 
+        borderRadius: BorderRadius.circular(24),
+        color: unreadCount > 0
+            ? luxuryAccent.withOpacity(0.06)
+            : (isPinned ? Colors.white.withOpacity(0.02) : Colors.transparent),
         border: Border.all(
-          color: unreadCount > 0 
-              ? luxuryAccent.withOpacity(0.15) // حافة دقيقة بلون التوهج
-              : (isPinned ? Colors.white.withOpacity(0.05) : Colors.transparent),
+          color: unreadCount > 0
+              ? luxuryAccent.withOpacity(0.15)
+              : (isPinned
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.transparent),
           width: 0.8,
         ),
       ),
@@ -375,18 +526,19 @@ class ModernChatListItem extends StatelessWidget {
           onTap: onTap,
           onLongPress: onLongPress,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0), // مسافات مريحة للعين أثناء القراءة
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
             child: Row(
               children: [
                 Stack(
                   children: [
                     Container(
-                      width: 56, // تكبير دقيق ومدروس للأفاتار لراحة العين
+                      width: 56,
                       height: 56,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: (avatarUrl == null || avatarUrl!.isEmpty) 
-                            ? AppColors.avatarColor(name) 
+                        color: (avatarUrl == null || avatarUrl!.isEmpty)
+                            ? AppColors.avatarColor(name)
                             : Colors.transparent,
                         image: (avatarUrl != null && avatarUrl!.isNotEmpty)
                             ? DecorationImage(
@@ -394,12 +546,15 @@ class ModernChatListItem extends StatelessWidget {
                                 fit: BoxFit.cover,
                               )
                             : null,
-                        border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
+                        border: Border.all(
+                            color: Colors.white.withOpacity(0.08), width: 1),
                       ),
                       child: (avatarUrl == null || avatarUrl!.isEmpty)
                           ? Center(
                               child: Text(
-                                name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : '?',
+                                name.trim().isNotEmpty
+                                    ? name.trim()[0].toUpperCase()
+                                    : '?',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -417,10 +572,10 @@ class ModernChatListItem extends StatelessWidget {
                           width: 14,
                           height: 14,
                           decoration: BoxDecoration(
-                            color: onlineColor, 
+                            color: onlineColor,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: const Color(0xFF0A0A0E), // حافة مطابقة للأسود الأعمق المعتمد في الملف الثاني
+                              color: const Color(0xFF0A0A0E),
                               width: 2.5,
                             ),
                           ),
@@ -440,9 +595,13 @@ class ModernChatListItem extends StatelessWidget {
                             child: Text(
                               name,
                               style: TextStyle(
-                                color: unreadCount > 0 ? Colors.white : Colors.white.withOpacity(0.9),
+                                color: unreadCount > 0
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.9),
                                 fontSize: 16,
-                                fontWeight: unreadCount > 0 ? FontWeight.w700 : FontWeight.w600,
+                                fontWeight: unreadCount > 0
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
                                 letterSpacing: 0.2,
                               ),
                               maxLines: 1,
@@ -454,7 +613,9 @@ class ModernChatListItem extends StatelessWidget {
                               padding: const EdgeInsets.only(left: 6.0),
                               child: Transform.rotate(
                                 angle: 0.4,
-                                child: Icon(Icons.push_pin_rounded, color: luxuryAccent.withOpacity(0.6), size: 14),
+                                child: Icon(Icons.push_pin_rounded,
+                                    color: luxuryAccent.withOpacity(0.6),
+                                    size: 14),
                               ),
                             ),
                         ],
@@ -463,9 +624,13 @@ class ModernChatListItem extends StatelessWidget {
                       Text(
                         lastMessage,
                         style: TextStyle(
-                          color: unreadCount > 0 ? Colors.white.withOpacity(0.85) : Colors.white.withOpacity(0.45),
+                          color: unreadCount > 0
+                              ? Colors.white.withOpacity(0.85)
+                              : Colors.white.withOpacity(0.45),
                           fontSize: 13.5,
-                          fontWeight: unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
+                          fontWeight: unreadCount > 0
+                              ? FontWeight.w500
+                              : FontWeight.normal,
                           letterSpacing: 0.1,
                         ),
                         maxLines: 1,
@@ -482,37 +647,42 @@ class ModernChatListItem extends StatelessWidget {
                     Text(
                       time,
                       style: TextStyle(
-                        color: unreadCount > 0 ? luxuryAccent : Colors.white.withOpacity(0.35),
+                        color: unreadCount > 0
+                            ? luxuryAccent
+                            : Colors.white.withOpacity(0.35),
                         fontSize: 11.5,
-                        fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: unreadCount > 0
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                     const SizedBox(height: 8),
                     if (unreadCount > 0)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 4),
                         decoration: BoxDecoration(
-                          color: luxuryAccent, 
+                          color: luxuryAccent,
                           borderRadius: BorderRadius.circular(10),
                           boxShadow: [
                             BoxShadow(
-                              color: luxuryAccent.withOpacity(0.15), // 🔥 تم تقليل التوهج ليكون أهدى
-                              blurRadius: 4, // 🔥 تقليل الانتشار لجعله حاداً وأنيقاً
+                              color: luxuryAccent.withOpacity(0.15),
+                              blurRadius: 4,
                               offset: const Offset(0, 2),
                             )
-                          ]
+                          ],
                         ),
                         child: Text(
                           unreadCount.toString(),
                           style: const TextStyle(
-                            color: Colors.white, 
+                            color: Colors.white,
                             fontSize: 11,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
                       )
                     else
-                      const SizedBox(height: 19), 
+                      const SizedBox(height: 19),
                   ],
                 ),
               ],
