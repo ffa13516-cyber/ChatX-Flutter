@@ -10,7 +10,8 @@ import '../../utils/app_colors.dart';
 import '../../utils/session_manager.dart';
 import '../../widgets/widgets.dart';
 import 'chat_screen.dart';
-import '../group/groups_tab.dart'; // âœ… Ø¹Ø´Ø§Ù† GroupChatScreen Ùˆ CreateGroupSheet
+import '../group/groups_tab.dart'; // âœ… Ø¹Ø´Ø§Ù† CreateGroupSheet
+import '../group/group_chat_screen_ui.dart';
 
 class ChatsTab extends StatefulWidget {
   const ChatsTab({super.key});
@@ -94,7 +95,7 @@ class _ChatsTabState extends State<ChatsTab> {
     );
   }
 
-  // âœ… Ø§Ù„Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ù…ÙˆØ­Ø¯Ø© â€” Ø´Ø§ØªØ³ + Ø¬Ø±ÙˆØ¨Ø§Øª ÙÙŠ Ù†ÙØ³ Ø§Ù„Ù€ scroll
+  // Ã¢Å“â€¦ Ã˜Â§Ã™â€žÃ™â€šÃ˜Â§Ã˜Â¦Ã™â€¦Ã˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã˜Â­Ã˜Â¯Ã˜Â© Ã¢â‚¬â€ Ã˜Â´Ã˜Â§Ã˜ÂªÃ˜Â³ + Ã˜Â¬Ã˜Â±Ã™Ë†Ã˜Â¨Ã˜Â§Ã˜Âª Ã™ÂÃ™Å  Ã™â€ Ã™ÂÃ˜Â³ Ã˜Â§Ã™â€žÃ™â‚¬ scroll
   Widget _buildCombinedList() {
     if (_myUid.isEmpty) {
       return const Center(
@@ -114,7 +115,7 @@ class _ChatsTabState extends State<ChatsTab> {
             final chats = chatsSnapshot.data ?? [];
             final groups = groupsSnapshot.data ?? [];
 
-            // ØªØ±ØªÙŠØ¨ Ø§Ù„Ø´Ø§ØªØ³: Ø§Ù„Ù…Ø«Ø¨ØªØ© Ø£ÙˆÙ„Ø§Ù‹ Ø«Ù… Ø§Ù„Ø£Ø­Ø¯Ø«
+            // Ã˜ÂªÃ˜Â±Ã˜ÂªÃ™Å Ã˜Â¨ Ã˜Â§Ã™â€žÃ˜Â´Ã˜Â§Ã˜ÂªÃ˜Â³: Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â«Ã˜Â¨Ã˜ÂªÃ˜Â© Ã˜Â£Ã™Ë†Ã™â€žÃ˜Â§Ã™â€¹ Ã˜Â«Ã™â€¦ Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â­Ã˜Â¯Ã˜Â«
             chats.sort((a, b) {
               bool aPinned = a.pinnedBy.contains(_myUid);
               bool bPinned = b.pinnedBy.contains(_myUid);
@@ -143,10 +144,10 @@ class _ChatsTabState extends State<ChatsTab> {
               );
             }
 
-            // âœ… Ø¨Ù†Ø§Ø¡ Ø§Ù„Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ù…ÙˆØ­Ø¯Ø©
+            // Ã¢Å“â€¦ Ã˜Â¨Ã™â€ Ã˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ™â€šÃ˜Â§Ã˜Â¦Ã™â€¦Ã˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã˜Â­Ã˜Â¯Ã˜Â©
             return CustomScrollView(
               slivers: [
-                // â”€â”€â”€â”€â”€ Ù‚Ø³Ù… Ø§Ù„Ø´Ø§ØªØ³ â”€â”€â”€â”€â”€
+                // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Ã™â€šÃ˜Â³Ã™â€¦ Ã˜Â§Ã™â€žÃ˜Â´Ã˜Â§Ã˜ÂªÃ˜Â³ Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
                 if (chats.isNotEmpty) ...[
                   _buildSectionHeader('Messages', Icons.chat_bubble_outline_rounded),
                   SliverPadding(
@@ -160,7 +161,7 @@ class _ChatsTabState extends State<ChatsTab> {
                   ),
                 ],
 
-                // â”€â”€â”€â”€â”€ Ù‚Ø³Ù… Ø§Ù„Ø¬Ø±ÙˆØ¨Ø§Øª â”€â”€â”€â”€â”€
+                // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Ã™â€šÃ˜Â³Ã™â€¦ Ã˜Â§Ã™â€žÃ˜Â¬Ã˜Â±Ã™Ë†Ã˜Â¨Ã˜Â§Ã˜Âª Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
                 if (groups.isNotEmpty) ...[
                   _buildSectionHeader('Groups', Icons.group_outlined),
                   SliverPadding(
@@ -174,7 +175,7 @@ class _ChatsTabState extends State<ChatsTab> {
                   ),
                 ],
 
-                // âœ… Ø²Ø±Ø§Ø± Create Group ÙÙŠ Ø§Ù„Ø£Ø³ÙÙ„ Ù„Ùˆ ÙÙŠ Ø¬Ø±ÙˆØ¨Ø§Øª Ø£Ùˆ Ø§Ù„ÙƒÙ„ ÙØ§Ø¶ÙŠ
+                // Ã¢Å“â€¦ Ã˜Â²Ã˜Â±Ã˜Â§Ã˜Â± Create Group Ã™ÂÃ™Å  Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â³Ã™ÂÃ™â€ž Ã™â€žÃ™Ë† Ã™ÂÃ™Å  Ã˜Â¬Ã˜Â±Ã™Ë†Ã˜Â¨Ã˜Â§Ã˜Âª Ã˜Â£Ã™Ë† Ã˜Â§Ã™â€žÃ™Æ’Ã™â€ž Ã™ÂÃ˜Â§Ã˜Â¶Ã™Å 
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
                   sliver: SliverToBoxAdapter(
@@ -189,7 +190,7 @@ class _ChatsTabState extends State<ChatsTab> {
     );
   }
 
-  // â”€â”€â”€â”€â”€ Section Header â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Section Header Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   Widget _buildSectionHeader(String title, IconData icon) {
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
@@ -213,7 +214,7 @@ class _ChatsTabState extends State<ChatsTab> {
     );
   }
 
-  // â”€â”€â”€â”€â”€ Chat Item (Ù…ÙˆØ¬ÙˆØ¯ Ù…Ù† Ù‚Ø¨Ù„) â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Chat Item (Ã™â€¦Ã™Ë†Ã˜Â¬Ã™Ë†Ã˜Â¯ Ã™â€¦Ã™â€  Ã™â€šÃ˜Â¨Ã™â€ž) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   Widget _buildChatItem(ChatModel chat) {
     final otherUid =
         chat.participants.firstWhere((id) => id != _myUid, orElse: () => '');
@@ -255,7 +256,7 @@ class _ChatsTabState extends State<ChatsTab> {
     );
   }
 
-  // â”€â”€â”€â”€â”€ Group Item â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Group Item Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   Widget _buildGroupItem(GroupModel group) {
     final time = group.lastMessageTime > 0
         ? _formatMessageTime(group.lastMessageTime)
@@ -266,18 +267,23 @@ class _ChatsTabState extends State<ChatsTab> {
       lastMessage:
           group.lastMessage.isNotEmpty ? group.lastMessage : 'Tap to chat',
       time: time,
-      avatarUrl: null, // Ø§Ù„Ø¬Ø±ÙˆØ¨Ø§Øª Ù…ÙÙŠÙ‡Ø§Ø´ ØµÙˆØ±Ø© â€” Ù‡ÙŠØªØ¹Ù…Ù„ avatar Ø¨Ø§Ù„Ø­Ø±Ù Ø§Ù„Ø£ÙˆÙ„
+      avatarUrl: null, // Ã˜Â§Ã™â€žÃ˜Â¬Ã˜Â±Ã™Ë†Ã˜Â¨Ã˜Â§Ã˜Âª Ã™â€¦Ã™ÂÃ™Å Ã™â€¡Ã˜Â§Ã˜Â´ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã¢â‚¬â€ Ã™â€¡Ã™Å Ã˜ÂªÃ˜Â¹Ã™â€¦Ã™â€ž avatar Ã˜Â¨Ã˜Â§Ã™â€žÃ˜Â­Ã˜Â±Ã™Â Ã˜Â§Ã™â€žÃ˜Â£Ã™Ë†Ã™â€ž
       isOnline: false,
       unreadCount: 0,
       isPinned: false,
-      onTap: () {
+      onTap: () async {
         HapticFeedback.lightImpact();
         if (!mounted) return;
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                GroupChatScreen(group: group, myUid: _myUid),
+            builder: (_) => GroupChatScreenUI(
+              groupId: group.groupId,
+              myUid: _myUid,
+              myName: _myName,
+              groupName: group.name,
+              memberCount: group.members.length,
+            ),
           ),
         );
       },
@@ -285,7 +291,7 @@ class _ChatsTabState extends State<ChatsTab> {
     );
   }
 
-  // â”€â”€â”€â”€â”€ Create Group Button â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Create Group Button Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   Widget _buildCreateGroupButton() {
     return GestureDetector(
       onTap: () {
@@ -469,7 +475,7 @@ class _ChatsTabState extends State<ChatsTab> {
 }
 
 // ==========================================
-// Widgets Ø§Ù„Ù…Ø³Ø§Ø¹Ø¯Ø© (Ù…Ø­ØªÙØ¸ Ø¨ÙŠÙ‡Ø§ ÙƒÙ…Ø§ Ù‡ÙŠ)
+// Widgets Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜Â§Ã˜Â¹Ã˜Â¯Ã˜Â© (Ã™â€¦Ã˜Â­Ã˜ÂªÃ™ÂÃ˜Â¸ Ã˜Â¨Ã™Å Ã™â€¡Ã˜Â§ Ã™Æ’Ã™â€¦Ã˜Â§ Ã™â€¡Ã™Å )
 // ==========================================
 
 class ModernChatListItem extends StatelessWidget {
