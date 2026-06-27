@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart'; // تمت الإضافة من أجل debugPrint
+import 'package:flutter/foundation.dart'; // ØªÙ…Øª Ø§Ù„Ø¥Ø¶Ø§ÙØ© Ù…Ù† Ø£Ø¬Ù„ debugPrint
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:uuid/uuid.dart';
@@ -8,7 +8,7 @@ import '../screens/chat/models/message_model.dart';
 class FirebaseRepo {
   static final _db = FirebaseDatabase.instanceFor(
     app: Firebase.app(),
-    // 🛡️ ملاحظة أمنية: يُفضل مستقبلاً وضع هذا الرابط في ملف بيئة (.env)
+    // ðŸ›¡ï¸ Ù…Ù„Ø§Ø­Ø¸Ø© Ø£Ù…Ù†ÙŠØ©: ÙŠÙÙØ¶Ù„ Ù…Ø³ØªÙ‚Ø¨Ù„Ø§Ù‹ ÙˆØ¶Ø¹ Ù‡Ø°Ø§ Ø§Ù„Ø±Ø§Ø¨Ø· ÙÙŠ Ù…Ù„Ù Ø¨ÙŠØ¦Ø© (.env)
     databaseURL: 'https://messengerapp-d6e7c-default-rtdb.firebaseio.com',
   );
 
@@ -22,7 +22,7 @@ class FirebaseRepo {
   static DatabaseReference get channelsRef => _db.ref('channels');
   static DatabaseReference get channelMsgsRef => _db.ref('channelMessages');
 
-  // ───────────────────────── Users ─────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static Future<void> saveUser(UserModel user) async {
     await usersRef.child(user.uid).set(user.toMap());
@@ -62,26 +62,26 @@ class FirebaseRepo {
     });
   }
 
-  // ───────────────────────── Presence (Online/Offline) ─────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Presence (Online/Offline) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  /// دالة ذكية لإدارة حالة الاتصال تلقائياً باستخدام Realtime Database
+  /// Ø¯Ø§Ù„Ø© Ø°ÙƒÙŠØ© Ù„Ø¥Ø¯Ø§Ø±Ø© Ø­Ø§Ù„Ø© Ø§Ù„Ø§ØªØµØ§Ù„ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… Realtime Database
   static void manageUserPresence(String uid) {
     if (uid.trim().isEmpty) return;
     
-    // نراقب حالة الاتصال بسيرفر الفايربيز نفسه
+    // Ù†Ø±Ø§Ù‚Ø¨ Ø­Ø§Ù„Ø© Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø³ÙŠØ±ÙØ± Ø§Ù„ÙØ§ÙŠØ±Ø¨ÙŠØ² Ù†ÙØ³Ù‡
     final myConnectionsRef = FirebaseDatabase.instance.ref('.info/connected');
     final userRef = usersRef.child(uid);
 
     myConnectionsRef.onValue.listen((event) {
       final isConnected = event.snapshot.value as bool? ?? false;
       if (isConnected) {
-        // 1. لما التطبيق يتصل، نخليه أونلاين
+        // 1. Ù„Ù…Ø§ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ ÙŠØªØµÙ„ØŒ Ù†Ø®Ù„ÙŠÙ‡ Ø£ÙˆÙ†Ù„Ø§ÙŠÙ†
         userRef.update({
           'isOnline': true,
           'lastSeen': ServerValue.timestamp,
         });
 
-        // 2. السحر المعماري: نبلغ السيرفر إنه لما يفقد الاتصال بالموبايل، يحدث البيانات دي فوراً
+        // 2. Ø§Ù„Ø³Ø­Ø± Ø§Ù„Ù…Ø¹Ù…Ø§Ø±ÙŠ: Ù†Ø¨Ù„Øº Ø§Ù„Ø³ÙŠØ±ÙØ± Ø¥Ù†Ù‡ Ù„Ù…Ø§ ÙŠÙÙ‚Ø¯ Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø§Ù„Ù…ÙˆØ¨Ø§ÙŠÙ„ØŒ ÙŠØ­Ø¯Ø« Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø¯ÙŠ ÙÙˆØ±Ø§Ù‹
         userRef.onDisconnect().update({
           'isOnline': false,
           'lastSeen': ServerValue.timestamp,
@@ -90,7 +90,7 @@ class FirebaseRepo {
     });
   }
 
-  /// دالة للتحديث اليدوي عند وضع التطبيق في الخلفية
+  /// Ø¯Ø§Ù„Ø© Ù„Ù„ØªØ­Ø¯ÙŠØ« Ø§Ù„ÙŠØ¯ÙˆÙŠ Ø¹Ù†Ø¯ ÙˆØ¶Ø¹ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ ÙÙŠ Ø§Ù„Ø®Ù„ÙÙŠØ©
   static Future<void> updateUserPresence(String uid, bool isOnline) async {
     if (uid.trim().isEmpty) return;
     try {
@@ -103,7 +103,7 @@ class FirebaseRepo {
     }
   }
 
-  // ───────────────────────── Chats & UX Features ─────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Chats & UX Features â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static String getChatId(String uid1, String uid2) {
     final ids = [uid1, uid2]..sort();
@@ -133,7 +133,7 @@ class FirebaseRepo {
     });
   }
 
-  // ✅ تم تأمين الدالة ضد أخطاء تحويل الأنواع (Type Casting)
+  // âœ… ØªÙ… ØªØ£Ù…ÙŠÙ† Ø§Ù„Ø¯Ø§Ù„Ø© Ø¶Ø¯ Ø£Ø®Ø·Ø§Ø¡ ØªØ­ÙˆÙŠÙ„ Ø§Ù„Ø£Ù†ÙˆØ§Ø¹ (Type Casting)
   static Future<void> togglePinChat(String chatId, String myUid) async {
     final chatRef = chatsRef.child(chatId);
     final snap = await chatRef.child('pinnedBy').get();
@@ -168,7 +168,7 @@ class FirebaseRepo {
     await unreadRef.set(currentCount + 1);
   }
 
-  // ───────────────────────── Messages ─────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Messages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static Future<void> sendMessage(String chatId, Message message) async {
     if (message.senderId == null || message.senderId!.isEmpty) {
@@ -197,10 +197,10 @@ class FirebaseRepo {
     String lastMessageText;
     switch (message.type) {
       case MessageType.image:
-        lastMessageText = "📸 Photo";
+        lastMessageText = "ðŸ“¸ Photo";
         break;
       case MessageType.voice:
-        lastMessageText = "🎤 Voice message";
+        lastMessageText = "ðŸŽ¤ Voice message";
         break;
       default:
         lastMessageText = message.text.length > 200
@@ -219,7 +219,7 @@ class FirebaseRepo {
     }
   }
 
-  // 🚀 تحسين الأداء: تقليل تعقيد البحث والوصول المباشر للمفتاح
+  // ðŸš€ ØªØ­Ø³ÙŠÙ† Ø§Ù„Ø£Ø¯Ø§Ø¡: ØªÙ‚Ù„ÙŠÙ„ ØªØ¹Ù‚ÙŠØ¯ Ø§Ù„Ø¨Ø­Ø« ÙˆØ§Ù„ÙˆØµÙˆÙ„ Ø§Ù„Ù…Ø¨Ø§Ø´Ø± Ù„Ù„Ù…ÙØªØ§Ø­
   static Future<void> deleteMessage(
     String chatId,
     String messageId,
@@ -240,7 +240,7 @@ class FirebaseRepo {
     }
   }
 
-  // 🚀 تحسين الأداء: التخلص من الـ loop لتقليل المعالجة
+  // ðŸš€ ØªØ­Ø³ÙŠÙ† Ø§Ù„Ø£Ø¯Ø§Ø¡: Ø§Ù„ØªØ®Ù„Øµ Ù…Ù† Ø§Ù„Ù€ loop Ù„ØªÙ‚Ù„ÙŠÙ„ Ø§Ù„Ù…Ø¹Ø§Ù„Ø¬Ø©
   static Future<void> updateMessage(
     String chatId,
     String messageId,
@@ -267,7 +267,7 @@ class FirebaseRepo {
     }
   }
 
-  // ✅ حل مشكلة تعليق العداد: تصفير العداد قبل أي شرط عودة (return)
+  // âœ… Ø­Ù„ Ù…Ø´ÙƒÙ„Ø© ØªØ¹Ù„ÙŠÙ‚ Ø§Ù„Ø¹Ø¯Ø§Ø¯: ØªØµÙÙŠØ± Ø§Ù„Ø¹Ø¯Ø§Ø¯ Ù‚Ø¨Ù„ Ø£ÙŠ Ø´Ø±Ø· Ø¹ÙˆØ¯Ø© (return)
   static Future<void> markAsSeen(String chatId, String myUid) async {
     await resetUnreadCount(chatId, myUid);
     
@@ -324,9 +324,9 @@ class FirebaseRepo {
     });
   }
 
-  // ───────────────────────── Reactions ─────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Reactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  // 🚀 تحسين الأداء: التخلص من البحث الزائد إذا لم يكن ضرورياً
+  // ðŸš€ ØªØ­Ø³ÙŠÙ† Ø§Ù„Ø£Ø¯Ø§Ø¡: Ø§Ù„ØªØ®Ù„Øµ Ù…Ù† Ø§Ù„Ø¨Ø­Ø« Ø§Ù„Ø²Ø§Ø¦Ø¯ Ø¥Ø°Ø§ Ù„Ù… ÙŠÙƒÙ† Ø¶Ø±ÙˆØ±ÙŠØ§Ù‹
   static Future<void> addReaction(
     String chatId,
     String messageId,
@@ -372,7 +372,7 @@ class FirebaseRepo {
     await ref.child(msgKey.toString()).child('reactions').child(uid).remove();
   }
 
-  // ───────────────────────── Groups ─────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Groups â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static Future<void> sendGroupMessage(
       String groupId, MessageModel message) async {
@@ -444,7 +444,7 @@ class FirebaseRepo {
     return groupWithId;
   }
 
-  // ───────────────────────── Channels ─────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Channels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static Future<void> sendChannelMessage(
     String channelId,
@@ -512,5 +512,151 @@ class FirebaseRepo {
       list.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
       return list;
     });
+  }
+
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Group Messages (Message model) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  /// Stream Ø±Ø³Ø§Ø¦Ù„ Ø§Ù„Ø¬Ø±ÙˆØ¨ Ø¨Ù€ Message model Ø§Ù„Ø¬Ø¯ÙŠØ¯
+  static Stream<List<Message>> observeGroupMessagesNew(
+      String groupId, String myUid) {
+    return groupMsgsRef.child(groupId).onValue.map((event) {
+      if (!event.snapshot.exists) return [];
+      final map = event.snapshot.value as Map;
+      return map.entries
+          .map((e) => Message.fromMap(e.value as Map, myUid, id: e.key))
+          .toList()
+        ..sort((a, b) => b.time.compareTo(a.time));
+    });
+  }
+
+  /// Ø¥Ø±Ø³Ø§Ù„ Ø±Ø³Ø§Ù„Ø© Ø¬Ø±ÙˆØ¨ Ø¨Ù€ Message model Ø§Ù„Ø¬Ø¯ÙŠØ¯
+  static Future<void> sendGroupMessageNew(
+      String groupId, Message message) async {
+    if (message.senderId == null || message.senderId!.isEmpty) {
+      throw Exception('senderId is required');
+    }
+
+    final groupSnap = await groupsRef.child(groupId).get();
+    if (!groupSnap.exists) throw Exception('Group not found');
+
+    final groupData = groupSnap.value as Map;
+    final members = List<String>.from(groupData['members'] ?? []);
+
+    if (!members.contains(message.senderId)) {
+      throw Exception('Unauthorized: user not in this group');
+    }
+
+    final msgRef = groupMsgsRef.child(groupId).push();
+    final data = message.toMap();
+    data['messageId'] = msgRef.key ?? _uuid.v4();
+    data['timestamp'] = ServerValue.timestamp;
+    await msgRef.set(data);
+
+    String lastMessageText;
+    switch (message.type) {
+      case MessageType.image:
+        lastMessageText = 'ðŸ“¸ Photo';
+        break;
+      case MessageType.voice:
+        lastMessageText = 'ðŸŽ¤ Voice message';
+        break;
+      default:
+        lastMessageText = message.text.length > 200
+            ? message.text.substring(0, 200)
+            : message.text;
+    }
+
+    await groupsRef.child(groupId).update({
+      'lastMessage': lastMessageText,
+      'lastMessageTime': ServerValue.timestamp,
+      'lastMessageSenderId': message.senderId ?? '',
+    });
+  }
+
+  /// Ø­Ø°Ù Ø±Ø³Ø§Ù„Ø© Ù…Ù† Ø§Ù„Ø¬Ø±ÙˆØ¨ (ØµØ§Ø­Ø¨ Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø¨Ø³)
+  static Future<void> deleteGroupMessage(
+      String groupId, String messageId, String myUid) async {
+    if (messageId.trim().isEmpty || myUid.trim().isEmpty) return;
+
+    final ref = groupMsgsRef.child(groupId);
+    final snap =
+        await ref.orderByChild('messageId').equalTo(messageId).get();
+    if (!snap.exists) return;
+
+    final map = snap.value as Map;
+    final msgKey = map.keys.first;
+    final msgData = map[msgKey] as Map;
+
+    if (msgData['senderId'] == myUid) {
+      await ref.child(msgKey.toString()).remove();
+    }
+  }
+
+  /// ØªØ¹Ø¯ÙŠÙ„ Ø±Ø³Ø§Ù„Ø© ÙÙŠ Ø§Ù„Ø¬Ø±ÙˆØ¨ (ØµØ§Ø­Ø¨ Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø¨Ø³)
+  static Future<void> updateGroupMessage(
+      String groupId, String messageId, String newText, String myUid) async {
+    if (newText.trim().isEmpty) return;
+    if (newText.length > 4000) throw Exception('Message too long');
+
+    final ref = groupMsgsRef.child(groupId);
+    final snap =
+        await ref.orderByChild('messageId').equalTo(messageId).get();
+    if (!snap.exists) return;
+
+    final map = snap.value as Map;
+    final msgKey = map.keys.first;
+    final msgData = map[msgKey] as Map;
+
+    if (msgData['senderId'] == myUid) {
+      await ref.child(msgKey.toString()).update({
+        'text': newText.trim(),
+        'isEdited': true,
+        'editedAt': ServerValue.timestamp,
+      });
+    }
+  }
+
+  /// reaction Ø¹Ù„Ù‰ Ø±Ø³Ø§Ù„Ø© Ø¬Ø±ÙˆØ¨
+  static Future<void> addGroupReaction(
+      String groupId, String messageId, String emoji, String uid) async {
+    if (groupId.trim().isEmpty || messageId.trim().isEmpty) return;
+    if (uid.trim().isEmpty || emoji.trim().isEmpty) return;
+
+    final groupSnap = await groupsRef.child(groupId).get();
+    if (!groupSnap.exists) throw Exception('Group not found');
+
+    final groupData = groupSnap.value as Map;
+    final members = List<String>.from(groupData['members'] ?? []);
+    if (!members.contains(uid)) throw Exception('Unauthorized');
+
+    final ref = groupMsgsRef.child(groupId);
+    final snap =
+        await ref.orderByChild('messageId').equalTo(messageId).get();
+    if (!snap.exists) throw Exception('Message not found');
+
+    final map = snap.value as Map;
+    final msgKey = map.keys.first;
+    await ref.child(msgKey.toString()).child('reactions').child(uid).set(emoji);
+  }
+
+  /// Ø¥Ø²Ø§Ù„Ø© reaction Ù…Ù† Ø±Ø³Ø§Ù„Ø© Ø¬Ø±ÙˆØ¨
+  static Future<void> removeGroupReaction(
+      String groupId, String messageId, String uid) async {
+    if (groupId.trim().isEmpty ||
+        messageId.trim().isEmpty ||
+        uid.trim().isEmpty) return;
+
+    final ref = groupMsgsRef.child(groupId);
+    final snap =
+        await ref.orderByChild('messageId').equalTo(messageId).get();
+    if (!snap.exists) return;
+
+    final map = snap.value as Map;
+    final msgKey = map.keys.first;
+    await ref
+        .child(msgKey.toString())
+        .child('reactions')
+        .child(uid)
+        .remove();
   }
 }
