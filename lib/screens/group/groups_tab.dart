@@ -5,6 +5,7 @@ import '../../repositories/firebase_repo.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/session_manager.dart';
 import '../../widgets/widgets.dart';
+import 'group_chat_screen_ui.dart';
 
 // Groups Tab
 class GroupsTab extends StatefulWidget {
@@ -55,12 +56,22 @@ class _GroupsTabState extends State<GroupsTab> {
                 name: group.name,
                 lastMessage: group.lastMessage,
                 time: time,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => GroupChatScreen(group: group, myUid: widget.myUid),
-                  ),
-                ),
+                onTap: () async {
+                  final myName = await SessionManager.instance.getName();
+                  if (!context.mounted) return;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => GroupChatScreenUI(
+                        groupId: group.groupId,
+                        myUid: widget.myUid,
+                        myName: myName,
+                        groupName: group.name,
+                        memberCount: group.members.length,
+                      ),
+                    ),
+                  );
+                },
               );
             }),
             Padding(
@@ -82,116 +93,6 @@ class _GroupsTabState extends State<GroupsTab> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => CreateGroupSheet(myUid: widget.myUid),
-    );
-  }
-}
-
-// Group Chat Screen
-class GroupChatScreen extends StatefulWidget {
-  final GroupModel group;
-  final String myUid;
-
-  const GroupChatScreen({super.key, required this.group, required this.myUid});
-
-  @override
-  State<GroupChatScreen> createState() => _GroupChatScreenState();
-}
-
-class _GroupChatScreenState extends State<GroupChatScreen> {
-  final _msgController = TextEditingController();
-  String _myName = '';
-
-  @override
-  void initState() {
-    super.initState();
-    SessionManager.instance.getName().then((n) => setState(() => _myName = n));
-  }
-
-  void _sendMessage() {
-    final text = _msgController.text.trim();
-    if (text.isEmpty) return;
-    _msgController.clear();
-
-    final message = MessageModel(
-      messageId: '',
-      senderId: widget.myUid,
-      senderName: _myName,
-      text: text,
-      timestamp: DateTime.now().millisecondsSinceEpoch,
-    );
-    FirebaseRepo.sendGroupMessage(widget.group.groupId, message);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgDark,
-      appBar: AppBar(
-        backgroundColor: AppColors.bgSurface,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: AppColors.primary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Row(
-          children: [
-            AvatarWidget(name: widget.group.name, size: 38),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.group.name,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  '${widget.group.members.length} members',
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<List<MessageModel>>(
-              stream: FirebaseRepo.observeGroupMessages(widget.group.groupId),
-              builder: (context, snapshot) {
-                final messages = snapshot.data ?? [];
-                if (messages.isEmpty) {
-                  return const EmptyStateWidget(
-                    icon: Icons.group_outlined,
-                    title: 'No messages yet',
-                    subtitle: 'Be the first to say something!',
-                  );
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: messages.length,
-                  itemBuilder: (_, i) {
-                    final msg = messages[i];
-                    return MessageBubble(
-                      text: msg.text,
-                      time: DateFormat('HH:mm').format(
-                        DateTime.fromMillisecondsSinceEpoch(msg.timestamp),
-                      ),
-                      isSent: msg.senderId == widget.myUid,
-                      senderName: msg.senderName,
-                      showSenderName: msg.senderId != widget.myUid,
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-          MessageInputBar(controller: _msgController, onSend: _sendMessage),
-        ],
-      ),
     );
   }
 }
