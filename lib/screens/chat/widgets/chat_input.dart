@@ -8,7 +8,6 @@ import 'package:chatx/screens/chat/models/message_model.dart';
 
 // --- Constants & Styles ---
 class _Style {
-  // تم تغيير اللون إلى أزرق احترافي مريح للعين بدلاً من السيان
   static const Color accentColor = Color(0xFF007AFF); 
   static const Color textColor = Colors.white;
   static const Color hintTextColor = Colors.white38;
@@ -16,8 +15,8 @@ class _Style {
   static const Color iconColor = Colors.white54;
   
   static const double borderRadius = 28.0;
-  static const double compactVerticalPadding = 6.0;
-  static const double iconSize = 22.0;
+  static const double compactVerticalPadding = 8.0; // تم زيادتها قليلاً لتحسين مساحة اللمس
+  static const double iconSize = 24.0; // تكبير الأيقونة لسهولة الضغط
   static const double inputFontSize = 14.0;
 }
 
@@ -108,79 +107,100 @@ class _ChatInputState extends State<ChatInput>
   // --- Build ---
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (widget.replyMessage != null)
-          _ReplyPreviewWidget(
-            message: widget.replyMessage!,
-            onCancel: widget.onCancelReply,
-          ),
+    // القطعة الشفافة السوداء التي طلبتها مدمجة هنا كخلفية للمنطقة السفلية
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.5), // نسبة الشفافية للون الأسود
+        border: Border(
+          top: BorderSide(color: Colors.white.withOpacity(0.05)),
+        ),
+      ),
+      child: SafeArea(
+        top: false, // حماية الشريط من التداخل مع هواتف الآيفون (Home Indicator)
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (widget.replyMessage != null)
+              _ReplyPreviewWidget(
+                message: widget.replyMessage!,
+                onCancel: widget.onCancelReply,
+              ),
 
-        Padding(
-          padding: const EdgeInsets.fromLTRB(10, 4, 10, 16),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(_Style.borderRadius),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: _Style.compactVerticalPadding),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(_Style.borderRadius),
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.white.withOpacity(0.08),
-                      Colors.white.withOpacity(0.02),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  border: Border.all(color: Colors.white.withOpacity(0.06)),
-                ),
-                child: Row(
-                  // تم تعديل المحاذاة هنا لتوسيط العناصر بشكل مثالي
-                  crossAxisAlignment: CrossAxisAlignment.center, 
-                  children: [
-                    const _AttachButtonWidget(),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _TextFieldWidget(
-                        controller: _controller,
-                        focusNode: _focusNode,
-                        onEmojiToggle: _toggleEmoji,
-                        showEmoji: _showEmoji,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(_Style.borderRadius),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: _Style.compactVerticalPadding),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(_Style.borderRadius),
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.white.withOpacity(0.08),
+                          Colors.white.withOpacity(0.02),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
+                      border: Border.all(color: Colors.white.withOpacity(0.06)),
                     ),
-                    const SizedBox(width: 8),
-                    _SendOrMicButtonWidget(
-                      hasText: _hasText,
-                      animation: _sendAnimation,
-                      onSend: _send,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end, // أفضل للمحاذاة عند كتابة أسطر متعددة
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 2),
+                          child: _AttachButtonWidget(),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _TextFieldWidget(
+                            controller: _controller,
+                            focusNode: _focusNode,
+                            onEmojiToggle: _toggleEmoji,
+                            showEmoji: _showEmoji,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: _SendOrMicButtonWidget(
+                            hasText: _hasText,
+                            animation: _sendAnimation,
+                            onSend: _send,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
 
-        if (_showEmoji)
-          _EmojiPanelWidget(
-            onEmojiSelected: (emoji) {
-              final sel = _controller.selection;
-              final text = _controller.text;
-              final newText = sel.isValid
-                  ? text.replaceRange(sel.start, sel.end, emoji)
-                  : text + emoji;
-              _controller.value = _controller.value.copyWith(
-                text: newText,
-                selection: TextSelection.collapsed(
-                  offset: (sel.isValid ? sel.start : text.length) + emoji.length,
-                ),
-              );
-            },
-          ),
-      ],
+            if (_showEmoji)
+              _EmojiPanelWidget(
+                onEmojiSelected: (emoji) {
+                  final text = _controller.text;
+                  final selection = _controller.selection;
+                  
+                  // تم تعديل منطق الإضافة لتجنب أخطاء (Index) مع الإيموجي المركبة
+                  if (selection.start >= 0 && selection.end >= 0) {
+                    final newText = text.replaceRange(selection.start, selection.end, emoji);
+                    _controller.value = TextEditingValue(
+                      text: newText,
+                      selection: TextSelection.collapsed(
+                        offset: selection.start + emoji.characters.length,
+                      ),
+                    );
+                  } else {
+                    _controller.text = text + emoji;
+                  }
+                },
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -209,6 +229,7 @@ class _TextFieldWidget extends StatelessWidget {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
             child: TextField(
@@ -221,7 +242,6 @@ class _TextFieldWidget extends StatelessWidget {
               keyboardType: TextInputType.multiline,
               textInputAction: TextInputAction.newline,
               decoration: const InputDecoration(
-                // تم التعديل للإنجليزية
                 hintText: 'Message...', 
                 hintStyle: TextStyle(color: _Style.hintTextColor, fontSize: 13),
                 border: InputBorder.none,
@@ -233,17 +253,20 @@ class _TextFieldWidget extends StatelessWidget {
           
           GestureDetector(
             onTap: onEmojiToggle,
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: Icon(
-                showEmoji ? Icons.keyboard_rounded : Icons.emoji_emotions_outlined,
-                key: ValueKey(showEmoji),
-                color: showEmoji ? _Style.accentColor : _Style.iconColor,
-                size: 20,
+            behavior: HitTestBehavior.opaque, // يضمن استجابة اللمس حتى في المسافات الفارغة
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8, right: 4, left: 4),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  showEmoji ? Icons.keyboard_rounded : Icons.emoji_emotions_outlined,
+                  key: ValueKey(showEmoji),
+                  color: showEmoji ? _Style.accentColor : _Style.iconColor,
+                  size: 20,
+                ),
               ),
             ),
           ),
-          const SizedBox(width: 4),
         ],
       ),
     );
@@ -277,11 +300,10 @@ class _SendOrMicButtonWidget extends StatelessWidget {
               child: ScaleTransition(
                 scale: animation,
                 child: Container(
-                  padding: const EdgeInsets.all(9),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: _Style.accentColor,
-                    // لمسة ظل خفيفة تعطي إحساس الـ Premium
                     boxShadow: [
                       BoxShadow(
                         color: _Style.accentColor.withOpacity(0.4),
@@ -290,13 +312,13 @@ class _SendOrMicButtonWidget extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.send_rounded, color: Colors.white, size: 16),
+                  child: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
                 ),
               ),
             )
-          : const Padding(
-              key: ValueKey('mic_inactive'),
-              padding: EdgeInsets.only(bottom: 0), // تم تصفير الـ padding لضبط المحاذاة مع السنتر
+          : Padding(
+              key: const ValueKey('mic_inactive'),
+              padding: const EdgeInsets.all(8.0),
               child: Icon(
                 Icons.mic_none_rounded,
                 color: _Style.iconColor,
@@ -324,13 +346,13 @@ class _ReplyPreviewWidget extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 0, 10, 3),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               color: Colors.white.withOpacity(0.04),
@@ -349,21 +371,22 @@ class _ReplyPreviewWidget extends StatelessWidget {
                     children: [
                       Text(
                         message.senderName ?? 'Unknown',
-                        style: const TextStyle(color: _Style.accentColor, fontSize: 11, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: _Style.accentColor, fontSize: 12, fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 1),
+                      const SizedBox(height: 2),
                       Text(
                         previewText, maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white60, fontSize: 12),
+                        style: const TextStyle(color: Colors.white60, fontSize: 13),
                       ),
                     ],
                   ),
                 ),
                 GestureDetector(
                   onTap: onCancel,
+                  behavior: HitTestBehavior.opaque,
                   child: Container(
-                    padding: const EdgeInsets.all(4),
-                    child: const Icon(Icons.close_rounded, color: Colors.white54, size: 16),
+                    padding: const EdgeInsets.all(8), // تكبير مساحة اللمس
+                    child: const Icon(Icons.close_rounded, color: Colors.white54, size: 18),
                   ),
                 ),
               ],
@@ -381,21 +404,26 @@ class _AttachButtonWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      // تم إزالة الـ margin السفلي لضبط المحاذاة مع الـ center
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.03)),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.add_rounded, color: Colors.white60, size: 14),
-          SizedBox(width: 2),
-          Text('New', style: TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.w500)),
-        ],
+    return GestureDetector(
+      onTap: () {
+        // أضف الأكشن الخاص بك هنا
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), // مساحة ضغط أفضل
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.03)),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.add_rounded, color: Colors.white60, size: 16),
+            SizedBox(width: 4),
+            Text('New', style: TextStyle(color: Colors.white60, fontSize: 12, fontWeight: FontWeight.w500)),
+          ],
+        ),
       ),
     );
   }
@@ -418,14 +446,13 @@ class _EmojiPanelWidget extends StatelessWidget {
     return Container(
       height: 220,
       decoration: BoxDecoration(
-        color: const Color(0xFF101010),
-        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.06))),
+        color: Colors.transparent, // تم التعديل لتندمج مع الخلفية الشفافة السوداء الجديدة
       ),
       child: Column(
         children: [
           Container(
-            margin: const EdgeInsets.only(top: 6, bottom: 8),
-            width: 32, height: 3,
+            margin: const EdgeInsets.only(top: 8, bottom: 8),
+            width: 32, height: 4,
             decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(10)),
           ),
           Expanded(
@@ -437,7 +464,8 @@ class _EmojiPanelWidget extends StatelessWidget {
               itemCount: _quickEmojis.length,
               itemBuilder: (_, i) => GestureDetector(
                 onTap: () => onEmojiSelected(_quickEmojis[i]),
-                child: Center(child: Text(_quickEmojis[i], style: const TextStyle(fontSize: 22))),
+                behavior: HitTestBehavior.opaque,
+                child: Center(child: Text(_quickEmojis[i], style: const TextStyle(fontSize: 24))), // تكبير الإيموجي قليلاً
               ),
             ),
           ),
