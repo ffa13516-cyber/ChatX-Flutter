@@ -107,52 +107,53 @@ class _ChatInputState extends State<ChatInput>
   // --- Build ---
   @override
   Widget build(BuildContext context) {
-    return Container(
-      // التعديل الجذري هنا: تدرج لوني سلس بيبدأ بشفافية تامة عشان يندمج مع الشات بدون خط فاصل
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.transparent,               // دمج ناعم جداً من فوق
-            Colors.black.withOpacity(0.6),    // أسود شفاف في المنتصف
-            Colors.black.withOpacity(0.95),   // أسود عميق (Onyx) في الأسفل
-          ],
-          stops: const [0.0, 0.3, 1.0],
-        ),
-      ),
-      child: SafeArea(
-        top: false, 
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (widget.replyMessage != null)
-              _ReplyPreviewWidget(
-                message: widget.replyMessage!,
-                onCancel: widget.onCancelReply,
-              ),
+    // شيلنا الـ Container الخارجي اللي كان فيه الـ Gradient عشان نرجع الفلوتينج
+    return SafeArea(
+      top: false, 
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (widget.replyMessage != null)
+            _ReplyPreviewWidget(
+              message: widget.replyMessage!,
+              onCancel: widget.onCancelReply,
+            ),
 
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+            // ضفنا ظل (Shadow) خفيف ورا البار كله عشان يفصله عن الرسايل
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(_Style.borderRadius),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.4),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(_Style.borderRadius),
                 child: BackdropFilter(
-                  // زيادة قوة تأثير الزجاج (Blur) لفخامة أكتر
+                  // الحفاظ على تأثير الزجاج القوي
                   filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: _Style.compactVerticalPadding),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(_Style.borderRadius),
+                      // التعديل هنا: استخدام أسود شفاف بدل الأبيض عشان يكتم إضاءة الرسايل اللي بتعدي تحته
                       gradient: LinearGradient(
                         colors: [
-                          Colors.white.withOpacity(0.09),
-                          Colors.white.withOpacity(0.03),
+                          Colors.black.withOpacity(0.65),
+                          Colors.black.withOpacity(0.45),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      // إطار خفيف جداً يبرز شكل البار العايم
-                      border: Border.all(color: Colors.white.withOpacity(0.05), width: 0.5),
+                      // إطار زجاجي رفيع
+                      border: Border.all(color: Colors.white.withOpacity(0.08), width: 0.5),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -185,28 +186,28 @@ class _ChatInputState extends State<ChatInput>
                 ),
               ),
             ),
+          ),
 
-            if (_showEmoji)
-              _EmojiPanelWidget(
-                onEmojiSelected: (emoji) {
-                  final text = _controller.text;
-                  final selection = _controller.selection;
-                  
-                  if (selection.start >= 0 && selection.end >= 0) {
-                    final newText = text.replaceRange(selection.start, selection.end, emoji);
-                    _controller.value = TextEditingValue(
-                      text: newText,
-                      selection: TextSelection.collapsed(
-                        offset: selection.start + emoji.characters.length,
-                      ),
-                    );
-                  } else {
-                    _controller.text = text + emoji;
-                  }
-                },
-              ),
-          ],
-        ),
+          if (_showEmoji)
+            _EmojiPanelWidget(
+              onEmojiSelected: (emoji) {
+                final text = _controller.text;
+                final selection = _controller.selection;
+                
+                if (selection.start >= 0 && selection.end >= 0) {
+                  final newText = text.replaceRange(selection.start, selection.end, emoji);
+                  _controller.value = TextEditingValue(
+                    text: newText,
+                    selection: TextSelection.collapsed(
+                      offset: selection.start + emoji.characters.length,
+                    ),
+                  );
+                } else {
+                  _controller.text = text + emoji;
+                }
+              },
+            ),
+        ],
       ),
     );
   }
@@ -230,9 +231,9 @@ class _TextFieldWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.02),
+        color: Colors.white.withOpacity(0.03),
         borderRadius: BorderRadius.circular(_Style.borderRadius),
-        border: Border.all(color: Colors.white.withOpacity(0.01)),
+        border: Border.all(color: Colors.white.withOpacity(0.02)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
