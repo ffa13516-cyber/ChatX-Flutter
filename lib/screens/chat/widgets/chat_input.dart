@@ -15,8 +15,8 @@ class _Style {
   static const Color iconColor = Colors.white54;
   
   static const double borderRadius = 28.0;
-  static const double compactVerticalPadding = 8.0; // تم زيادتها قليلاً لتحسين مساحة اللمس
-  static const double iconSize = 24.0; // تكبير الأيقونة لسهولة الضغط
+  static const double compactVerticalPadding = 8.0; 
+  static const double iconSize = 24.0; 
   static const double inputFontSize = 14.0;
 }
 
@@ -107,16 +107,22 @@ class _ChatInputState extends State<ChatInput>
   // --- Build ---
   @override
   Widget build(BuildContext context) {
-    // القطعة الشفافة السوداء التي طلبتها مدمجة هنا كخلفية للمنطقة السفلية
     return Container(
+      // التعديل الجذري هنا: تدرج لوني سلس بيبدأ بشفافية تامة عشان يندمج مع الشات بدون خط فاصل
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.5), // نسبة الشفافية للون الأسود
-        border: Border(
-          top: BorderSide(color: Colors.white.withOpacity(0.05)),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.transparent,               // دمج ناعم جداً من فوق
+            Colors.black.withOpacity(0.6),    // أسود شفاف في المنتصف
+            Colors.black.withOpacity(0.95),   // أسود عميق (Onyx) في الأسفل
+          ],
+          stops: const [0.0, 0.3, 1.0],
         ),
       ),
       child: SafeArea(
-        top: false, // حماية الشريط من التداخل مع هواتف الآيفون (Home Indicator)
+        top: false, 
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -127,27 +133,29 @@ class _ChatInputState extends State<ChatInput>
               ),
 
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
+              padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(_Style.borderRadius),
                 child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                  // زيادة قوة تأثير الزجاج (Blur) لفخامة أكتر
+                  filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: _Style.compactVerticalPadding),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(_Style.borderRadius),
                       gradient: LinearGradient(
                         colors: [
-                          Colors.white.withOpacity(0.08),
-                          Colors.white.withOpacity(0.02),
+                          Colors.white.withOpacity(0.09),
+                          Colors.white.withOpacity(0.03),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      border: Border.all(color: Colors.white.withOpacity(0.06)),
+                      // إطار خفيف جداً يبرز شكل البار العايم
+                      border: Border.all(color: Colors.white.withOpacity(0.05), width: 0.5),
                     ),
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end, // أفضل للمحاذاة عند كتابة أسطر متعددة
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         const Padding(
                           padding: EdgeInsets.only(bottom: 2),
@@ -184,7 +192,6 @@ class _ChatInputState extends State<ChatInput>
                   final text = _controller.text;
                   final selection = _controller.selection;
                   
-                  // تم تعديل منطق الإضافة لتجنب أخطاء (Index) مع الإيموجي المركبة
                   if (selection.start >= 0 && selection.end >= 0) {
                     final newText = text.replaceRange(selection.start, selection.end, emoji);
                     _controller.value = TextEditingValue(
@@ -223,9 +230,9 @@ class _TextFieldWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.white.withOpacity(0.02),
         borderRadius: BorderRadius.circular(_Style.borderRadius),
-        border: Border.all(color: Colors.white.withOpacity(0.02)),
+        border: Border.all(color: Colors.white.withOpacity(0.01)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
@@ -253,7 +260,7 @@ class _TextFieldWidget extends StatelessWidget {
           
           GestureDetector(
             onTap: onEmojiToggle,
-            behavior: HitTestBehavior.opaque, // يضمن استجابة اللمس حتى في المسافات الفارغة
+            behavior: HitTestBehavior.opaque,
             child: Padding(
               padding: const EdgeInsets.only(bottom: 8, right: 4, left: 4),
               child: AnimatedSwitcher(
@@ -306,9 +313,10 @@ class _SendOrMicButtonWidget extends StatelessWidget {
                     color: _Style.accentColor,
                     boxShadow: [
                       BoxShadow(
-                        color: _Style.accentColor.withOpacity(0.4),
-                        blurRadius: 8,
+                        color: _Style.accentColor.withOpacity(0.3),
+                        blurRadius: 10,
                         spreadRadius: 1,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -350,13 +358,13 @@ class _ReplyPreviewWidget extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               color: Colors.white.withOpacity(0.04),
-              border: Border.all(color: Colors.white.withOpacity(0.06)),
+              border: Border.all(color: Colors.white.withOpacity(0.05), width: 0.5),
             ),
             child: Row(
               children: [
@@ -385,7 +393,7 @@ class _ReplyPreviewWidget extends StatelessWidget {
                   onTap: onCancel,
                   behavior: HitTestBehavior.opaque,
                   child: Container(
-                    padding: const EdgeInsets.all(8), // تكبير مساحة اللمس
+                    padding: const EdgeInsets.all(8), 
                     child: const Icon(Icons.close_rounded, color: Colors.white54, size: 18),
                   ),
                 ),
@@ -410,11 +418,11 @@ class _AttachButtonWidget extends StatelessWidget {
       },
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), // مساحة ضغط أفضل
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), 
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.04),
+          color: Colors.white.withOpacity(0.03),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.03)),
+          border: Border.all(color: Colors.white.withOpacity(0.02)),
         ),
         child: const Row(
           mainAxisSize: MainAxisSize.min,
@@ -429,7 +437,7 @@ class _AttachButtonWidget extends StatelessWidget {
   }
 }
 
-// --- Emoji Panel (Placeholder) ---
+// --- Emoji Panel ---
 class _EmojiPanelWidget extends StatelessWidget {
   final Function(String emoji) onEmojiSelected;
 
@@ -445,8 +453,8 @@ class _EmojiPanelWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 220,
-      decoration: BoxDecoration(
-        color: Colors.transparent, // تم التعديل لتندمج مع الخلفية الشفافة السوداء الجديدة
+      decoration: const BoxDecoration(
+        color: Colors.transparent, 
       ),
       child: Column(
         children: [
@@ -465,7 +473,7 @@ class _EmojiPanelWidget extends StatelessWidget {
               itemBuilder: (_, i) => GestureDetector(
                 onTap: () => onEmojiSelected(_quickEmojis[i]),
                 behavior: HitTestBehavior.opaque,
-                child: Center(child: Text(_quickEmojis[i], style: const TextStyle(fontSize: 24))), // تكبير الإيموجي قليلاً
+                child: Center(child: Text(_quickEmojis[i], style: const TextStyle(fontSize: 24))), 
               ),
             ),
           ),
