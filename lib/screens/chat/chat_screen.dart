@@ -1,8 +1,6 @@
 // ============================================================
-// chat_screen.dart â€” ChatX Main Chat UI
-// âœ… msg.id? null-safe | âœ… myName parameter
-// âœ… Dynamic header height | âœ… Safe scroll-to-message
-// âœ… BlocConsumer Ù„Ù„Ù€ error snackbar | âœ… Clean dispose
+// chat_screen.dart — ChatX Main Chat UI
+// ✨ Enterprise Level Optimization & Clean UI Layout
 // ============================================================
 
 import 'dart:ui';
@@ -16,7 +14,7 @@ import 'package:chatx/screens/chat/cubit/chat_cubit.dart';
 class ChatScreen extends StatefulWidget {
   final String chatId;
   final String myUid;
-  final String myName; // âœ… NEW: Ø§Ø³Ù… Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø§Ù„Ø­Ù‚ÙŠÙ‚ÙŠ
+  final String myName; 
   final String receiverName;
   final String? receiverImage;
   final bool isOnline;
@@ -39,14 +37,13 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _headerKey = GlobalKey();
 
-  late final ChatCubit _cubit; // âœ… FIX: Ù†Ù†Ø´Ø¦ Ø§Ù„Ù€ Cubit Ù…Ø±Ø© ÙˆØ§Ø­Ø¯Ø© ÙÙŠ initState
+  late final ChatCubit _cubit;
   String? _highlightedMessageId;
   double _headerHeight = 115.0;
 
   @override
   void initState() {
     super.initState();
-    // âœ… FIX: Ù†Ù†Ø´Ø¦ Ø§Ù„Ù€ Cubit Ù…Ø±Ø© ÙˆØ§Ø­Ø¯Ø© Ù…Ø´ ÙƒÙ„ build
     _cubit = ChatCubit(
       chatId: widget.chatId,
       myUid: widget.myUid,
@@ -58,7 +55,6 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // âœ… FIX: Ø¥Ø¹Ø§Ø¯Ø© Ù‚ÙŠØ§Ø³ Ø§Ù„Ù€ header Ù„Ùˆ ØªØºÙŠØ±Øª Ø§Ù„Ù€ orientation Ø£Ùˆ Ø§Ù„Ù€ text scale
     WidgetsBinding.instance.addPostFrameCallback((_) => _measureHeader());
   }
 
@@ -69,7 +65,6 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  // ✅ FIX #1: scroll للأسفل (index 0 في reverse list = أحدث رسالة)
   void _scrollToBottom() {
     if (!_scrollController.hasClients) return;
     _scrollController.animateTo(
@@ -85,18 +80,11 @@ class _ChatScreenState extends State<ChatScreen> {
     final box = ctx.findRenderObject() as RenderBox?;
     if (box != null && mounted) {
       final newHeight = box.size.height;
-      // 🟢 Performance Fix #9: setState بس لو الـ height فعلاً اتغيرت.
-      // didChangeDependencies بتتنادى كتير — بدون الـ guard ده كل InheritedWidget
-      // فوقيه بيتغير كان بيعمل rebuild للـ screen كلها حتى لو الـ height هي هي.
       if (newHeight != _headerHeight) {
         setState(() => _headerHeight = newHeight);
       }
     }
   }
-
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // Scroll to replied message â€” âœ… Safe with estimated heights
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   void _scrollToMessage(String id, List<Message> messages) {
     final index = messages.indexWhere((m) => m.id == id);
@@ -104,8 +92,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
     if (mounted) setState(() => _highlightedMessageId = id);
 
-    // Estimate offset (Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ Ù…Ø´ uniformØŒ Ù‡Ù†Ø§ Ù†Ù‚Ø¯Ù‘Ø±)
-    // Ø§Ù„Ù€ reverse ListView â†’ index 0 = Ø£Ø­Ø¯Ø« Ø±Ø³Ø§Ù„Ø©
     const double estimatedItemHeight = 85.0;
     final offset = index * estimatedItemHeight;
 
@@ -122,12 +108,7 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // Delete Dialog â€” âœ… null-safe messageId
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
   void _showDeleteDialog(BuildContext ctx, String? messageId) {
-    // âœ… FIX: Ù„Ùˆ id Ø¨Ù€ null â€” Ù…Ø´ Ø¨Ù†ÙØªØ­ Ø§Ù„Ù€ dialog Ø®Ø§Ù„Øµ
     if (messageId == null || messageId.isEmpty) return;
 
     showDialog(
@@ -136,7 +117,7 @@ class _ChatScreenState extends State<ChatScreen> {
         backgroundColor: const Color(0xFF1E1E1E),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
-          'Ø­Ø°Ù Ø§Ù„Ø±Ø³Ø§Ù„Ø©',
+          'حذف الرسالة',
           style: TextStyle(
             color: Colors.white,
             fontSize: 16,
@@ -144,22 +125,21 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ),
         content: const Text(
-          'Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ Ù…Ù† Ø±ØºØ¨ØªÙƒ ÙÙŠ Ø­Ø°Ù Ù‡Ø°Ù‡ Ø§Ù„Ø±Ø³Ø§Ù„Ø©ØŸ',
+          'هل أنت متأكد من رغبتك في حذف هذه الرسالة؟',
           style: TextStyle(color: Colors.white70, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Ø¥Ù„ØºØ§Ø¡', style: TextStyle(color: Colors.white54)),
+            child: const Text('إلغاء', style: TextStyle(color: Colors.white54)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(dialogCtx);
-              // ✅ FIX: _cubit مباشرة — ctx.read كان بيكسر لو ctx اتعمله dispose
               _cubit.deleteMessage(messageId);
             },
             child: const Text(
-              'Ø­Ø°Ù',
+              'حذف',
               style: TextStyle(
                 color: Colors.redAccent,
                 fontWeight: FontWeight.bold,
@@ -171,15 +151,10 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // Edit Dialog
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
   void _showEditDialog(BuildContext ctx, Message message) {
-    if (!message.isEditable) return; // âœ… Ù†Øµ ÙÙ‚Ø·
+    if (!message.isEditable) return;
 
     final textController = TextEditingController(text: message.text);
-
     showDialog(
       context: ctx,
       builder: (dialogCtx) => _EditDialog(
@@ -190,23 +165,15 @@ class _ChatScreenState extends State<ChatScreen> {
     ).whenComplete(textController.dispose);
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // Build
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
   @override
   Widget build(BuildContext context) {
-    // âœ… FIX: BlocProvider.value ÙŠØ³ØªØ®Ø¯Ù… cubit Ù…ÙˆØ¬ÙˆØ¯ Ø¨Ø¯Ù„ create Ø¬Ø¯ÙŠØ¯ ÙƒÙ„ rebuild
     return BlocProvider.value(
       value: _cubit,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: Stack(
           children: [
-            // â”€â”€ Background â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            // 🟢 Performance Fix #5: RepaintBoundary يعزل الخلفية تماماً.
-            // القديم: كل state change في BlocConsumer كان يعيد رسم الـ bg image.
-            // الجديد: الـ bg layer مستقل — لا يُعاد رسمه أبداً إلا لو هو نفسه تغير.
+            // ── Background ──────────────────────────
             Positioned.fill(
               child: RepaintBoundary(
                 child: Stack(
@@ -219,9 +186,8 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
 
-            // â”€â”€ Main Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Main Content ────────────────────────
             BlocConsumer<ChatCubit, ChatState>(
-              // âœ… FIX: Ù†Ø¹Ø±Ø¶ Ø§Ù„Ù€ snackbar Ø¨Ø³ Ù„Ùˆ ÙÙŠ error Ø­Ù‚ÙŠÙ‚ÙŠ (Ù…Ø´ reaction failure)
               listenWhen: (prev, curr) =>
                   curr is ChatError && prev is! ChatError,
               listener: (context, state) {
@@ -242,7 +208,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         margin: const EdgeInsets.fromLTRB(16, 0, 16, 90),
                         duration: const Duration(seconds: 3),
                         action: SnackBarAction(
-                          label: 'Ø­Ø³Ù†Ø§Ù‹',
+                          label: 'حسناً',
                           textColor: const Color(0xFF4186F6),
                           onPressed: () {},
                         ),
@@ -258,10 +224,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 final cubit = context.read<ChatCubit>();
                 final isLoading = state is ChatLoading || state is ChatInitial;
 
-                // ✅ FIX #1: اسكرول للأسفل بس لو:
-                // (أ) الرسالة الجديدة مني أنا — عشان بعد ما أبعت أنزل معاها
-                // (ب) أو اليوزر أصلاً في الأسفل (offset قريب من 0 في reverse list)
-                //     عشان الرسايل الجديدة من التاني تظهر تلقائي لو هو مش بيسكرول فوق
                 if (state is ChatLoaded && messages.isNotEmpty) {
                   final atBottom = !_scrollController.hasClients ||
                       _scrollController.offset <= 80.0;
@@ -271,92 +233,65 @@ class _ChatScreenState extends State<ChatScreen> {
                   }
                 }
 
-                return Stack(
+                // استخدمنا Column لفصل الرسائل عن منطقة الإدخال لضمان عدم التداخل
+                return Column(
                   children: [
-                    // â”€â”€ Messages List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                    Positioned(
-                      top: _headerHeight,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
+                    // مساحة شفافة تعادل حجم الـ Header لضمان نزول الرسائل خلفه بشكل صحيح
+                    SizedBox(height: _headerHeight),
+                    
+                    // ── Messages List ─────────────────
+                    Expanded(
+                      child: ClipRect(
+                        child: isLoading
+                            ? const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFF4186F6),
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : messages.isEmpty
+                                ? _emptyState()
+                                : ListView.builder(
+                                    controller: _scrollController,
+                                    reverse: true,
+                                    // قللنا المسافة السفلية لأن حقل الإدخال أصبح مفصولاً أسفل القائمة
+                                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+                                    itemCount: messages.length,
+                                    itemBuilder: (context, index) {
+                                      final msg = messages[index];
+                                      return Padding(
+                                        padding: const EdgeInsets.only(top: 14),
+                                        child: ChatBubble(
+                                          key: ValueKey(msg.id ?? index),
+                                          message: msg,
+                                          onReply: cubit.setReply,
+                                          onTapReply: (replyId) =>
+                                              _scrollToMessage(replyId, messages),
+                                          isHighlighted:
+                                              msg.id != null &&
+                                              msg.id == _highlightedMessageId,
+                                          onEdit: () =>
+                                              _showEditDialog(context, msg),
+                                          onDelete: () =>
+                                              _showDeleteDialog(context, msg.id),
+                                          onReact: (emoji) =>
+                                              cubit.addReaction(msg.id, emoji),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                      ),
+                    ),
+
+                    // ── Chat Input ────────────────────
+                    // غلفنا حقل الإدخال بحاوية صلبة لتجنب أي تداخل بصري
+                    Container(
+                      color: Colors.transparent, // يمكن تعديلها لـ Colors.black.withOpacity(0.8) إذا أردت خلفية صلبة
                       child: SafeArea(
                         top: false,
-                        child: ClipRect(
-                          child: isLoading
-                              ? const Center(
-                                  child: CircularProgressIndicator(
-                                    color: Color(0xFF4186F6),
-                                    strokeWidth: 2.5,
-                                  ),
-                                )
-                              : messages.isEmpty
-                                  ? _emptyState()
-                                  : ListView.builder(
-                                      controller: _scrollController,
-                                      reverse: true,
-                                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 130),
-                                      itemCount: messages.length,
-                                      itemBuilder: (context, index) {
-                                        final msg = messages[index];
-                                        return Padding(
-                                          padding: const EdgeInsets.only(top: 14),
-                                          child: ChatBubble(
-                                            key: ValueKey(msg.id ?? index),
-                                            message: msg,
-                                            onReply: cubit.setReply,
-                                            onTapReply: (replyId) =>
-                                                _scrollToMessage(replyId, messages),
-                                            isHighlighted:
-                                                msg.id != null &&
-                                                msg.id == _highlightedMessageId,
-                                            onEdit: () =>
-                                                _showEditDialog(context, msg),
-                                            // âœ… FIX: Ø¨Ù†Ù…Ø±Ø± id? Ù…Ø´ id! ÙÙ…ÙÙŠØ´ crash
-                                            onDelete: () =>
-                                                _showDeleteDialog(context, msg.id),
-                                            onReact: (emoji) =>
-                                                cubit.addReaction(msg.id, emoji),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                        ),
-                      ),
-                    ),
-
-                    // â”€â”€ Bottom Gradient Fade â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      height: 120,
-                      child: IgnorePointer(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                              colors: [
-                                Colors.black.withOpacity(0.45),
-                                Colors.black.withOpacity(0.20),
-                                Colors.transparent,
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // â”€â”€ Chat Input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: SafeArea(
                         child: ChatInput(
                           replyMessage: replyingTo,
                           onCancelReply: () => cubit.setReply(null),
-                          // âœ… FIX: onSend signature Ù…ØªØ²Ø§Ù…Ù† Ù…Ø¹ ChatInput
                           onSend: (text, _) => cubit.sendMessage(text),
                         ),
                       ),
@@ -366,7 +301,7 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
 
-            // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Header ──────────────────────────────
             Positioned(
               top: 0,
               left: 0,
@@ -395,7 +330,7 @@ class _ChatScreenState extends State<ChatScreen> {
           Icon(Icons.chat_bubble_outline_rounded, color: Colors.white12, size: 56),
           SizedBox(height: 12),
           Text(
-            'Ø§Ø¨Ø¯Ø£ Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø© Ø§Ù„Ø¢Ù† ðŸ‘‹',
+            'ابدأ المحادثة الآن 👋',
             style: TextStyle(color: Colors.white24, fontSize: 15),
           ),
         ],
@@ -404,9 +339,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Header Widget â€” Ù…Ù†ÙØµÙ„ Ø¹Ø´Ø§Ù† Ø§Ù„Ù€ GlobalKey ÙŠØ´ØªØºÙ„
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
+// Header Widget 
+// ─────────────────────────────────────────────
 
 class _Header extends StatelessWidget {
   final String receiverName;
@@ -422,8 +357,6 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🟢 Performance Fix #4a: RepaintBoundary على الـ Header يمنع الـ blur
-    // من إعادة رسم الـ messages list في كل scroll event.
     return RepaintBoundary(
       child: Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -454,7 +387,6 @@ class _Header extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // Avatar with online indicator
                 Stack(
                   children: [
                     Container(
@@ -525,15 +457,15 @@ class _Header extends StatelessWidget {
                     ],
                   ),
                 ),
-                _HeaderIcon(icon: Icons.videocam_outlined),
+                const _HeaderIcon(icon: Icons.videocam_outlined),
                 const SizedBox(width: 10),
-                _HeaderIcon(icon: Icons.call_outlined),
+                const _HeaderIcon(icon: Icons.call_outlined),
               ],
             ),
           ),
         ),
       ),
-    ), // RepaintBoundary
+    ),
     );
   }
 }
@@ -544,8 +476,6 @@ class _HeaderIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🟢 Performance Fix #4b: RepaintBoundary على كل icon يمنع الـ blur
-    // من invalidate الـ parent layer عند أي تغيير.
     return RepaintBoundary(
       child: ClipOval(
         child: BackdropFilter(
@@ -565,9 +495,9 @@ class _HeaderIcon extends StatelessWidget {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 // Edit Dialog
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 
 class _EditDialog extends StatefulWidget {
   final Message message;
@@ -591,7 +521,7 @@ class _EditDialogState extends State<_EditDialog> {
       backgroundColor: const Color(0xFF1E1E1E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: const Text(
-        'ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø±Ø³Ø§Ù„Ø©',
+        'تعديل الرسالة',
         style: TextStyle(
           color: Colors.white,
           fontSize: 16,
@@ -605,7 +535,7 @@ class _EditDialogState extends State<_EditDialog> {
         maxLines: null,
         textInputAction: TextInputAction.newline,
         decoration: const InputDecoration(
-          hintText: 'ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ù†Øµ...',
+          hintText: 'تعديل النص...',
           hintStyle: TextStyle(color: Colors.white38),
           enabledBorder: UnderlineInputBorder(
             borderSide: BorderSide(color: Colors.white24),
@@ -618,7 +548,7 @@ class _EditDialogState extends State<_EditDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Ø¥Ù„ØºØ§Ø¡', style: TextStyle(color: Colors.white54)),
+          child: const Text('إلغاء', style: TextStyle(color: Colors.white54)),
         ),
         TextButton(
           onPressed: () {
@@ -629,7 +559,7 @@ class _EditDialogState extends State<_EditDialog> {
             Navigator.pop(context);
           },
           child: const Text(
-            'Ø­ÙØ¸',
+            'حفظ',
             style: TextStyle(
               color: Color(0xFF4186F6),
               fontWeight: FontWeight.bold,
@@ -640,3 +570,4 @@ class _EditDialogState extends State<_EditDialog> {
     );
   }
 }
+
