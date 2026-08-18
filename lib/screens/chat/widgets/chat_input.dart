@@ -8,14 +8,14 @@ import 'package:chatx/screens/chat/models/message_model.dart';
 
 // --- Constants & Styles ---
 class _Style {
-  static const Color accentColor = Color(0xFF007AFF); 
+  static const Color accentColor = Color(0xFF007AFF);
   static const Color textColor = Colors.white;
   static const Color hintTextColor = Colors.white38;
   static const Color backgroundColor = Colors.black;
   static const Color iconColor = Colors.white54;
   
   static const double borderRadius = 28.0;
-  static const double compactVerticalPadding = 8.0; 
+  static const double compactVerticalPadding = 8.0;
   static const double iconSize = 24.0; 
   static const double inputFontSize = 14.0;
 }
@@ -36,8 +36,7 @@ class ChatInput extends StatefulWidget {
   State<ChatInput> createState() => _ChatInputState();
 }
 
-class _ChatInputState extends State<ChatInput>
-    with SingleTickerProviderStateMixin {
+class _ChatInputState extends State<ChatInput> with SingleTickerProviderStateMixin {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
@@ -50,23 +49,20 @@ class _ChatInputState extends State<ChatInput>
   @override
   void initState() {
     super.initState();
-
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 220),
     );
-
     _sendAnimation = CurvedAnimation(
       parent: _animController,
       curve: Curves.easeOutBack,
     );
-
     _controller.addListener(_onTextChanged);
   }
 
   void _onTextChanged() {
     final hasText = _controller.text.trim().isNotEmpty;
-    if (hasText == _hasText) return; 
+    if (hasText == _hasText) return;
     
     setState(() => _hasText = hasText);
     
@@ -89,6 +85,7 @@ class _ChatInputState extends State<ChatInput>
   void _send() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
+    
     widget.onSend(text, widget.replyMessage?.id);
     _controller.clear();
     widget.onCancelReply?.call();
@@ -107,7 +104,6 @@ class _ChatInputState extends State<ChatInput>
   // --- Build ---
   @override
   Widget build(BuildContext context) {
-    // شيلنا الـ Container الخارجي اللي كان فيه الـ Gradient عشان نرجع الفلوتينج
     return SafeArea(
       top: false, 
       child: Column(
@@ -121,67 +117,50 @@ class _ChatInputState extends State<ChatInput>
 
           Padding(
             padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
-            // ضفنا ظل (Shadow) خفيف ورا البار كله عشان يفصله عن الرسايل
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(_Style.borderRadius),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.4),
-                    blurRadius: 20,
-                    spreadRadius: 2,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(_Style.borderRadius),
-                child: BackdropFilter(
-                  // الحفاظ على تأثير الزجاج القوي
-                  filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: _Style.compactVerticalPadding),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(_Style.borderRadius),
-                      // التعديل هنا: استخدام أسود شفاف بدل الأبيض عشان يكتم إضاءة الرسايل اللي بتعدي تحته
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.black.withOpacity(0.65),
-                          Colors.black.withOpacity(0.45),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      // إطار زجاجي رفيع
-                      border: Border.all(color: Colors.white.withOpacity(0.08), width: 0.5),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(bottom: 2),
-                          child: _AttachButtonWidget(),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _TextFieldWidget(
-                            controller: _controller,
-                            focusNode: _focusNode,
-                            onEmojiToggle: _toggleEmoji,
-                            showEmoji: _showEmoji,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 2),
-                          child: _SendOrMicButtonWidget(
-                            hasText: _hasText,
-                            animation: _sendAnimation,
-                            onSend: _send,
-                          ),
-                        ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(_Style.borderRadius),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: _Style.compactVerticalPadding),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(_Style.borderRadius),
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.black.withOpacity(0.65),
+                        Colors.black.withOpacity(0.45),
                       ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
+                    border: Border.all(color: Colors.white.withOpacity(0.08), width: 0.5),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 2),
+                        child: _AttachButtonWidget(),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _TextFieldWidget(
+                          controller: _controller,
+                          focusNode: _focusNode,
+                          onEmojiToggle: _toggleEmoji,
+                          showEmoji: _showEmoji,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: _SendOrMicButtonWidget(
+                          hasText: _hasText,
+                          animation: _sendAnimation,
+                          onSend: _send,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -325,9 +304,9 @@ class _SendOrMicButtonWidget extends StatelessWidget {
                 ),
               ),
             )
-          : Padding(
-              key: const ValueKey('mic_inactive'),
-              padding: const EdgeInsets.all(8.0),
+          : const Padding(
+              key: ValueKey('mic_inactive'),
+              padding: EdgeInsets.all(8.0),
               child: Icon(
                 Icons.mic_none_rounded,
                 color: _Style.iconColor,
@@ -415,7 +394,7 @@ class _AttachButtonWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // أضف الأكشن الخاص بك هنا
+        // Handle Action
       },
       behavior: HitTestBehavior.opaque,
       child: Container(
