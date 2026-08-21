@@ -1,9 +1,9 @@
 // ============================================================
-// group_chat_screen_ui.dart â€” ChatX Group Chat UI
-// âœ… ÙŠØ³ØªØ®Ø¯Ù… GroupChatCubit Ù…Ø´ ChatCubit
-// âœ… senderImage Ø§ØªØ´Ø§Ù„ â€” Avatar Ø¨Ø§Ù„Ø­Ø±Ù Ø§Ù„Ø£ÙˆÙ„
-// âœ… Glassmorphism Header
-// âœ… Dynamic sender info (Ø£ÙˆÙ„ Ø±Ø³Ø§Ù„Ø© ÙÙŠ Ø§Ù„Ø³Ù„Ø³Ù„Ø© Ø¨Ø³)
+// group_chat_screen_ui.dart — ChatX Group Chat UI
+// ✅ يستخدم GroupChatCubit مش ChatCubit
+// ✅ senderImage اتشال — Avatar بالحرف الأول
+// ✅ Glassmorphism Header
+// ✅ Dynamic sender info (أول رسالة في السلسلة بس)
 // ============================================================
 
 import 'dart:ui';
@@ -122,26 +122,26 @@ class _GroupChatScreenUIState extends State<GroupChatScreenUI> {
         backgroundColor: const Color(0xFF1E1E1E),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
-          'Ø­Ø°Ù Ø§Ù„Ø±Ø³Ø§Ù„Ø©',
+          'حذف الرسالة',
           style: TextStyle(
               color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
         ),
         content: const Text(
-          'Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ Ù…Ù† Ø±ØºØ¨ØªÙƒ ÙÙŠ Ø­Ø°Ù Ù‡Ø°Ù‡ Ø§Ù„Ø±Ø³Ø§Ù„Ø©ØŸ',
+          'هل أنت متأكد من رغبتك في حذف هذه الرسالة؟',
           style: TextStyle(color: Colors.white70, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
             child:
-                const Text('Ø¥Ù„ØºØ§Ø¡', style: TextStyle(color: Colors.white54)),
+                const Text('إلغاء', style: TextStyle(color: Colors.white54)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(dialogCtx);
               _cubit.deleteMessage(messageId);
             },
-            child: const Text('Ø­Ø°Ù',
+            child: const Text('حذف',
                 style: TextStyle(
                     color: Colors.redAccent, fontWeight: FontWeight.bold)),
           ),
@@ -173,7 +173,7 @@ class _GroupChatScreenUIState extends State<GroupChatScreenUI> {
         backgroundColor: Colors.transparent,
         body: Stack(
           children: [
-            // â”€â”€ Background â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Background ──────────────────────────────────────────
             Positioned.fill(
               child: RepaintBoundary(
                 child: Stack(
@@ -186,7 +186,7 @@ class _GroupChatScreenUIState extends State<GroupChatScreenUI> {
               ),
             ),
 
-            // â”€â”€ Main Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Main Content ────────────────────────────────────────
             BlocConsumer<GroupChatCubit, ChatState>(
               listenWhen: (prev, curr) =>
                   curr is ChatError && prev is! ChatError,
@@ -233,7 +233,7 @@ class _GroupChatScreenUIState extends State<GroupChatScreenUI> {
 
                 return Stack(
                   children: [
-                    // â”€â”€ Messages List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                    // ── Messages List ───────────────────────────────
                     Positioned(
                       top: _headerHeight,
                       left: 0,
@@ -260,7 +260,7 @@ class _GroupChatScreenUIState extends State<GroupChatScreenUI> {
                                       itemBuilder: (context, index) {
                                         final msg = messages[index];
 
-                                        // Ø¥Ø¸Ù‡Ø§Ø± Ø§Ù„Ø§Ø³Ù… ÙˆØ§Ù„Ù€ avatar ÙÙ‚Ø· Ù„Ø£ÙˆÙ„ Ø±Ø³Ø§Ù„Ø© ÙÙŠ Ø§Ù„Ø³Ù„Ø³Ù„Ø©
+                                        // إظهار الاسم والـ avatar فقط لأول رسالة في السلسلة
                                         bool showSenderInfo = false;
                                         if (!msg.isMe) {
                                           if (index ==
@@ -307,7 +307,7 @@ class _GroupChatScreenUIState extends State<GroupChatScreenUI> {
                       ),
                     ),
 
-                    // â”€â”€ Bottom Gradient Fade â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                    // ── Bottom Gradient Fade ─────────────────────────
                     Positioned(
                       bottom: 0,
                       left: 0,
@@ -330,7 +330,7 @@ class _GroupChatScreenUIState extends State<GroupChatScreenUI> {
                       ),
                     ),
 
-                    // â”€â”€ Chat Input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                    // ── Chat Input ───────────────────────────────────
                     Positioned(
                       bottom: 0,
                       left: 0,
@@ -348,7 +348,7 @@ class _GroupChatScreenUIState extends State<GroupChatScreenUI> {
               },
             ),
 
-            // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Header ──────────────────────────────────────────────
             Positioned(
               top: 0,
               left: 0,
@@ -378,7 +378,7 @@ class _GroupChatScreenUIState extends State<GroupChatScreenUI> {
           Icon(Icons.groups_outlined, color: Colors.white12, size: 64),
           SizedBox(height: 16),
           Text(
-            'Ù„Ø§ ØªÙˆØ¬Ø¯ Ø±Ø³Ø§Ø¦Ù„ Ø¨Ø¹Ø¯',
+            'لا توجد رسائل بعد',
             style: TextStyle(
                 color: Colors.white54,
                 fontSize: 16,
@@ -386,7 +386,7 @@ class _GroupChatScreenUIState extends State<GroupChatScreenUI> {
           ),
           SizedBox(height: 4),
           Text(
-            'Ø§Ø¨Ø¯Ø£ Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø© Ù…Ø¹ Ø£Ø¹Ø¶Ø§Ø¡ Ø§Ù„Ø¬Ø±ÙˆØ¨ ðŸ‘‹',
+            'ابدأ المحادثة مع أعضاء الجروب 👋',
             style: TextStyle(color: Colors.white24, fontSize: 14),
           ),
         ],
@@ -395,9 +395,9 @@ class _GroupChatScreenUIState extends State<GroupChatScreenUI> {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Group Message Wrapper â€” Avatar Ø¨Ø§Ù„Ø­Ø±Ù Ø§Ù„Ø£ÙˆÙ„ (Ø¨Ø¯Ù„ senderImage)
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
+// Group Message Wrapper — Avatar بالحرف الأول (بدل senderImage)
+// ──────────────────────────────────────────────────────────────────────────
 
 class _GroupMessageWrapper extends StatelessWidget {
   final Message message;
@@ -424,7 +424,7 @@ class _GroupMessageWrapper extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar Ø£Ùˆ Ù…Ø³Ø§ÙØ© ÙØ§Ø¶ÙŠØ©
+          // Avatar أو مسافة فاضية
           if (showSenderInfo)
             Container(
               margin: const EdgeInsets.only(right: 10),
@@ -442,7 +442,7 @@ class _GroupMessageWrapper extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4, left: 4),
                     child: Text(
-                      message.senderName ?? 'Ø¹Ø¶Ùˆ',
+                      message.senderName ?? 'عضو',
                       style: const TextStyle(
                         color: Color(0xFF4186F6),
                         fontSize: 13,
@@ -460,15 +460,15 @@ class _GroupMessageWrapper extends StatelessWidget {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Sender Avatar â€” Ø§Ù„Ø­Ø±Ù Ø§Ù„Ø£ÙˆÙ„ Ù…Ù† Ø§Ù„Ø§Ø³Ù… (Ø¨Ø¯Ù„ NetworkImage)
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
+// Sender Avatar — الحرف الأول من الاسم (بدل NetworkImage)
+// ──────────────────────────────────────────────────────────────────────────
 
 class _SenderAvatar extends StatelessWidget {
   final String name;
   const _SenderAvatar({required this.name});
 
-  // Ø£Ù„ÙˆØ§Ù† Ø«Ø§Ø¨ØªØ© Ù…Ø¨Ù†ÙŠØ© Ø¹Ù„Ù‰ Ø£ÙˆÙ„ Ø­Ø±Ù Ù…Ù† Ø§Ù„Ø§Ø³Ù…
+  // ألوان ثابتة مبنية على أول حرف من الاسم
   static const _colors = [
     Color(0xFF4186F6),
     Color(0xFF22C55E),
@@ -504,9 +504,9 @@ class _SenderAvatar extends StatelessWidget {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Group Header â€” Glassmorphism
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
+// Group Header — Glassmorphism
+// ──────────────────────────────────────────────────────────────────────────
 
 class _GroupHeader extends StatelessWidget {
   final String groupName;
@@ -532,7 +532,8 @@ class _GroupHeader extends StatelessWidget {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
             child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              // تم تعديل المسافات الداخلية ليكون الهيدر متناسق أكثر
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(26),
                 gradient: LinearGradient(
@@ -558,9 +559,12 @@ class _GroupHeader extends StatelessWidget {
                   // Back button
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
-                    child: const _HeaderIcon(icon: Icons.arrow_back_ios_rounded),
+                    // تم تغيير الأيقونة لأيقونة حديثة أكثر تناسقاً
+                    child: const _HeaderIcon(icon: Icons.arrow_back_ios_new_rounded),
                   ),
-                  const SizedBox(width: 10),
+                  
+                  // تم توحيد المسافات هنا لـ 12 لتوزيع بصري متوازن
+                  const SizedBox(width: 12),
 
                   // Group Avatar
                   Stack(
@@ -600,7 +604,9 @@ class _GroupHeader extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(width: 14),
+                  
+                  // تم توحيد المسافة هنا لـ 12
+                  const SizedBox(width: 12),
 
                   // Group Name + Members
                   Expanded(
@@ -627,17 +633,17 @@ class _GroupHeader extends StatelessWidget {
                             style: const TextStyle(fontSize: 12),
                             children: [
                               TextSpan(
-                                text: '$memberCount Ø¹Ø¶Ùˆ',
+                                text: '$memberCount عضو',
                                 style: const TextStyle(
                                     color: Colors.white54),
                               ),
                               const TextSpan(
-                                text: '  â€¢  ',
+                                text: '  •  ',
                                 style: TextStyle(
                                     color: Colors.white24, fontSize: 10),
                               ),
                               TextSpan(
-                                text: '$onlineCount Ù…ØªØµÙ„',
+                                text: '$onlineCount متصل',
                                 style: const TextStyle(
                                   color: Color(0xFF22C55E),
                                   fontWeight: FontWeight.w600,
@@ -649,7 +655,9 @@ class _GroupHeader extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  
+                  // تم توحيد المسافة هنا لـ 12 لتتناسق مع باقي المسافات
+                  const SizedBox(width: 12),
                   const _HeaderIcon(icon: Icons.more_vert_rounded),
                 ],
               ),
@@ -687,9 +695,9 @@ class _HeaderIcon extends StatelessWidget {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 // Edit Dialog
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 
 class _EditDialog extends StatefulWidget {
   final Message message;
@@ -714,7 +722,7 @@ class _EditDialogState extends State<_EditDialog> {
       shape:
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: const Text(
-        'ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø±Ø³Ø§Ù„Ø©',
+        'تعديل الرسالة',
         style: TextStyle(
             color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
       ),
@@ -725,7 +733,7 @@ class _EditDialogState extends State<_EditDialog> {
         maxLines: null,
         textInputAction: TextInputAction.newline,
         decoration: const InputDecoration(
-          hintText: 'ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ù†Øµ...',
+          hintText: 'تعديل النص...',
           hintStyle: TextStyle(color: Colors.white38),
           enabledBorder: UnderlineInputBorder(
               borderSide: BorderSide(color: Colors.white24)),
@@ -737,7 +745,7 @@ class _EditDialogState extends State<_EditDialog> {
         TextButton(
           onPressed: () => Navigator.pop(context),
           child:
-              const Text('Ø¥Ù„ØºØ§Ø¡', style: TextStyle(color: Colors.white54)),
+              const Text('إلغاء', style: TextStyle(color: Colors.white54)),
         ),
         TextButton(
           onPressed: () {
@@ -748,7 +756,7 @@ class _EditDialogState extends State<_EditDialog> {
             Navigator.pop(context);
           },
           child: const Text(
-            'Ø­ÙØ¸',
+            'حفظ',
             style: TextStyle(
                 color: Color(0xFF4186F6), fontWeight: FontWeight.bold),
           ),
@@ -757,3 +765,4 @@ class _EditDialogState extends State<_EditDialog> {
     );
   }
 }
+
