@@ -233,10 +233,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   }
                 }
 
-                // استخدمنا Column لفصل الرسائل عن منطقة الإدخال لضمان عدم التداخل
                 return Column(
                   children: [
-                    // مساحة شفافة تعادل حجم الـ Header لضمان نزول الرسائل خلفه بشكل صحيح
                     SizedBox(height: _headerHeight),
                     
                     // ── Messages List ─────────────────
@@ -254,7 +252,6 @@ class _ChatScreenState extends State<ChatScreen> {
                                 : ListView.builder(
                                     controller: _scrollController,
                                     reverse: true,
-                                    // قللنا المسافة السفلية لأن حقل الإدخال أصبح مفصولاً أسفل القائمة
                                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
                                     itemCount: messages.length,
                                     itemBuilder: (context, index) {
@@ -284,9 +281,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
 
                     // ── Chat Input ────────────────────
-                    // غلفنا حقل الإدخال بحاوية صلبة لتجنب أي تداخل بصري
                     Container(
-                      color: Colors.transparent, // يمكن تعديلها لـ Colors.black.withOpacity(0.8) إذا أردت خلفية صلبة
+                      color: Colors.transparent,
                       child: SafeArea(
                         top: false,
                         child: ChatInput(
@@ -570,4 +566,3 @@ class _EditDialogState extends State<_EditDialog> {
     );
   }
 }
-
