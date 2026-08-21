@@ -104,90 +104,87 @@ class _ChatInputState extends State<ChatInput> with SingleTickerProviderStateMix
   // --- Build ---
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false, 
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (widget.replyMessage != null)
-            _ReplyPreviewWidget(
-              message: widget.replyMessage!,
-              onCancel: widget.onCancelReply,
-            ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (widget.replyMessage != null)
+          _ReplyPreviewWidget(
+            message: widget.replyMessage!,
+            onCancel: widget.onCancelReply,
+          ),
 
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(_Style.borderRadius),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: _Style.compactVerticalPadding),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(_Style.borderRadius),
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.black.withOpacity(0.65),
-                        Colors.black.withOpacity(0.45),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    border: Border.all(color: Colors.white.withOpacity(0.08), width: 0.5),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(bottom: 2),
-                        child: _AttachButtonWidget(),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _TextFieldWidget(
-                          controller: _controller,
-                          focusNode: _focusNode,
-                          onEmojiToggle: _toggleEmoji,
-                          showEmoji: _showEmoji,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 2),
-                        child: _SendOrMicButtonWidget(
-                          hasText: _hasText,
-                          animation: _sendAnimation,
-                          onSend: _send,
-                        ),
-                      ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(_Style.borderRadius),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: _Style.compactVerticalPadding),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(_Style.borderRadius),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white.withOpacity(0.10),
+                      Colors.white.withOpacity(0.03),
                     ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                  border: Border.all(color: Colors.white.withOpacity(0.08), width: 0.5),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 2),
+                      child: _AttachButtonWidget(),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _TextFieldWidget(
+                        controller: _controller,
+                        focusNode: _focusNode,
+                        onEmojiToggle: _toggleEmoji,
+                        showEmoji: _showEmoji,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: _SendOrMicButtonWidget(
+                        hasText: _hasText,
+                        animation: _sendAnimation,
+                        onSend: _send,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
+        ),
 
-          if (_showEmoji)
-            _EmojiPanelWidget(
-              onEmojiSelected: (emoji) {
-                final text = _controller.text;
-                final selection = _controller.selection;
-                
-                if (selection.start >= 0 && selection.end >= 0) {
-                  final newText = text.replaceRange(selection.start, selection.end, emoji);
-                  _controller.value = TextEditingValue(
-                    text: newText,
-                    selection: TextSelection.collapsed(
-                      offset: selection.start + emoji.characters.length,
-                    ),
-                  );
-                } else {
-                  _controller.text = text + emoji;
-                }
-              },
-            ),
-        ],
-      ),
+        if (_showEmoji)
+          _EmojiPanelWidget(
+            onEmojiSelected: (emoji) {
+              final text = _controller.text;
+              final selection = _controller.selection;
+              
+              if (selection.start >= 0 && selection.end >= 0) {
+                final newText = text.replaceRange(selection.start, selection.end, emoji);
+                _controller.value = TextEditingValue(
+                  text: newText,
+                  selection: TextSelection.collapsed(
+                    offset: selection.start + emoji.characters.length,
+                  ),
+                );
+              } else {
+                _controller.text = text + emoji;
+              }
+            },
+          ),
+      ],
     );
   }
 }
