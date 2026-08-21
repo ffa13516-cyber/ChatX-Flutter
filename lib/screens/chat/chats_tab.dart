@@ -98,30 +98,76 @@ class _ChatsTabState extends State<ChatsTab> {
 
   @override
   Widget build(BuildContext context) {
+    if (_myUid.isEmpty) {
+      return const Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFF6C63FF),
+            strokeWidth: 3,
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            _buildCategoryTabs(),
-            Expanded(
-              child: _buildCombinedList(),
-            ),
-          ],
+        // رفعنا جلب البيانات هنا لكي نتمكن من حساب عدد المحادثات الغير مقروءة لشريط التصنيفات
+        child: StreamBuilder<List<ChatModel>>(
+          stream: FirebaseRepo.observeUserChats(_myUid),
+          builder: (context, chatsSnapshot) {
+            return StreamBuilder<List<GroupModel>>(
+              stream: FirebaseRepo.observeUserGroups(_myUid),
+              builder: (context, groupsSnapshot) {
+                final bool isLoading =
+                    !chatsSnapshot.hasData && !groupsSnapshot.hasData;
+                final chats = chatsSnapshot.data ?? [];
+                final groups = groupsSnapshot.data ?? [];
+
+                // حساب عدد المحادثات الخاصة الغير مقروءة
+                int unreadPrivateChats = chats
+                    .where((chat) => (chat.unreadCounts[_myUid] ?? 0) > 0)
+                    .length;
+
+                // إذا كان للمجموعات عداد، يتم إضافته هنا (مؤقتاً 0 بناءً على الموديل الحالي)
+                int unreadGroupChats = 0; 
+                int totalUnreadChats = unreadPrivateChats + unreadGroupChats;
+
+                return Column(
+                  children: [
+                    _buildCategoryTabs(
+                        totalUnreadChats, unreadPrivateChats, unreadGroupChats),
+                    Expanded(
+                      child: _buildCombinedList(chats, groups, isLoading),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
         ),
       ),
     );
   }
 
-  // شريط التصنيفات المنحني العلوي
-  Widget _buildCategoryTabs() {
+  // شريط التصنيفات المنحني العلوي المحدث
+  Widget _buildCategoryTabs(
+      int totalUnread, int privateUnread, int groupsUnread) {
+    int getUnreadCountForIndex(int index) {
+      if (index == 0) return totalUnread;
+      if (index == 1) return privateUnread;
+      if (index == 2) return groupsUnread;
+      return 0;
+    }
+
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      padding: const EdgeInsets.all(4),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: const Color(0xFF6C63FF).withOpacity(0.18),
           width: 1,
@@ -130,6 +176,8 @@ class _ChatsTabState extends State<ChatsTab> {
       child: Row(
         children: List.generate(_categories.length, (index) {
           final isSelected = _selectedCategoryIndex == index;
+          final unreadChatsCount = getUnreadCountForIndex(index);
+
           return Expanded(
             child: GestureDetector(
               onTap: () {
@@ -139,31 +187,48 @@ class _ChatsTabState extends State<ChatsTab> {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeInOut,
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? const Color(0xFF6C63FF)
+                      ? Colors.white.withOpacity(0.05)
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: const Color(0xFF6C63FF).withOpacity(0.35),
-                            blurRadius: 10,
-                            offset: const Offset(0, 3),
-                          )
-                        ]
-                      : [],
+                  borderRadius: BorderRadius.circular(22),
                 ),
-                child: Text(
-                  _categories[index],
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.white54,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    fontSize: 13,
-                    letterSpacing: 0.3,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _categories[index],
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: isSelected
+                            ? const Color(0xFF6C63FF)
+                            : Colors.white54,
+                        fontWeight:
+                            isSelected ? FontWeight.w700 : FontWeight.w500,
+                        fontSize: 13,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    if (unreadChatsCount > 0) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF6C63FF),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          unreadChatsCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),
@@ -174,92 +239,68 @@ class _ChatsTabState extends State<ChatsTab> {
   }
 
   // القائمة المفلترة حسب التصنيف
-  Widget _buildCombinedList() {
-    if (_myUid.isEmpty) {
+  Widget _buildCombinedList(
+      List<ChatModel> chats, List<GroupModel> groups, bool isLoading) {
+    if (isLoading) {
       return const Center(
         child: CircularProgressIndicator(
-          color: Color(0xFF6C63FF),
-          strokeWidth: 3,
+            color: Color(0xFF6C63FF), strokeWidth: 3),
+      );
+    }
+
+    final List<_CombinedListItem> combinedList = [];
+
+    // 0: All | 1: Private (Chats)
+    if (_selectedCategoryIndex == 0 || _selectedCategoryIndex == 1) {
+      for (var chat in chats) {
+        final isPinned = chat.pinnedBy.contains(_myUid);
+        combinedList.add(_CombinedListItem(
+          chat: chat,
+          timestamp: _getTimestamp(chat.lastMessageTime),
+          isPinned: isPinned,
+        ));
+      }
+    }
+
+    // 0: All | 2: Groups
+    if (_selectedCategoryIndex == 0 || _selectedCategoryIndex == 2) {
+      for (var group in groups) {
+        combinedList.add(_CombinedListItem(
+          group: group,
+          timestamp: group.lastMessageTime,
+          isPinned: false,
+        ));
+      }
+    }
+
+    // ترتيب زمني مع تقديم المثبت أولاً
+    combinedList.sort((a, b) {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return b.timestamp.compareTo(a.timestamp);
+    });
+
+    if (combinedList.isEmpty) {
+      return const Center(
+        child: EmptyStateWidget(
+          icon: Icons.chat_bubble_outline_rounded,
+          title: 'No activity yet',
+          subtitle: 'Start chatting and make friends!',
         ),
       );
     }
 
-    return StreamBuilder<List<ChatModel>>(
-      stream: FirebaseRepo.observeUserChats(_myUid),
-      builder: (context, chatsSnapshot) {
-        return StreamBuilder<List<GroupModel>>(
-          stream: FirebaseRepo.observeUserGroups(_myUid),
-          builder: (context, groupsSnapshot) {
-            final chats = chatsSnapshot.data ?? [];
-            final groups = groupsSnapshot.data ?? [];
-
-            final bool isLoading =
-                !chatsSnapshot.hasData && !groupsSnapshot.hasData;
-
-            if (isLoading) {
-              return const Center(
-                child: CircularProgressIndicator(
-                    color: Color(0xFF6C63FF), strokeWidth: 3),
-              );
-            }
-
-            final List<_CombinedListItem> combinedList = [];
-
-            // 0: All | 1: Private (Chats)
-            if (_selectedCategoryIndex == 0 || _selectedCategoryIndex == 1) {
-              for (var chat in chats) {
-                final isPinned = chat.pinnedBy.contains(_myUid);
-                combinedList.add(_CombinedListItem(
-                  chat: chat,
-                  timestamp: _getTimestamp(chat.lastMessageTime),
-                  isPinned: isPinned,
-                ));
-              }
-            }
-
-            // 0: All | 2: Groups
-            if (_selectedCategoryIndex == 0 || _selectedCategoryIndex == 2) {
-              for (var group in groups) {
-                combinedList.add(_CombinedListItem(
-                  group: group,
-                  timestamp: group.lastMessageTime,
-                  isPinned: false,
-                ));
-              }
-            }
-
-            // ترتيب زمني مع تقديم المثبت أولاً
-            combinedList.sort((a, b) {
-              if (a.isPinned && !b.isPinned) return -1;
-              if (!a.isPinned && b.isPinned) return 1;
-              return b.timestamp.compareTo(a.timestamp);
-            });
-
-            if (combinedList.isEmpty) {
-              return const Center(
-                child: EmptyStateWidget(
-                  icon: Icons.chat_bubble_outline_rounded,
-                  title: 'No activity yet',
-                  subtitle: 'Start chatting and make friends!',
-                ),
-              );
-            }
-
-            return ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              itemCount: combinedList.length,
-              itemBuilder: (context, index) {
-                final item = combinedList[index];
-                if (item.chat != null) {
-                  return _buildChatItem(item.chat!);
-                } else if (item.group != null) {
-                  return _buildGroupItem(item.group!);
-                }
-                return const SizedBox.shrink();
-              },
-            );
-          },
-        );
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      itemCount: combinedList.length,
+      itemBuilder: (context, index) {
+        final item = combinedList[index];
+        if (item.chat != null) {
+          return _buildChatItem(item.chat!);
+        } else if (item.group != null) {
+          return _buildGroupItem(item.group!);
+        }
+        return const SizedBox.shrink();
       },
     );
   }
@@ -317,7 +358,7 @@ class _ChatsTabState extends State<ChatsTab> {
       time: time,
       avatarUrl: null,
       isOnline: false,
-      unreadCount: 0,
+      unreadCount: 0, // المجموعة لا تملك عداد غير مقروء في الموديل الحالي
       isPinned: false,
       onTap: () async {
         HapticFeedback.lightImpact();
