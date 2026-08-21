@@ -10,7 +10,6 @@ import '../../utils/app_colors.dart';
 import '../../utils/session_manager.dart';
 import '../../widgets/widgets.dart';
 import 'chat_screen.dart';
-import '../group/groups_tab.dart'; // âœ… Ø¹Ø´Ø§Ù† CreateGroupSheet
 import '../group/group_chat_screen_ui.dart';
 
 class ChatsTab extends StatefulWidget {
@@ -23,6 +22,9 @@ class ChatsTab extends StatefulWidget {
 class _ChatsTabState extends State<ChatsTab> {
   String _myUid = '';
   String _myName = '';
+
+  int _selectedCategoryIndex = 0; // 0: All, 1: Private, 2: Groups
+  final List<String> _categories = ['All', 'Private', 'Groups'];
 
   final Map<String, UserModel> _usersCache = {};
   final int _maxCacheSize = 100;
@@ -53,6 +55,16 @@ class _ChatsTabState extends State<ChatsTab> {
       _usersCache[uid] = user;
     }
     return user;
+  }
+
+  int _getTimestamp(dynamic timeData) {
+    if (timeData == null) return 0;
+    if (timeData is int) return timeData;
+    try {
+      return (timeData as dynamic).toDate().millisecondsSinceEpoch;
+    } catch (_) {
+      return 0;
+    }
   }
 
   String _formatMessageTime(dynamic timeData) {
@@ -90,12 +102,78 @@ class _ChatsTabState extends State<ChatsTab> {
       backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
-        child: _buildCombinedList(),
+        child: Column(
+          children: [
+            _buildCategoryTabs(),
+            Expanded(
+              child: _buildCombinedList(),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // Ã¢Å“â€¦ Ã˜Â§Ã™â€žÃ™â€šÃ˜Â§Ã˜Â¦Ã™â€¦Ã˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã˜Â­Ã˜Â¯Ã˜Â© Ã¢â‚¬â€ Ã˜Â´Ã˜Â§Ã˜ÂªÃ˜Â³ + Ã˜Â¬Ã˜Â±Ã™Ë†Ã˜Â¨Ã˜Â§Ã˜Âª Ã™ÂÃ™Å  Ã™â€ Ã™ÂÃ˜Â³ Ã˜Â§Ã™â€žÃ™â‚¬ scroll
+  // شريط التصنيفات المنحني العلوي
+  Widget _buildCategoryTabs() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: const Color(0xFF6C63FF).withOpacity(0.18),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: List.generate(_categories.length, (index) {
+          final isSelected = _selectedCategoryIndex == index;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() => _selectedCategoryIndex = index);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeInOut,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? const Color(0xFF6C63FF)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF6C63FF).withOpacity(0.35),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          )
+                        ]
+                      : [],
+                ),
+                child: Text(
+                  _categories[index],
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.white54,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    fontSize: 13,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  // القائمة المفلترة حسب التصنيف
   Widget _buildCombinedList() {
     if (_myUid.isEmpty) {
       return const Center(
@@ -115,17 +193,8 @@ class _ChatsTabState extends State<ChatsTab> {
             final chats = chatsSnapshot.data ?? [];
             final groups = groupsSnapshot.data ?? [];
 
-            // Ã˜ÂªÃ˜Â±Ã˜ÂªÃ™Å Ã˜Â¨ Ã˜Â§Ã™â€žÃ˜Â´Ã˜Â§Ã˜ÂªÃ˜Â³: Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â«Ã˜Â¨Ã˜ÂªÃ˜Â© Ã˜Â£Ã™Ë†Ã™â€žÃ˜Â§Ã™â€¹ Ã˜Â«Ã™â€¦ Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â­Ã˜Â¯Ã˜Â«
-            chats.sort((a, b) {
-              bool aPinned = a.pinnedBy.contains(_myUid);
-              bool bPinned = b.pinnedBy.contains(_myUid);
-              if (aPinned && !bPinned) return -1;
-              if (!aPinned && bPinned) return 1;
-              return b.lastMessageTime.compareTo(a.lastMessageTime);
-            });
-
-            final bool noData = chats.isEmpty && groups.isEmpty;
-            final bool isLoading = !chatsSnapshot.hasData && !groupsSnapshot.hasData;
+            final bool isLoading =
+                !chatsSnapshot.hasData && !groupsSnapshot.hasData;
 
             if (isLoading) {
               return const Center(
@@ -134,55 +203,60 @@ class _ChatsTabState extends State<ChatsTab> {
               );
             }
 
-            if (noData) {
+            final List<_CombinedListItem> combinedList = [];
+
+            // 0: All | 1: Private (Chats)
+            if (_selectedCategoryIndex == 0 || _selectedCategoryIndex == 1) {
+              for (var chat in chats) {
+                final isPinned = chat.pinnedBy.contains(_myUid);
+                combinedList.add(_CombinedListItem(
+                  chat: chat,
+                  timestamp: _getTimestamp(chat.lastMessageTime),
+                  isPinned: isPinned,
+                ));
+              }
+            }
+
+            // 0: All | 2: Groups
+            if (_selectedCategoryIndex == 0 || _selectedCategoryIndex == 2) {
+              for (var group in groups) {
+                combinedList.add(_CombinedListItem(
+                  group: group,
+                  timestamp: group.lastMessageTime,
+                  isPinned: false,
+                ));
+              }
+            }
+
+            // ترتيب زمني مع تقديم المثبت أولاً
+            combinedList.sort((a, b) {
+              if (a.isPinned && !b.isPinned) return -1;
+              if (!a.isPinned && b.isPinned) return 1;
+              return b.timestamp.compareTo(a.timestamp);
+            });
+
+            if (combinedList.isEmpty) {
               return const Center(
                 child: EmptyStateWidget(
                   icon: Icons.chat_bubble_outline_rounded,
-                  title: 'No chats yet',
+                  title: 'No activity yet',
                   subtitle: 'Start chatting and make friends!',
                 ),
               );
             }
 
-            // Ã¢Å“â€¦ Ã˜Â¨Ã™â€ Ã˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ™â€šÃ˜Â§Ã˜Â¦Ã™â€¦Ã˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã˜Â­Ã˜Â¯Ã˜Â©
-            return CustomScrollView(
-              slivers: [
-                // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Ã™â€šÃ˜Â³Ã™â€¦ Ã˜Â§Ã™â€žÃ˜Â´Ã˜Â§Ã˜ÂªÃ˜Â³ Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-                if (chats.isNotEmpty) ...[
-                  _buildSectionHeader('Messages', Icons.chat_bubble_outline_rounded),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => _buildChatItem(chats[index]),
-                        childCount: chats.length,
-                      ),
-                    ),
-                  ),
-                ],
-
-                // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Ã™â€šÃ˜Â³Ã™â€¦ Ã˜Â§Ã™â€žÃ˜Â¬Ã˜Â±Ã™Ë†Ã˜Â¨Ã˜Â§Ã˜Âª Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-                if (groups.isNotEmpty) ...[
-                  _buildSectionHeader('Groups', Icons.group_outlined),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => _buildGroupItem(groups[index]),
-                        childCount: groups.length,
-                      ),
-                    ),
-                  ),
-                ],
-
-                // Ã¢Å“â€¦ Ã˜Â²Ã˜Â±Ã˜Â§Ã˜Â± Create Group Ã™ÂÃ™Å  Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â³Ã™ÂÃ™â€ž Ã™â€žÃ™Ë† Ã™ÂÃ™Å  Ã˜Â¬Ã˜Â±Ã™Ë†Ã˜Â¨Ã˜Â§Ã˜Âª Ã˜Â£Ã™Ë† Ã˜Â§Ã™â€žÃ™Æ’Ã™â€ž Ã™ÂÃ˜Â§Ã˜Â¶Ã™Å 
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
-                  sliver: SliverToBoxAdapter(
-                    child: _buildCreateGroupButton(),
-                  ),
-                ),
-              ],
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              itemCount: combinedList.length,
+              itemBuilder: (context, index) {
+                final item = combinedList[index];
+                if (item.chat != null) {
+                  return _buildChatItem(item.chat!);
+                } else if (item.group != null) {
+                  return _buildGroupItem(item.group!);
+                }
+                return const SizedBox.shrink();
+              },
             );
           },
         );
@@ -190,31 +264,6 @@ class _ChatsTabState extends State<ChatsTab> {
     );
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Section Header Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-  Widget _buildSectionHeader(String title, IconData icon) {
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-      sliver: SliverToBoxAdapter(
-        child: Row(
-          children: [
-            Icon(icon, color: const Color(0xFF6C63FF), size: 16),
-            const SizedBox(width: 8),
-            Text(
-              title,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.45),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Chat Item (Ã™â€¦Ã™Ë†Ã˜Â¬Ã™Ë†Ã˜Â¯ Ã™â€¦Ã™â€  Ã™â€šÃ˜Â¨Ã™â€ž) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   Widget _buildChatItem(ChatModel chat) {
     final otherUid =
         chat.participants.firstWhere((id) => id != _myUid, orElse: () => '');
@@ -256,7 +305,6 @@ class _ChatsTabState extends State<ChatsTab> {
     );
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Group Item Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   Widget _buildGroupItem(GroupModel group) {
     final time = group.lastMessageTime > 0
         ? _formatMessageTime(group.lastMessageTime)
@@ -267,7 +315,7 @@ class _ChatsTabState extends State<ChatsTab> {
       lastMessage:
           group.lastMessage.isNotEmpty ? group.lastMessage : 'Tap to chat',
       time: time,
-      avatarUrl: null, // Ã˜Â§Ã™â€žÃ˜Â¬Ã˜Â±Ã™Ë†Ã˜Â¨Ã˜Â§Ã˜Âª Ã™â€¦Ã™ÂÃ™Å Ã™â€¡Ã˜Â§Ã˜Â´ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã¢â‚¬â€ Ã™â€¡Ã™Å Ã˜ÂªÃ˜Â¹Ã™â€¦Ã™â€ž avatar Ã˜Â¨Ã˜Â§Ã™â€žÃ˜Â­Ã˜Â±Ã™Â Ã˜Â§Ã™â€žÃ˜Â£Ã™Ë†Ã™â€ž
+      avatarUrl: null,
       isOnline: false,
       unreadCount: 0,
       isPinned: false,
@@ -288,54 +336,6 @@ class _ChatsTabState extends State<ChatsTab> {
         );
       },
       onLongPress: () {},
-    );
-  }
-
-  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Create Group Button Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-  Widget _buildCreateGroupButton() {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.mediumImpact();
-        showModalBottomSheet(
-          context: context,
-          backgroundColor: Colors.transparent,
-          isScrollControlled: true,
-          builder: (_) => CreateGroupSheet(myUid: _myUid),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: const Color(0xFF6C63FF).withOpacity(0.3),
-            width: 1,
-          ),
-          gradient: LinearGradient(
-            colors: [
-              const Color(0xFF6C63FF).withOpacity(0.08),
-              Colors.transparent,
-            ],
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.group_add_rounded,
-                color: const Color(0xFF6C63FF).withOpacity(0.8), size: 20),
-            const SizedBox(width: 10),
-            Text(
-              '+ Create Group',
-              style: TextStyle(
-                color: const Color(0xFF6C63FF).withOpacity(0.8),
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -474,9 +474,19 @@ class _ChatsTabState extends State<ChatsTab> {
   }
 }
 
-// ==========================================
-// Widgets Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜Â§Ã˜Â¹Ã˜Â¯Ã˜Â© (Ã™â€¦Ã˜Â­Ã˜ÂªÃ™ÂÃ˜Â¸ Ã˜Â¨Ã™Å Ã™â€¡Ã˜Â§ Ã™Æ’Ã™â€¦Ã˜Â§ Ã™â€¡Ã™Å )
-// ==========================================
+class _CombinedListItem {
+  final ChatModel? chat;
+  final GroupModel? group;
+  final int timestamp;
+  final bool isPinned;
+
+  _CombinedListItem({
+    this.chat,
+    this.group,
+    required this.timestamp,
+    required this.isPinned,
+  });
+}
 
 class ModernChatListItem extends StatelessWidget {
   final String name;
@@ -761,3 +771,4 @@ class ModernChatListItemSkeleton extends StatelessWidget {
     );
   }
 }
+
