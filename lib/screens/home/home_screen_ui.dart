@@ -2,22 +2,12 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-// مسارات الملفات الخاصة بمشروعك (تأكد من صحتها)
 import '../chat/chats_tab.dart';
 import '../profile/profile_screen.dart';
 import '../settings/settings_screen.dart';
 import '../../utils/app_colors.dart'; 
 import 'package:chatx/screens/search/search_screen_ui.dart';
-
-// ⚠️ أضف مسار ملف FirebaseRepo هنا
 // import '../../data/firebase_repo.dart';
-
-// تم تحديث الملف برؤية هندسية احترافية:
-// ✅ إزالة لوجيك البحث الداخلي (Inline Search) بالكامل لتخفيف الـ State والأداء.
-// ✅ ربط أيقونة البحث لفتح شاشة Full-Screen Search منفصلة ومعزولة تماماً.
-// ✅ الحفاظ على الهوية البصرية الفاخرة Dark Luxury Glass والـ Accents البنفسجية.
-// ✅ الحفاظ على أبعاد شريط التنقل السفلي النحيف والكبسولة الزجاجية المحسنة.
-// ✅ إضافة نظام مراقبة حالة التطبيق (Lifecycle) لإنهاء ثغرة "الزومبي أونلاين".
 
 class HomeScreenUI extends StatefulWidget {
   final int currentIndex;
@@ -26,9 +16,9 @@ class HomeScreenUI extends StatefulWidget {
   final VoidCallback onCreateGroup;
   final ValueChanged<String> onSearch;
 
-  // بيانات المستخدم الحالي — مطلوبة لتمريرها لـ SearchScreen
   final String myUid;
   final String myName;
+  final String? myAvatarUrl; // المتغير الجديد لصورة المستخدم
 
   const HomeScreenUI({
     super.key,
@@ -39,13 +29,13 @@ class HomeScreenUI extends StatefulWidget {
     required this.onSearch,
     required this.myUid,
     required this.myName,
+    this.myAvatarUrl, 
   });
 
   @override
   State<HomeScreenUI> createState() => _HomeScreenUIState();
 }
 
-// 🟢 التعديل الهندسي: إضافة WidgetsBindingObserver لمراقبة حالة التطبيق في الخلفية
 class _HomeScreenUIState extends State<HomeScreenUI> with WidgetsBindingObserver {
   final List<Widget> _screens = const [
     ChatsTab(),
@@ -56,16 +46,11 @@ class _HomeScreenUIState extends State<HomeScreenUI> with WidgetsBindingObserver
   @override
   void initState() {
     super.initState();
-    // 🟢 تسجيل المراقب بمجرد بناء الشاشة
     WidgetsBinding.instance.addObserver(this);
-    
-    // 🟢 استدعاء دالة تحديث التواجد لضبط حالة المستخدم كـ (أونلاين)
-    // FirebaseRepo.manageUserPresence(widget.myUid);
   }
 
   @override
   void dispose() {
-    // 🟢 إزالة المراقب عند تدمير الشاشة لمنع تسريب الذاكرة (Memory Leak)
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -73,31 +58,24 @@ class _HomeScreenUIState extends State<HomeScreenUI> with WidgetsBindingObserver
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    
-    // 🟢 التحكم في حالة (متصل/غير متصل) بناءً على حركة المستخدم
     switch (state) {
       case AppLifecycleState.resumed:
-        // المستخدم عاد للتطبيق (أونلاين)
-        // FirebaseRepo.setUserOnline(widget.myUid);
         break;
       case AppLifecycleState.inactive:
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden:
       case AppLifecycleState.detached:
-        // التطبيق تم إرساله للخلفية أو إغلاقه (أوفلاين)
-        // FirebaseRepo.setUserOffline(widget.myUid);
         break;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // تحديد ألوان الـ Accents للفخامة (بنفسجي مائل للزرقة)
-    final luxuryAccentColor = const Color(0xFF6C63FF).withOpacity(0.8);
+    // تم تغيير اللون للدرجة الزرقاء بناءً على التصميم المرفق
+    final activeBlueColor = const Color(0xFF4A72CC); 
 
     return Scaffold(
-      // استخدام خلفية سوداء قوية لزيادة التباين والفخامة
-      backgroundColor: const Color(0xFF0A0A0E), // أسود أعمق
+      backgroundColor: const Color(0xFF0A0A0E), 
       extendBody: true, 
       body: SafeArea(
         bottom: false,
@@ -118,8 +96,8 @@ class _HomeScreenUIState extends State<HomeScreenUI> with WidgetsBindingObserver
                   child: LuxuryGlassContainer(
                     borderRadius: 24, 
                     padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
-                    accentColor: luxuryAccentColor,
-                    child: _buildHeaderContent(context, luxuryAccentColor),
+                    accentColor: activeBlueColor,
+                    child: _buildHeaderContent(context, activeBlueColor),
                   ),
                 ),
               ),
@@ -132,16 +110,13 @@ class _HomeScreenUIState extends State<HomeScreenUI> with WidgetsBindingObserver
         ),
       ),
       bottomNavigationBar: Padding(
-        // تم تقليل المسافة السفلية (bottom) لإنزال الجزيرة أكثر
-        padding: const EdgeInsets.only(bottom: 12.0, left: 32.0, right: 32.0),
-        child: _buildFloatingIslandNavBar(luxuryAccentColor),
+        padding: const EdgeInsets.only(bottom: 12.0, left: 24.0, right: 24.0),
+        child: _buildFloatingIslandNavBar(activeBlueColor),
       ),
     );
   }
 
   Widget _buildHeaderContent(BuildContext context, Color accentColor) {
-    final luxuryAccentColor = const Color(0xFF6C63FF).withOpacity(0.8);
-
     return Container(
       key: const ValueKey('NormalHeader'),
       height: 48,
@@ -149,10 +124,9 @@ class _HomeScreenUIState extends State<HomeScreenUI> with WidgetsBindingObserver
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // ShaderMask محسن لإعطاء النص تأثير معدني فاخر بلمسة بنفسجية
           ShaderMask(
             shaderCallback: (bounds) => LinearGradient(
-              colors: [luxuryAccentColor, Colors.white, Colors.white.withOpacity(0.8)],
+              colors: [accentColor, Colors.white, Colors.white.withOpacity(0.8)],
               stops: const [0.0, 0.5, 1.0],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -171,11 +145,8 @@ class _HomeScreenUIState extends State<HomeScreenUI> with WidgetsBindingObserver
             children: [
               IconButton(
                 icon: const Icon(Icons.search_rounded, color: Colors.white, size: 24),
-                splashColor: Colors.transparent,
-                highlightColor: Colors.transparent,
                 onPressed: () {
                   HapticFeedback.mediumImpact();
-                  // الانتقال السلس لشاشة البحث الكاملة والمنفصلة تماماً
                   Navigator.of(context).push(
                     PageRouteBuilder(
                       pageBuilder: (context, animation, secondaryAnimation) => SearchScreen(
@@ -196,13 +167,10 @@ class _HomeScreenUIState extends State<HomeScreenUI> with WidgetsBindingObserver
                 ),
                 child: PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert_rounded, color: Colors.white, size: 24),
-                  // تحسين قائمة الـ Popup لتكون أكثر تجانساً مع الشكل الزجاجي
                   color: const Color(0xFF1A1A22).withOpacity(0.96), 
                   elevation: 10,
-                  shadowColor: Colors.black45,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
-                    // إضافة حافة بنفسجية دقيقة لقائمة القائمة
                     side: BorderSide(color: accentColor.withOpacity(0.12)),
                   ),
                   onSelected: (value) {
@@ -230,7 +198,6 @@ class _HomeScreenUIState extends State<HomeScreenUI> with WidgetsBindingObserver
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              // تغيير خلفية الأيقونة لتكون بلمسة بنفسجية خفيفة
               color: accentColor.withOpacity(0.08),
               borderRadius: BorderRadius.circular(10),
             ),
@@ -239,11 +206,7 @@ class _HomeScreenUIState extends State<HomeScreenUI> with WidgetsBindingObserver
           const SizedBox(width: 12),
           Text(
             text, 
-            style: const TextStyle(
-              color: Colors.white, 
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
+            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -255,13 +218,13 @@ class _HomeScreenUIState extends State<HomeScreenUI> with WidgetsBindingObserver
       top: false,
       child: LuxuryGlassContainer(
         borderRadius: 36,
-        // تم تقليل الـ vertical padding لجعل الجزيرة أنحف
-        padding: const EdgeInsets.symmetric(horizontal: 22.0, vertical: 8.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
         accentColor: accentColor,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _AnimatedNavItem(
+              title: 'Chats',
               icon: Icons.chat_bubble_outline_rounded,
               activeIcon: Icons.chat_bubble_rounded,
               index: 0,
@@ -270,16 +233,19 @@ class _HomeScreenUIState extends State<HomeScreenUI> with WidgetsBindingObserver
               accentColor: accentColor,
             ),
             _AnimatedNavItem(
+              title: 'You',
               icon: Icons.person_outline_rounded,
               activeIcon: Icons.person_rounded,
+              avatarUrl: widget.myAvatarUrl,
               index: 1,
               currentIndex: widget.currentIndex,
               onTap: widget.onTabSelected,
               accentColor: accentColor,
             ),
             _AnimatedNavItem(
-              icon: Icons.tune_rounded,
-              activeIcon: Icons.tune_rounded,
+              title: 'Settings',
+              icon: Icons.settings_outlined,
+              activeIcon: Icons.settings_rounded,
               index: 2,
               currentIndex: widget.currentIndex,
               onTap: widget.onTabSelected,
@@ -292,22 +258,21 @@ class _HomeScreenUIState extends State<HomeScreenUI> with WidgetsBindingObserver
   }
 }
 
-// ==========================================
-// Widgets المساعدة المعاد بناؤها وتعديلها للفخامة
-// ==========================================
-
-/// ويدجت زر الملاحة المعزول برمجياً للتعامل مع حركات الـ Spring بامتياز (تعديل الألوان للـ Luxury)
 class _AnimatedNavItem extends StatefulWidget {
+  final String title;
   final IconData icon;
   final IconData activeIcon;
+  final String? avatarUrl;
   final int index;
   final int currentIndex;
   final ValueChanged<int> onTap;
   final Color accentColor;
 
   const _AnimatedNavItem({
+    required this.title,
     required this.icon,
     required this.activeIcon,
+    this.avatarUrl,
     required this.index,
     required this.currentIndex,
     required this.onTap,
@@ -337,57 +302,30 @@ class _AnimatedNavItemState extends State<_AnimatedNavItem> {
       onTapCancel: () => setState(() => _isPressed = false),
       behavior: HitTestBehavior.opaque,
       child: AnimatedScale(
-        scale: _isPressed ? 0.85 : 1.0, // حركة انكماش فيزيائية (Spring Effect)
+        scale: _isPressed ? 0.90 : 1.0, 
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeOutBack,
         child: Container(
-          // تم تقليل الـ vertical padding هنا أيضاً لتقليل الارتفاع الكلي
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
           color: Colors.transparent,
           child: Column(
             mainAxisSize: MainAxisSize.min, 
             children: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                transitionBuilder: (Widget child, Animation<double> animation) {
-                  return FadeTransition(
-                    opacity: animation,
-                    child: ScaleTransition(
-                      scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
-                      child: child,
-                    ),
-                  );
-                },
-                child: Icon(
-                  isSelected ? widget.activeIcon : widget.icon,
-                  key: ValueKey<bool>(isSelected),
-                  // استخدام البنفسجي الفاخر للأيقونة المفعلة
-                  color: isSelected ? widget.accentColor : Colors.white.withOpacity(0.4),
-                  size: 26, 
-                ),
-              ),
-              // تم تقليل المسافة بين الأيقونة والمؤشر لتكون أدمج
-              const SizedBox(height: 4),
-              // المؤشر السفلي تم تحويله إلى كبسولة دقيقة بدلاً من دائرة بسيطة
               AnimatedContainer(
-                duration: const Duration(milliseconds: 350),
-                curve: Curves.easeOutCubic,
-                height: 4,
-                width: isSelected ? 16 : 0, 
+                duration: const Duration(milliseconds: 300),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
                 decoration: BoxDecoration(
-                  // لون المؤشر بنفسجي فاخر
-                  color: widget.accentColor,
-                  borderRadius: BorderRadius.circular(2),
-                  boxShadow: isSelected
-                      ? [
-                          // ظل بنفسجي متوهج بلمسة ناعمة
-                          BoxShadow(
-                            color: widget.accentColor.withOpacity(0.6),
-                            blurRadius: 10,
-                            spreadRadius: 1,
-                          )
-                        ]
-                      : [],
+                  color: isSelected ? widget.accentColor.withOpacity(0.25) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: _buildIconOrAvatar(isSelected),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.title,
+                style: TextStyle(
+                  color: isSelected ? widget.accentColor : Colors.white.withOpacity(0.5),
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 ),
               ),
             ],
@@ -396,9 +334,30 @@ class _AnimatedNavItemState extends State<_AnimatedNavItem> {
       ),
     );
   }
+
+  Widget _buildIconOrAvatar(bool isSelected) {
+    if (widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty && widget.index == 1) {
+      return Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: isSelected ? Border.all(color: widget.accentColor, width: 1.5) : null,
+        ),
+        child: CircleAvatar(
+          radius: 12,
+          backgroundImage: NetworkImage(widget.avatarUrl!),
+          backgroundColor: Colors.transparent,
+        ),
+      );
+    }
+    
+    return Icon(
+      isSelected ? widget.activeIcon : widget.icon,
+      color: isSelected ? widget.accentColor : Colors.white.withOpacity(0.5),
+      size: 24, 
+    );
+  }
 }
 
-/// كبسولة زجاجية محسنة بظلال عميقة وأداء عالي - تمت إعادة بنائها لتكون Luxury
 class LuxuryGlassContainer extends StatelessWidget {
   final Widget child;
   final double borderRadius;
@@ -421,45 +380,32 @@ class LuxuryGlassContainer extends StatelessWidget {
       margin: margin,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
-        // تعديل الحافة لتكون بلمسة بنفسجية دقيقة ومزدوجة
         border: Border.all(
-          // دمج البنفسجي مع الأبيض بـ Opacity منخفض للحافة
-          color: accentColor.withOpacity(0.18), 
-          width: 0.6,
+          color: Colors.white.withOpacity(0.08), 
+          width: 0.8,
         ),
-        // تحسين الجراديانت الداخلي ليكون بلمسة بنفسجية خفيفة جداً
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            accentColor.withOpacity(0.06), // لمسة بنفسجية في الأعلى
-            Colors.white.withOpacity(0.04), // لمسة بيضاء في الأسفل
+            Colors.white.withOpacity(0.05),
+            Colors.white.withOpacity(0.01),
           ],
         ),
         boxShadow: [
-          // ظل أعمق وأكثر كثافة لزيادة العمق العام
           BoxShadow(
-            color: Colors.black.withOpacity(0.22),
+            color: Colors.black.withOpacity(0.3),
             blurRadius: 32,
             spreadRadius: 2,
             offset: const Offset(0, 12),
           ),
-          // ظل دقيق بلمسة بنفسجية ناعمة لتحديد الحواف السفلية بشكل فاخر
-          BoxShadow(
-            color: accentColor.withOpacity(0.06),
-            blurRadius: 12,
-            spreadRadius: -1,
-            offset: const Offset(0, 5),
-          ),
         ],
       ),
-      // RepaintBoundary لضمان عدم تأثر باقي الشاشة بإعادة رسم الـ Blur المكلف
       child: RepaintBoundary( 
         child: ClipRRect(
           borderRadius: BorderRadius.circular(borderRadius),
           child: BackdropFilter(
-            // زيادة قوة الـ Blur لزيادة الفخامة (تأثير Glassmorphism أقوى)
-            filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32), 
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24), 
             child: Padding(
               padding: padding ?? EdgeInsets.zero,
               child: child,
@@ -470,3 +416,4 @@ class LuxuryGlassContainer extends StatelessWidget {
     );
   }
 }
+
