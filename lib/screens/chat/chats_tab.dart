@@ -114,7 +114,7 @@ class _ChatsTabState extends State<ChatsTab> {
       backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
-        // رفعنا جلب البيانات هنا لكي نتمكن من حساب عدد المحادثات الغير مقروءة لشريط التصنيفات
+        top: false, // تم الإلغاء للسماح للقائمة بالغوص تحت الهيدر والتصنيفات
         child: StreamBuilder<List<ChatModel>>(
           stream: FirebaseRepo.observeUserChats(_myUid),
           builder: (context, chatsSnapshot) {
@@ -131,16 +131,24 @@ class _ChatsTabState extends State<ChatsTab> {
                     .where((chat) => (chat.unreadCounts[_myUid] ?? 0) > 0)
                     .length;
 
-                // إذا كان للمجموعات عداد، يتم إضافته هنا (مؤقتاً 0 بناءً على الموديل الحالي)
+                // إذا كان للمجموعات عداد، يتم إضافته هنا
                 int unreadGroupChats = 0; 
                 int totalUnreadChats = unreadPrivateChats + unreadGroupChats;
 
-                return Column(
+                // استخدام Stack لفصل التصنيفات الزجاجية عن القائمة المتحركة
+                return Stack(
+                  alignment: Alignment.topCenter,
                   children: [
-                    _buildCategoryTabs(
-                        totalUnreadChats, unreadPrivateChats, unreadGroupChats),
-                    Expanded(
-                      child: _buildCombinedList(chats, groups, isLoading),
+                    // الطبقة السفلية: قائمة المحادثات (تتحرك بحرية)
+                    _buildCombinedList(chats, groups, isLoading),
+
+                    // الطبقة العلوية: شريط التصنيفات الزجاجي الطاير
+                    Positioned(
+                      top: 12, // مسافة أسفل الهيدر الزجاجي الرئيسي
+                      left: 16,
+                      right: 16,
+                      child: _buildGlassCategoryTabs(
+                          totalUnreadChats, unreadPrivateChats, unreadGroupChats),
                     ),
                   ],
                 );
@@ -152,8 +160,8 @@ class _ChatsTabState extends State<ChatsTab> {
     );
   }
 
-  // شريط التصنيفات المنحني العلوي المحدث
-  Widget _buildCategoryTabs(
+  // كبسولة التصنيفات الزجاجية (Floating Glass Pill)
+  Widget _buildGlassCategoryTabs(
       int totalUnread, int privateUnread, int groupsUnread) {
     int getUnreadCountForIndex(int index) {
       if (index == 0) return totalUnread;
@@ -162,83 +170,115 @@ class _ChatsTabState extends State<ChatsTab> {
       return 0;
     }
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: const Color(0xFF6C63FF).withOpacity(0.18),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: List.generate(_categories.length, (index) {
-          final isSelected = _selectedCategoryIndex == index;
-          final unreadChatsCount = getUnreadCountForIndex(index);
+    final luxuryAccentColor = const Color(0xFF6C63FF);
 
-          return Expanded(
-            child: GestureDetector(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                setState(() => _selectedCategoryIndex = index);
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeInOut,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? Colors.white.withOpacity(0.05)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      _categories[index],
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: isSelected
-                            ? const Color(0xFF6C63FF)
-                            : Colors.white54,
-                        fontWeight:
-                            isSelected ? FontWeight.w700 : FontWeight.w500,
-                        fontSize: 13,
-                        letterSpacing: 0.3,
-                      ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: BackdropFilter(
+        // بلور قوي ليعطي تأثير زجاجي عميق للشاتات في الخلفية
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A22).withOpacity(0.35),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: luxuryAccentColor.withOpacity(0.2),
+              width: 0.8,
+            ),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                luxuryAccentColor.withOpacity(0.1),
+                Colors.white.withOpacity(0.02),
+              ],
+            ),
+          ),
+          child: Row(
+            children: List.generate(_categories.length, (index) {
+              final isSelected = _selectedCategoryIndex == index;
+              final unreadChatsCount = getUnreadCountForIndex(index);
+
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    setState(() => _selectedCategoryIndex = index);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOutCubic,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? luxuryAccentColor.withOpacity(0.15)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: luxuryAccentColor.withOpacity(0.1),
+                                blurRadius: 8,
+                                spreadRadius: 1,
+                              )
+                            ]
+                          : [],
                     ),
-                    if (unreadChatsCount > 0) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF6C63FF),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(
-                          unreadChatsCount.toString(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _categories[index],
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : Colors.white.withOpacity(0.5),
+                            fontWeight:
+                                isSelected ? FontWeight.w700 : FontWeight.w500,
+                            fontSize: 13,
+                            letterSpacing: 0.3,
                           ),
                         ),
-                      ),
-                    ],
-                  ],
+                        if (unreadChatsCount > 0) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: BoxDecoration(
+                              color: luxuryAccentColor,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: luxuryAccentColor.withOpacity(0.4),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                )
+                              ]
+                            ),
+                            child: Text(
+                              unreadChatsCount.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          );
-        }),
+              );
+            }),
+          ),
+        ),
       ),
     );
   }
 
-  // القائمة المفلترة حسب التصنيف
+  // القائمة المفلترة حسب التصنيف (مع هندسة المسافات العلوية والسفلية)
   Widget _buildCombinedList(
       List<ChatModel> chats, List<GroupModel> groups, bool isLoading) {
     if (isLoading) {
@@ -291,7 +331,10 @@ class _ChatsTabState extends State<ChatsTab> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      // Padding مخصص: 85 من فوق لتفادي التصنيفات الزجاجية، 120 من تحت لتفادي الـ Navigation Bar
+      padding: const EdgeInsets.only(top: 85, bottom: 120, left: 8, right: 8),
+      // BouncingScrollPhysics لإعطاء إحساس مرن واحترافي في السحب
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
       itemCount: combinedList.length,
       itemBuilder: (context, index) {
         final item = combinedList[index];
@@ -358,7 +401,7 @@ class _ChatsTabState extends State<ChatsTab> {
       time: time,
       avatarUrl: null,
       isOnline: false,
-      unreadCount: 0, // المجموعة لا تملك عداد غير مقروء في الموديل الحالي
+      unreadCount: 0, 
       isPinned: false,
       onTap: () async {
         HapticFeedback.lightImpact();
