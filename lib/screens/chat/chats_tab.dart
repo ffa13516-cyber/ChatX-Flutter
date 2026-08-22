@@ -103,7 +103,7 @@ class _ChatsTabState extends State<ChatsTab> {
         backgroundColor: Colors.transparent,
         body: Center(
           child: CircularProgressIndicator(
-            color: Color(0xFF6C63FF),
+            color: Color(0xFF4A72CC),
             strokeWidth: 3,
           ),
         ),
@@ -114,7 +114,7 @@ class _ChatsTabState extends State<ChatsTab> {
       backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
-        top: false, // تم الإلغاء للسماح للقائمة بالغوص تحت الهيدر والتصنيفات
+        top: false, 
         child: StreamBuilder<List<ChatModel>>(
           stream: FirebaseRepo.observeUserChats(_myUid),
           builder: (context, chatsSnapshot) {
@@ -126,25 +126,19 @@ class _ChatsTabState extends State<ChatsTab> {
                 final chats = chatsSnapshot.data ?? [];
                 final groups = groupsSnapshot.data ?? [];
 
-                // حساب عدد المحادثات الخاصة الغير مقروءة
                 int unreadPrivateChats = chats
                     .where((chat) => (chat.unreadCounts[_myUid] ?? 0) > 0)
                     .length;
 
-                // إذا كان للمجموعات عداد، يتم إضافته هنا
                 int unreadGroupChats = 0; 
                 int totalUnreadChats = unreadPrivateChats + unreadGroupChats;
 
-                // استخدام Stack لفصل التصنيفات الزجاجية عن القائمة المتحركة
                 return Stack(
                   alignment: Alignment.topCenter,
                   children: [
-                    // الطبقة السفلية: قائمة المحادثات (تتحرك بحرية)
                     _buildCombinedList(chats, groups, isLoading),
-
-                    // الطبقة العلوية: شريط التصنيفات الزجاجي الطاير
                     Positioned(
-                      top: 12, // مسافة أسفل الهيدر الزجاجي الرئيسي
+                      top: 12, 
                       left: 16,
                       right: 16,
                       child: _buildGlassCategoryTabs(
@@ -160,7 +154,6 @@ class _ChatsTabState extends State<ChatsTab> {
     );
   }
 
-  // كبسولة التصنيفات الزجاجية (Floating Glass Pill)
   Widget _buildGlassCategoryTabs(
       int totalUnread, int privateUnread, int groupsUnread) {
     int getUnreadCountForIndex(int index) {
@@ -170,12 +163,11 @@ class _ChatsTabState extends State<ChatsTab> {
       return 0;
     }
 
-    final luxuryAccentColor = const Color(0xFF6C63FF);
+    final activeBlueColor = const Color(0xFF4A72CC); 
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(28),
       child: BackdropFilter(
-        // بلور قوي ليعطي تأثير زجاجي عميق للشاتات في الخلفية
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
           padding: const EdgeInsets.all(4),
@@ -183,15 +175,15 @@ class _ChatsTabState extends State<ChatsTab> {
             color: const Color(0xFF1A1A22).withOpacity(0.35),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: luxuryAccentColor.withOpacity(0.2),
+              color: Colors.white.withOpacity(0.1),
               width: 0.8,
             ),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                luxuryAccentColor.withOpacity(0.1),
-                Colors.white.withOpacity(0.02),
+                Colors.white.withOpacity(0.05),
+                Colors.white.withOpacity(0.01),
               ],
             ),
           ),
@@ -212,18 +204,10 @@ class _ChatsTabState extends State<ChatsTab> {
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? luxuryAccentColor.withOpacity(0.15)
+                          ? Colors.white.withOpacity(0.12)
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(24),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: luxuryAccentColor.withOpacity(0.1),
-                                blurRadius: 8,
-                                spreadRadius: 1,
-                              )
-                            ]
-                          : [],
+                      border: isSelected ? Border.all(color: Colors.white.withOpacity(0.08), width: 1) : null,
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -246,15 +230,8 @@ class _ChatsTabState extends State<ChatsTab> {
                           Container(
                             padding: const EdgeInsets.all(5),
                             decoration: BoxDecoration(
-                              color: luxuryAccentColor,
+                              color: activeBlueColor,
                               shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: luxuryAccentColor.withOpacity(0.4),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                )
-                              ]
                             ),
                             child: Text(
                               unreadChatsCount.toString(),
@@ -278,19 +255,17 @@ class _ChatsTabState extends State<ChatsTab> {
     );
   }
 
-  // القائمة المفلترة حسب التصنيف (مع هندسة المسافات العلوية والسفلية)
   Widget _buildCombinedList(
       List<ChatModel> chats, List<GroupModel> groups, bool isLoading) {
     if (isLoading) {
       return const Center(
         child: CircularProgressIndicator(
-            color: Color(0xFF6C63FF), strokeWidth: 3),
+            color: Color(0xFF4A72CC), strokeWidth: 3),
       );
     }
 
     final List<_CombinedListItem> combinedList = [];
 
-    // 0: All | 1: Private (Chats)
     if (_selectedCategoryIndex == 0 || _selectedCategoryIndex == 1) {
       for (var chat in chats) {
         final isPinned = chat.pinnedBy.contains(_myUid);
@@ -302,7 +277,6 @@ class _ChatsTabState extends State<ChatsTab> {
       }
     }
 
-    // 0: All | 2: Groups
     if (_selectedCategoryIndex == 0 || _selectedCategoryIndex == 2) {
       for (var group in groups) {
         combinedList.add(_CombinedListItem(
@@ -313,7 +287,6 @@ class _ChatsTabState extends State<ChatsTab> {
       }
     }
 
-    // ترتيب زمني مع تقديم المثبت أولاً
     combinedList.sort((a, b) {
       if (a.isPinned && !b.isPinned) return -1;
       if (!a.isPinned && b.isPinned) return 1;
@@ -331,9 +304,7 @@ class _ChatsTabState extends State<ChatsTab> {
     }
 
     return ListView.builder(
-      // Padding مخصص: 85 من فوق لتفادي التصنيفات الزجاجية، 120 من تحت لتفادي الـ Navigation Bar
       padding: const EdgeInsets.only(top: 85, bottom: 120, left: 8, right: 8),
-      // BouncingScrollPhysics لإعطاء إحساس مرن واحترافي في السحب
       physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
       itemCount: combinedList.length,
       itemBuilder: (context, index) {
@@ -445,7 +416,7 @@ class _ChatsTabState extends State<ChatsTab> {
 
   void _showChatOptionsBottomSheet(
       BuildContext context, ChatModel chat, String name, bool isPinned) {
-    final luxuryAccentColor = const Color(0xFF6C63FF);
+    final activeAccentColor = const Color(0xFF4A72CC);
 
     showModalBottomSheet(
       context: context,
@@ -464,7 +435,7 @@ class _ChatsTabState extends State<ChatsTab> {
                     const BorderRadius.vertical(top: Radius.circular(36)),
                 border: Border(
                   top: BorderSide(
-                      color: luxuryAccentColor.withOpacity(0.25), width: 1),
+                      color: activeAccentColor.withOpacity(0.25), width: 1),
                 ),
               ),
               child: SafeArea(
@@ -598,19 +569,18 @@ class ModernChatListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color onlineColor = const Color(0xFF8C82FF);
-    final Color luxuryAccent = const Color(0xFF6C63FF);
+    final Color activeAccent = const Color(0xFF4A72CC);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         color: unreadCount > 0
-            ? luxuryAccent.withOpacity(0.06)
+            ? activeAccent.withOpacity(0.06)
             : (isPinned ? Colors.white.withOpacity(0.02) : Colors.transparent),
         border: Border.all(
           color: unreadCount > 0
-              ? luxuryAccent.withOpacity(0.15)
+              ? activeAccent.withOpacity(0.15)
               : (isPinned
                   ? Colors.white.withOpacity(0.05)
                   : Colors.transparent),
@@ -672,7 +642,7 @@ class ModernChatListItem extends StatelessWidget {
                           width: 14,
                           height: 14,
                           decoration: BoxDecoration(
-                            color: onlineColor,
+                            color: const Color(0xFF4CAF50), // لون الأونلاين أخضر لتباين أفضل
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: const Color(0xFF0A0A0E),
@@ -714,7 +684,7 @@ class ModernChatListItem extends StatelessWidget {
                               child: Transform.rotate(
                                 angle: 0.4,
                                 child: Icon(Icons.push_pin_rounded,
-                                    color: luxuryAccent.withOpacity(0.6),
+                                    color: activeAccent.withOpacity(0.6),
                                     size: 14),
                               ),
                             ),
@@ -748,7 +718,7 @@ class ModernChatListItem extends StatelessWidget {
                       time,
                       style: TextStyle(
                         color: unreadCount > 0
-                            ? luxuryAccent
+                            ? activeAccent
                             : Colors.white.withOpacity(0.35),
                         fontSize: 11.5,
                         fontWeight: unreadCount > 0
@@ -762,11 +732,11 @@ class ModernChatListItem extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 7, vertical: 4),
                         decoration: BoxDecoration(
-                          color: luxuryAccent,
+                          color: activeAccent,
                           borderRadius: BorderRadius.circular(10),
                           boxShadow: [
                             BoxShadow(
-                              color: luxuryAccent.withOpacity(0.15),
+                              color: activeAccent.withOpacity(0.15),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             )
@@ -855,4 +825,3 @@ class ModernChatListItemSkeleton extends StatelessWidget {
     );
   }
 }
-
