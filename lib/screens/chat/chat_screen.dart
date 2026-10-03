@@ -336,7 +336,7 @@ class _ChatScreenState extends State<ChatScreen> {
 }
 
 // ─────────────────────────────────────────────
-// Header Widget 
+// Enterprise Glassmorphism Header Widget
 // ─────────────────────────────────────────────
 
 class _Header extends StatelessWidget {
@@ -355,135 +355,254 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return RepaintBoundary(
       child: Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(26),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(26),
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white.withOpacity(0.10),
-                  Colors.white.withOpacity(0.03),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              border: Border.all(color: Colors.white.withOpacity(0.08)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.18),
-                  blurRadius: 25,
-                  offset: const Offset(0, 12),
-                ),
-              ],
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          // 1. Layered Ambient Shadow للتجسيم وإعطاء عمق بصري
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.25),
+              blurRadius: 35,
+              offset: const Offset(0, 15),
             ),
-            child: Row(
-              children: [
-                Stack(
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 45, sigmaY: 45),
+            // 2. Specular Highlight Edge (تأثير سقوط الضوء على الحواف)
+            child: Container(
+              padding: const EdgeInsets.all(1.2), 
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withOpacity(0.50), // إضاءة حادة في الزاوية
+                    Colors.white.withOpacity(0.08),
+                    Colors.transparent,
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.3, 0.6, 1.0],
+                ),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(26.8),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white.withOpacity(0.18),
+                      Colors.white.withOpacity(0.04),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                child: Row(
                   children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            const Color(0xFF00E6FF).withOpacity(0.20),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
+                    // ── زر الرجوع (Glass Style) ──
+                    _GlassActionButton(
+                      icon: Icons.arrow_back_ios_new_rounded,
+                      iconSize: 18,
+                      onTap: () => Navigator.maybePop(context),
                     ),
-                    Positioned(
-                      left: 8,
-                      top: 8,
-                      child: CircleAvatar(
-                        radius: 22,
-                        backgroundColor: Colors.white12,
-                        backgroundImage: receiverImage != null
-                            ? NetworkImage(receiverImage!)
-                            : const NetworkImage('https://i.pravatar.cc/150?img=8'),
-                      ),
-                    ),
-                    if (isOnline)
-                      Positioned(
-                        bottom: 4,
-                        right: 4,
-                        child: Container(
-                          width: 11,
-                          height: 11,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF22C55E),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.black, width: 2),
+                    const SizedBox(width: 4),
+
+                    // ── مساحة البروفايل (قابلة للضغط الذكي) ──
+                    Expanded(
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            // مسار الانتقال لبروفايل المستخدم مستقبلاً
+                          },
+                          borderRadius: BorderRadius.circular(20),
+                          splashColor: Colors.white.withOpacity(0.1),
+                          highlightColor: Colors.transparent,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                            child: Row(
+                              children: [
+                                // ── الصورة مع التوهج ومؤشر النيون ──
+                                SizedBox(
+                                  width: 46,
+                                  height: 46,
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      // هالة ضوئية خلف الصورة (Ambient Backglow)
+                                      Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: const Color(0xFF00E6FF).withOpacity(0.35),
+                                              blurRadius: 15,
+                                              spreadRadius: 2,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      // الصورة الشخصية بتمركز دقيق
+                                      CircleAvatar(
+                                        radius: 21,
+                                        backgroundColor: Colors.white12,
+                                        backgroundImage: receiverImage != null
+                                            ? NetworkImage(receiverImage!)
+                                            : const NetworkImage('https://i.pravatar.cc/150?img=8'),
+                                      ),
+                                      // مؤشر الاتصال (Emerald Neon)
+                                      if (isOnline)
+                                        Positioned(
+                                          bottom: 0,
+                                          right: 0,
+                                          child: Container(
+                                            width: 13,
+                                            height: 13,
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF10B981),
+                                              shape: BoxShape.circle,
+                                              // حلقة زجاجية تفصل بين النقطة والصورة
+                                              border: Border.all(
+                                                color: Colors.white.withOpacity(0.3),
+                                                width: 1.5,
+                                              ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: const Color(0xFF10B981).withOpacity(0.7),
+                                                  blurRadius: 6,
+                                                  spreadRadius: 1,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                // ── النصوص (Typography دقيق) ──
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        receiverName,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 15.5,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.3,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        isOnline ? 'Online' : 'Last seen recently',
+                                        style: TextStyle(
+                                          color: isOnline
+                                              ? const Color(0xFF10B981)
+                                              : Colors.white60,
+                                          fontSize: 11.5,
+                                          fontWeight: isOnline
+                                              ? FontWeight.w600
+                                              : FontWeight.w400,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
+                    ),
+
+                    // ── أزرار الإجراءات السريعة ──
+                    const SizedBox(width: 4),
+                    _GlassActionButton(
+                      icon: Icons.videocam_rounded,
+                      onTap: () {},
+                    ),
+                    const SizedBox(width: 6),
+                    _GlassActionButton(
+                      icon: Icons.call_rounded,
+                      onTap: () {},
+                    ),
+                    const SizedBox(width: 6),
+                    _GlassActionButton(
+                      icon: Icons.more_vert_rounded,
+                      onTap: () {},
+                    ),
+                    const SizedBox(width: 4),
                   ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        receiverName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        isOnline ? 'Online' : 'Last seen recently',
-                        style: TextStyle(
-                          color: isOnline
-                              ? const Color(0xFF22C55E)
-                              : Colors.white38,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const _HeaderIcon(icon: Icons.videocam_outlined),
-                const SizedBox(width: 10),
-                const _HeaderIcon(icon: Icons.call_outlined),
-              ],
+              ),
             ),
           ),
         ),
       ),
-    ),
     );
   }
 }
 
-class _HeaderIcon extends StatelessWidget {
+// ─────────────────────────────────────────────
+// Glass Action Button (Touch Targets & Ripple)
+// ─────────────────────────────────────────────
+
+class _GlassActionButton extends StatelessWidget {
   final IconData icon;
-  const _HeaderIcon({required this.icon});
+  final VoidCallback onTap;
+  final double iconSize;
+
+  const _GlassActionButton({
+    required this.icon,
+    required this.onTap,
+    this.iconSize = 20,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
+    return Container(
+      width: 38,
+      height: 38,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [
+            Colors.white.withOpacity(0.15),
+            Colors.white.withOpacity(0.02),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: Colors.white.withOpacity(0.12), width: 0.8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: ClipOval(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            padding: const EdgeInsets.all(11),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.08),
-              border: Border.all(color: Colors.white.withOpacity(0.08)),
+        child: Material(
+          color: Colors.transparent,
+          // تأثير Ripple فاخر للاستجابة للمس
+          child: InkWell(
+            onTap: onTap,
+            splashColor: Colors.white.withOpacity(0.2),
+            highlightColor: Colors.white.withOpacity(0.1),
+            child: Center(
+              child: Icon(icon, color: Colors.white.withOpacity(0.9), size: iconSize),
             ),
-            child: Icon(icon, color: Colors.white70, size: 22),
           ),
         ),
       ),
