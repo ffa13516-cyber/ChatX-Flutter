@@ -24,6 +24,9 @@ dependencies:
   
   flutter_bloc: ^8.1.5
   
+  # قايمة الرسائل (scroll دقيق + jump لأي رسالة بالـ index)
+  scrollable_positioned_list: ^0.3.8
+  
   http: ^1.2.1                
   path_provider: ^2.1.3       
   path: ^1.9.0
@@ -40,5 +43,3 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
-
-
