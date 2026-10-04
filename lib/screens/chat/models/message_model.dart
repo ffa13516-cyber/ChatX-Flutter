@@ -1,8 +1,11 @@
 // ============================================================
-// message_model.dart â€” ChatX Core Data Model
-// âœ… Fully null-safe | âœ… copyWith | âœ… replyTo.senderId fixed
-// âœ… Firebase-safe serialization | âœ… Deep equality
+// message_model.dart — ChatX Core Data Model
+// ✅ Fully null-safe | ✅ copyWith | ✅ replyTo.senderId
+// ✅ Firebase-safe serialization | ✅ وقت السيرفر (timestamp) أولاً
+// ✅ مقارنة reactions بالقيمة (mapEquals)
 // ============================================================
+
+import 'package:flutter/foundation.dart' show mapEquals;
 
 enum MessageType { text, image, voice }
 
@@ -23,7 +26,7 @@ class Message {
   final int? voiceDuration;
   final bool isEdited;
 
-  /// reactions: Map<uid, emoji> â€” ÙƒÙ„ ÙŠÙˆØ²Ø± Ù„Ù‡ reaction ÙˆØ§Ø­Ø¯Ø© Ø¨Ø³
+  /// reactions: Map<uid, emoji> — كل يوزر له reaction واحدة بس
   final Map<String, String>? reactions;
 
   const Message({
@@ -43,7 +46,7 @@ class Message {
     this.reactions,
   });
 
-  /// Factory Ù…Ø¹ Ù‚ÙŠÙ… Ø§ÙØªØ±Ø§Ø¶ÙŠØ© Ø°ÙƒÙŠØ© â€” Ù„ØªØ³Ù‡ÙŠÙ„ Ø§Ù„Ø¥Ù†Ø´Ø§Ø¡
+  /// Factory مع قيم افتراضية ذكية — لتسهيل الإنشاء
   factory Message.create({
     String? id,
     required String text,
@@ -78,7 +81,7 @@ class Message {
     );
   }
 
-  /// âœ… copyWith â€” Ù„Ù„ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø¬Ø²Ø¦ÙŠ Ø¨Ø¯ÙˆÙ† Ø¥Ù†Ø´Ø§Ø¡ object Ø¬Ø¯ÙŠØ¯ Ù…Ù† Ø§Ù„ØµÙØ±
+  /// copyWith — للتعديل الجزئي بدون إنشاء object جديد من الصفر
   Message copyWith({
     String? id,
     String? text,
@@ -115,9 +118,9 @@ class Message {
     );
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // toMap â€” Firebase Serialization
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────
+  // toMap — Firebase Serialization
+  // ─────────────────────────────────────────────
   Map<String, dynamic> toMap() {
     return {
       'text': text,
@@ -128,12 +131,12 @@ class Message {
       'time': time.millisecondsSinceEpoch,
       'status': status.name,
       if (replyToId != null) 'replyToId': replyToId,
-      // âœ… FIX: Ø£Ø¶ÙÙ†Ø§ senderId Ø¬ÙˆØ§ replyTo Ø¹Ø´Ø§Ù† isMe ÙŠØªØ­Ø³Ø¨ ØµØ­ Ø¹Ù†Ø¯ Ø§Ù„Ù‚Ø±Ø§Ø¡Ø©
+      // senderId جوه replyTo عشان isMe يتحسب صح عند القراءة
       if (replyTo != null)
         'replyTo': {
           'id': replyTo!.id,
           'text': replyTo!.text,
-          'senderId': replyTo!.senderId, // â† ÙƒØ§Ù†Øª Ù†Ø§Ù‚ØµØ© ÙˆÙ‡ÙŠ Ø§Ù„Ù…Ø´ÙƒÙ„Ø© Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©
+          'senderId': replyTo!.senderId,
           'senderName': replyTo!.senderName,
           'type': replyTo!.type.name,
           if (replyTo!.imageUrl != null) 'imageUrl': replyTo!.imageUrl,
@@ -144,21 +147,21 @@ class Message {
     };
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // fromMap â€” Firebase Deserialization
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────
+  // fromMap — Firebase Deserialization
+  // ─────────────────────────────────────────────
   factory Message.fromMap(Map<dynamic, dynamic> map, String myUid, {String? id}) {
-    // â”€â”€ Parse Time â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    final DateTime parsedTime;
-    final rawTime = map['time'];
-    if (rawTime is int) {
-      parsedTime = DateTime.fromMillisecondsSinceEpoch(rawTime);
-    } else {
-      // Firebase ServerValue.TIMESTAMP Ù…Ù…ÙƒÙ† ÙŠÙƒÙˆÙ† Map Ù…Ø¤Ù‚ØªØ§Ù‹ØŒ Ù†Ø³ØªØ®Ø¯Ù… Ø§Ù„ÙˆÙ‚Øª Ø§Ù„Ø­Ø§Ù„ÙŠ
-      parsedTime = DateTime.now();
-    }
+    // ── Parse Time ──────────────────────────────
+    // الأولوية لـ `timestamp` (وقت السيرفر اللي الـ repo بيكتبه) عشان الترتيب
+    // يبقى ثابت على كل الأجهزة، وبعدها `time` (ساعة الموبايل) للرسايل القديمة.
+    // لو القيمة لسه placeholder (Map) بنكمل للتالي، وآخر حاجة الوقت الحالي.
+    DateTime? readMillis(dynamic raw) =>
+        raw is num ? DateTime.fromMillisecondsSinceEpoch(raw.toInt()) : null;
 
-    // â”€â”€ Parse Reactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    final DateTime parsedTime =
+        readMillis(map['timestamp']) ?? readMillis(map['time']) ?? DateTime.now();
+
+    // ── Parse Reactions ─────────────────────────
     Map<String, String>? parsedReactions;
     final rawReactions = map['reactions'];
     if (rawReactions is Map && rawReactions.isNotEmpty) {
@@ -171,19 +174,19 @@ class Message {
       }
     }
 
-    // â”€â”€ Parse MessageType â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Parse MessageType ───────────────────────
     MessageType parseType(dynamic raw) => MessageType.values.firstWhere(
           (e) => e.name == raw,
           orElse: () => MessageType.text,
         );
 
-    // â”€â”€ Parse MessageStatus â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Parse MessageStatus ─────────────────────
     MessageStatus parseStatus(dynamic raw) => MessageStatus.values.firstWhere(
           (e) => e.name == raw,
           orElse: () => MessageStatus.sent,
         );
 
-    // â”€â”€ Parse ReplyTo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Parse ReplyTo ───────────────────────────
     Message? parsedReplyTo;
     final rawReply = map['replyTo'];
     if (rawReply is Map) {
@@ -191,13 +194,13 @@ class Message {
         parsedReplyTo = Message(
           id: rawReply['id']?.toString(),
           text: rawReply['text']?.toString() ?? '',
-          // âœ… FIX: senderId Ù…ÙˆØ¬ÙˆØ¯ Ø¯Ù„ÙˆÙ‚ØªÙŠ ÙÙŠ Ø§Ù„Ù€ map ÙÙ€ isMe Ø¨ÙŠØªØ­Ø³Ø¨ ØµØ­
+          // senderId موجود في الـ map فـ isMe بيتحسب صح
           isMe: rawReply['senderId']?.toString() == myUid,
           senderId: rawReply['senderId']?.toString(),
           senderName: rawReply['senderName']?.toString(),
           type: parseType(rawReply['type']),
           imageUrl: rawReply['imageUrl']?.toString(),
-          time: DateTime.now(), // replyTo Ù…Ù„Ù‡Ø§Ø´ ÙˆÙ‚Øª Ù…Ø­ÙÙˆØ¸ØŒ Ø§ÙŠ Ù‚ÙŠÙ…Ø© ÙƒØ§ÙÙŠØ©
+          time: DateTime.now(), // replyTo ملهاش وقت محفوظ، أي قيمة كافية
         );
       } catch (_) {
         parsedReplyTo = null;
@@ -222,17 +225,17 @@ class Message {
     );
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────
   // Helpers
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────
 
-  /// Ù‡Ù„ Ù„Ù„Ø±Ø³Ø§Ù„Ø© Ø¯ÙŠ reactionsØŸ
+  /// هل للرسالة دي reactions؟
   bool get hasReactions => reactions != null && reactions!.isNotEmpty;
 
-  /// Ø¹Ø¯Ø¯ Ø§Ù„ØªÙØ§Ø¹Ù„Ø§Øª Ø§Ù„ÙƒÙ„ÙŠ
+  /// عدد التفاعلات الكلي
   int get reactionCount => reactions?.length ?? 0;
 
-  /// ØªØ¬Ù…ÙŠØ¹ Ø§Ù„ØªÙØ§Ø¹Ù„Ø§Øª: Map<emoji, count>
+  /// تجميع التفاعلات: Map<emoji, count>
   Map<String, int> get groupedReactions {
     final result = <String, int>{};
     reactions?.forEach((_, emoji) {
@@ -241,10 +244,10 @@ class Message {
     return result;
   }
 
-  /// Ù‡Ù„ Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ù‚Ø§Ø¨Ù„Ø© Ù„Ù„ØªØ¹Ø¯ÙŠÙ„ØŸ (text only)
+  /// هل الرسالة قابلة للتعديل؟ (text only)
   bool get isEditable => type == MessageType.text;
 
-  /// Ù‡Ù„ Ø§Ù„Ø±Ø³Ø§Ù„Ø© ÙÙŠÙ‡Ø§ Ø±Ø¯ØŸ
+  /// هل الرسالة فيها رد؟
   bool get hasReply => replyTo != null || replyToId != null;
 
   @override
@@ -256,7 +259,7 @@ class Message {
           text == other.text &&
           status == other.status &&
           isEdited == other.isEdited &&
-          reactions == other.reactions;
+          mapEquals(reactions, other.reactions);
 
   @override
   int get hashCode =>
