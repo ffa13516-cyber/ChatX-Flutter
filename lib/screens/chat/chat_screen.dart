@@ -12,7 +12,6 @@ import 'package:chatx/screens/chat/widgets/chat_input.dart';
 import 'package:chatx/screens/chat/widgets/chat_bubble.dart';
 import 'package:chatx/screens/chat/cubit/chat_cubit.dart';
 
-/// ارتفاع الهيدر (من غير الـ status bar). ثابت عشان مفيش قياس بعد الـ build.
 const double _kHeaderHeight = 108.0;
 
 class ChatScreen extends StatefulWidget {
@@ -22,8 +21,6 @@ class ChatScreen extends StatefulWidget {
   final String receiverName;
   final String? receiverImage;
   final bool isOnline;
-
-  /// بيتنادى لما المستخدم يضغط على صورة/اسم الطرف التاني في الهيدر (اختياري).
   final VoidCallback? onHeaderTap;
 
   const ChatScreen({
@@ -43,19 +40,15 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final ItemScrollController _itemScrollController = ItemScrollController();
-  final ItemPositionsListener _itemPositionsListener =
-      ItemPositionsListener.create();
+  final ItemPositionsListener _itemPositionsListener = ItemPositionsListener.create();
 
   late ChatCubit _cubit;
   StreamSubscription<String>? _errorsSub;
 
-  /// عدد الرسائل الجديدة اللي وصلت وانت بعيد عن آخر الشات.
   final ValueNotifier<int> _unread = ValueNotifier<int>(0);
 
   Timer? _highlightTimer;
   String? _highlightedMessageId;
-
-  /// مجموع السحب الأفقي الحالي (للخروج من الشات بالسحب يمين).
   double _swipeDx = 0;
 
   void _createCubit() {
@@ -65,7 +58,6 @@ class _ChatScreenState extends State<ChatScreen> {
       myUid: widget.myUid,
       myName: widget.myName,
     );
-    // أخطاء العمليات (إرسال/حذف/تعديل/تفاعل) بتيجي هنا مش عن طريق الـ state.
     _errorsSub = _cubit.errors.listen((message) {
       if (mounted) _showErrorSnackBar(context, message);
     });
@@ -81,10 +73,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void didUpdateWidget(covariant ChatScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // نفس الـ State اتعاد استخدامه لشات تاني → لازم cubit جديد
-    // (وإلا الرسائل كانت هتتبعت للشات القديم).
-    if (oldWidget.chatId != widget.chatId ||
-        oldWidget.myUid != widget.myUid) {
+    if (oldWidget.chatId != widget.chatId || oldWidget.myUid != widget.myUid) {
       final previous = _cubit;
       _unread.value = 0;
       _createCubit();
@@ -102,30 +91,20 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  /// لما المستخدم ينزل لآخر الشات بإيده، صفّر عدّاد الرسائل الجديدة.
   void _onPositionsChanged() {
     if (_unread.value != 0 && _isNearBottom()) _unread.value = 0;
   }
 
-  // ── Swipe right to leave the chat ─────────────────────────
+  // ── Gestures & Scroll Helpers ─────────────────────────────
 
-  void _onSwipeStart(DragStartDetails details) {
-    _swipeDx = 0;
-  }
-
-  void _onSwipeUpdate(DragUpdateDetails details) {
-    _swipeDx += details.delta.dx;
-  }
-
-  void _onSwipeCancel() {
-    _swipeDx = 0;
-  }
+  void _onSwipeStart(DragStartDetails details) => _swipeDx = 0;
+  void _onSwipeUpdate(DragUpdateDetails details) => _swipeDx += details.delta.dx;
+  void _onSwipeCancel() => _swipeDx = 0;
 
   void _onSwipeEnd(DragEndDetails details) {
     final double width = MediaQuery.of(context).size.width;
     final double velocity = details.primaryVelocity ?? 0;
-    final bool shouldExit =
-        _swipeDx > width * 0.25 || (_swipeDx > 60 && velocity > 700);
+    final bool shouldExit = _swipeDx > width * 0.25 || (_swipeDx > 60 && velocity > 700);
     _swipeDx = 0;
 
     if (shouldExit) {
@@ -134,9 +113,6 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  // ── Scrolling ─────────────────────────────────────────────
-
-  /// الرسالة رقم 0 (الأحدث) ظاهرة ولو جزئياً = المستخدم قريب من تحت.
   bool _isNearBottom() {
     if (!_itemScrollController.isAttached) return true;
     final positions = _itemPositionsListener.itemPositions.value;
@@ -183,8 +159,6 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  // ── State helpers ─────────────────────────────────────────
-
   List<Message> _messagesOf(ChatState s) {
     if (s is ChatLoaded) return s.messages;
     if (s is ChatError) return s.lastKnownMessages ?? const <Message>[];
@@ -196,7 +170,6 @@ class _ChatScreenState extends State<ChatScreen> {
     return list.isEmpty ? null : list.first;
   }
 
-  /// true لما توصل رسالة أحدث فعلاً (مش reaction ولا edit ولا delivery ولا حذف).
   bool _hasNewNewest(ChatState prev, ChatState curr) {
     if (curr is! ChatLoaded) return false;
     final Message? c = _newestOf(curr);
@@ -205,8 +178,6 @@ class _ChatScreenState extends State<ChatScreen> {
     if (p == null) return true;
     return c.id != p.id && !c.time.isBefore(p.time);
   }
-
-  // ── Date separators ───────────────────────────────────────
 
   bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
@@ -245,11 +216,7 @@ class _ChatScreenState extends State<ChatScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           'حذف الرسالة',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
         ),
         content: const Text(
           'هل أنت متأكد من رغبتك في حذف هذه الرسالة؟',
@@ -267,10 +234,7 @@ class _ChatScreenState extends State<ChatScreen> {
             },
             child: const Text(
               'حذف',
-              style: TextStyle(
-                color: Colors.redAccent,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -295,15 +259,10 @@ class _ChatScreenState extends State<ChatScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(
-            message,
-            style: const TextStyle(color: Colors.white),
-          ),
+          content: Text(message, style: const TextStyle(color: Colors.white)),
           backgroundColor: const Color(0xFF2B2C31),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 90),
           duration: const Duration(seconds: 3),
           action: SnackBarAction(
@@ -327,189 +286,164 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: Stack(
-            children: [
-              // ── Background ──────────────────────────
-              Positioned.fill(
-                child: RepaintBoundary(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.asset('assets/images/bg.jpg', fit: BoxFit.cover),
-                      const ColoredBox(color: Color(0x4D000000)),
-                    ],
-                  ),
+          children: [
+            Positioned.fill(
+              child: RepaintBoundary(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.asset('assets/images/bg.jpg', fit: BoxFit.cover),
+                    const ColoredBox(color: Color(0x4D000000)),
+                  ],
                 ),
               ),
-
-              // ── Main Content ────────────────────────
-              BlocConsumer<ChatCubit, ChatState>(
-                listenWhen: (prev, curr) => _hasNewNewest(prev, curr),
-                listener: (context, state) {
-                  if (state is ChatLoaded && state.messages.isNotEmpty) {
-                    // انزل لتحت بس لو الرسالة بتاعتي، أو كنت قريب من تحت.
-                    if (state.messages.first.isMe || _isNearBottom()) {
-                      _unread.value = 0;
-                      WidgetsBinding.instance
-                          .addPostFrameCallback((_) => _scrollToBottom());
-                    } else {
-                      // بتقرا رسائل قديمة: ماتنزلش، بس نبّهه.
-                      _unread.value++;
-                    }
-                  }
-                },
-                builder: (context, state) {
-                  final List<Message> messages = _messagesOf(state);
-                  final Message? replyingTo =
-                      state is ChatLoaded ? state.replyingTo : null;
-                  final cubit = context.read<ChatCubit>();
-                  final bool isLoading =
-                      state is ChatLoading || state is ChatInitial;
-                  final bool isFatalError =
-                      state is ChatError && state.isFatal && messages.isEmpty;
-                  // فيه رسائل معروضة لكن الـ stream واقع → banner بزر إعادة.
-                  final bool showBanner =
-                      state is ChatError && state.isFatal && messages.isNotEmpty;
-
-                  final Widget content;
-                  if (isLoading) {
-                    content = Padding(
-                      padding: EdgeInsets.only(top: headerTotal),
-                      child: const Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF4186F6),
-                          strokeWidth: 2.5,
-                        ),
-                      ),
-                    );
-                  } else if (isFatalError) {
-                    content = _errorState(headerTotal, cubit.retry);
-                  } else if (messages.isEmpty) {
-                    content = _emptyState(headerTotal);
+            ),
+            BlocConsumer<ChatCubit, ChatState>(
+              listenWhen: (prev, curr) => _hasNewNewest(prev, curr),
+              listener: (context, state) {
+                if (state is ChatLoaded && state.messages.isNotEmpty) {
+                  if (state.messages.first.isMe || _isNearBottom()) {
+                    _unread.value = 0;
+                    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
                   } else {
-                    content = ScrollablePositionedList.builder(
-                      itemScrollController: _itemScrollController,
-                      itemPositionsListener: _itemPositionsListener,
-                      reverse: true,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: messages.length,
-                      itemBuilder: (context, index) {
-                        final msg = messages[index];
-                        final bool isNewest = index == 0;
-                        final bool isOldest = index == messages.length - 1;
-                        final bool showDate = isOldest ||
-                            !_isSameDay(messages[index + 1].time, msg.time);
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            top: isOldest ? headerTotal + 24 : 14,
-                            bottom: isNewest ? 20 : 0,
-                          ),
-                          child: _withDateHeader(
-                            showDate ? msg.time : null,
-                            ChatBubble(
-                            key: ValueKey(
-                                msg.id ?? 'tmp_${msg.time.microsecondsSinceEpoch}'),
+                    _unread.value++;
+                  }
+                }
+              },
+              builder: (context, state) {
+                final List<Message> messages = _messagesOf(state);
+                final Message? replyingTo = state is ChatLoaded ? state.replyingTo : null;
+                final cubit = context.read<ChatCubit>();
+                final bool isLoading = state is ChatLoading || state is ChatInitial;
+                final bool isFatalError = state is ChatError && state.isFatal && messages.isEmpty;
+                final bool showBanner = state is ChatError && state.isFatal && messages.isNotEmpty;
+
+                final Widget content;
+                if (isLoading) {
+                  content = Padding(
+                    padding: EdgeInsets.only(top: headerTotal),
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF4186F6),
+                        strokeWidth: 2.5,
+                      ),
+                    ),
+                  );
+                } else if (isFatalError) {
+                  content = _errorState(headerTotal, cubit.retry);
+                } else if (messages.isEmpty) {
+                  content = _emptyState(headerTotal);
+                } else {
+                  content = ScrollablePositionedList.builder(
+                    itemScrollController: _itemScrollController,
+                    itemPositionsListener: _itemPositionsListener,
+                    reverse: true,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      final msg = messages[index];
+                      final bool isNewest = index == 0;
+                      final bool isOldest = index == messages.length - 1;
+                      final bool showDate = isOldest || !_isSameDay(messages[index + 1].time, msg.time);
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          top: isOldest ? headerTotal + 24 : 14,
+                          bottom: isNewest ? 20 : 0,
+                        ),
+                        child: _withDateHeader(
+                          showDate ? msg.time : null,
+                          ChatBubble(
+                            key: ValueKey(msg.id ?? 'tmp_${msg.time.microsecondsSinceEpoch}'),
                             message: msg,
                             onReply: cubit.setReply,
-                            onTapReply: (replyId) =>
-                                _scrollToMessage(replyId, messages),
-                            isHighlighted: msg.id != null &&
-                                msg.id == _highlightedMessageId,
+                            onTapReply: (replyId) => _scrollToMessage(replyId, messages),
+                            isHighlighted: msg.id != null && msg.id == _highlightedMessageId,
                             onEdit: () => _showEditDialog(msg),
                             onDelete: () => _showDeleteDialog(context, msg.id),
-                            onReact: (emoji) =>
-                                cubit.addReaction(msg.id, emoji),
-                          ),
-                          ),
-                        );
-                      },
-                    );
-                  }
-
-                  return Column(
-                    children: [
-                      // ── Messages List (تحت الهيدر) ───
-                      Expanded(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onHorizontalDragStart: _onSwipeStart,
-                          onHorizontalDragUpdate: _onSwipeUpdate,
-                          onHorizontalDragEnd: _onSwipeEnd,
-                          onHorizontalDragCancel: _onSwipeCancel,
-                          child: Stack(
-                            children: [
-                              Positioned.fill(child: content),
-                              if (showBanner)
-                                Positioned(
-                                  top: headerTotal + 8,
-                                  left: 16,
-                                  right: 16,
-                                  child: _ConnectionBanner(onRetry: cubit.retry),
-                                ),
-                              Positioned(
-                                right: 16,
-                                bottom: 12,
-                                child: ValueListenableBuilder<int>(
-                                  valueListenable: _unread,
-                                  builder: (_, n, __) => n == 0
-                                      ? const SizedBox.shrink()
-                                      : FloatingActionButton.small(
-                                          onPressed: _scrollToBottom,
-                                          backgroundColor:
-                                              const Color(0xFF4186F6),
-                                          foregroundColor: Colors.white,
-                                          child: Text('$n'),
-                                        ),
-                                ),
-                              ),
-                            ],
+                            onReact: (emoji) => cubit.addReaction(msg.id, emoji),
                           ),
                         ),
-                      ),
-
-                      // ── Chat Input ────────────────────
-                      Container(
-                        color: Colors.transparent,
-                        child: SafeArea(
-                          top: false,
-                          child: ChatInput(
-                            initialDraft: cubit.draft,
-                            onDraftChanged: cubit.saveDraft,
-                            replyMessage: replyingTo,
-                            onCancelReply: () => cubit.setReply(null),
-                            onSend: (text, _) => cubit.sendMessage(text),
-                          ),
-                        ),
-                      ),
-                    ],
+                      );
+                    },
                   );
-                },
-              ),
+                }
 
-              // ── Header ──────────────────────────────
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: SafeArea(
-                  bottom: false,
-                  // الهيدر ارتفاعه ثابت → نحدّ تكبير الخط عشان مفيش overflow.
-                  child: MediaQuery(
-                    data: MediaQuery.of(context).copyWith(
-                      textScaler: MediaQuery.of(context)
-                          .textScaler
-                          .clamp(maxScaleFactor: 1.2),
+                return Column(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onHorizontalDragStart: _onSwipeStart,
+                        onHorizontalDragUpdate: _onSwipeUpdate,
+                        onHorizontalDragEnd: _onSwipeEnd,
+                        onHorizontalDragCancel: _onSwipeCancel,
+                        child: Stack(
+                          children: [
+                            Positioned.fill(child: content),
+                            if (showBanner)
+                              Positioned(
+                                top: headerTotal + 8,
+                                left: 16,
+                                right: 16,
+                                child: _ConnectionBanner(onRetry: cubit.retry),
+                              ),
+                            Positioned(
+                              right: 16,
+                              bottom: 12,
+                              child: ValueListenableBuilder<int>(
+                                valueListenable: _unread,
+                                builder: (_, n, __) => n == 0
+                                    ? const SizedBox.shrink()
+                                    : FloatingActionButton.small(
+                                        onPressed: _scrollToBottom,
+                                        backgroundColor: const Color(0xFF4186F6),
+                                        foregroundColor: Colors.white,
+                                        child: Text('$n'),
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    child: _Header(
-                      receiverName: widget.receiverName,
-                      receiverImage: widget.receiverImage,
-                      isOnline: widget.isOnline,
-                      onTap: widget.onHeaderTap,
+                    Container(
+                      color: Colors.transparent,
+                      child: SafeArea(
+                        top: false,
+                        child: ChatInput(
+                          initialDraft: cubit.draft,
+                          onDraftChanged: cubit.saveDraft,
+                          replyMessage: replyingTo,
+                          onCancelReply: () => cubit.setReply(null),
+                          onSend: (text, _) => cubit.sendMessage(text),
+                        ),
+                      ),
                     ),
+                  ],
+                );
+              },
+            ),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                bottom: false,
+                child: MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    textScaler: MediaQuery.of(context).textScaler.clamp(maxScaleFactor: 1.2),
+                  ),
+                  child: _Header(
+                    receiverName: widget.receiverName,
+                    receiverImage: widget.receiverImage,
+                    isOnline: widget.isOnline,
+                    onTap: widget.onHeaderTap,
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -521,13 +455,9 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.chat_bubble_outline_rounded,
-                color: Colors.white12, size: 56),
+            Icon(Icons.chat_bubble_outline_rounded, color: Colors.white12, size: 56),
             SizedBox(height: 12),
-            Text(
-              'ابدأ المحادثة الآن 👋',
-              style: TextStyle(color: Colors.white24, fontSize: 15),
-            ),
+            Text('ابدأ المحادثة الآن 👋', style: TextStyle(color: Colors.white24, fontSize: 15)),
           ],
         ),
       ),
@@ -543,20 +473,11 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             const Icon(Icons.wifi_off_rounded, color: Colors.white24, size: 56),
             const SizedBox(height: 12),
-            const Text(
-              'تعذّر تحميل الرسائل',
-              style: TextStyle(color: Colors.white54, fontSize: 15),
-            ),
+            const Text('تعذّر تحميل الرسائل', style: TextStyle(color: Colors.white54, fontSize: 15)),
             const SizedBox(height: 8),
             TextButton(
               onPressed: onRetry,
-              child: const Text(
-                'إعادة المحاولة',
-                style: TextStyle(
-                  color: Color(0xFF4186F6),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: const Text('إعادة المحاولة', style: TextStyle(color: Color(0xFF4186F6), fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -564,10 +485,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 }
-
-// ─────────────────────────────────────────────
-// Header Widget
-// ─────────────────────────────────────────────
 
 class _Header extends StatelessWidget {
   final String receiverName;
@@ -592,7 +509,6 @@ class _Header extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(26),
-            // بلور واحد بس للهيدر كله — والرسائل بتعدي تحته فالـ glass حقيقي.
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
               child: Container(
@@ -600,20 +516,13 @@ class _Header extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(26),
                   gradient: const LinearGradient(
-                    colors: [
-                      Color(0x1AFFFFFF),
-                      Color(0x08FFFFFF),
-                    ],
+                    colors: [Color(0x1AFFFFFF), Color(0x08FFFFFF)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   border: Border.all(color: const Color(0x14FFFFFF)),
                   boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x2E000000),
-                      blurRadius: 25,
-                      offset: Offset(0, 12),
-                    ),
+                    BoxShadow(color: Color(0x2E000000), blurRadius: 25, offset: Offset(0, 12)),
                   ],
                 ),
                 child: Row(
@@ -632,25 +541,13 @@ class _Header extends StatelessWidget {
                                 children: [
                                   Text(
                                     receiverName,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                    style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                  // بنعرض الحالة بس لو معروفة فعلاً
-                                  // (شيلنا 'Last seen recently' المختلقة).
                                   if (isOnline) ...const [
                                     SizedBox(height: 2),
-                                    Text(
-                                      'Online',
-                                      style: TextStyle(
-                                        color: Color(0xFF22C55E),
-                                        fontSize: 11,
-                                      ),
-                                    ),
+                                    Text('Online', style: TextStyle(color: Color(0xFF22C55E), fontSize: 11)),
                                   ],
                                 ],
                               ),
@@ -686,14 +583,8 @@ class _Header extends StatelessWidget {
         ),
       ),
       child: Text(
-        receiverName.trim().isNotEmpty
-            ? receiverName.trim()[0].toUpperCase()
-            : '?',
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
+        receiverName.trim().isNotEmpty ? receiverName.trim()[0].toUpperCase() : '?',
+        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -707,12 +598,7 @@ class _Header extends StatelessWidget {
           height: 60,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [
-                Color(0x3300E6FF),
-                Colors.transparent,
-              ],
-            ),
+            gradient: RadialGradient(colors: [Color(0x3300E6FF), Colors.transparent]),
           ),
         ),
         Positioned(
@@ -741,14 +627,8 @@ class _Header extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    receiverName.trim().isNotEmpty
-                        ? receiverName.trim()[0].toUpperCase()
-                        : '?',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    receiverName.trim().isNotEmpty ? receiverName.trim()[0].toUpperCase() : '?',
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
         ),
@@ -781,12 +661,7 @@ class _HeaderIcon extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: () => ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('قريباً'),
-            duration: Duration(seconds: 1),
-          ),
-        ),
+        ..showSnackBar(const SnackBar(content: Text('قريباً'), duration: Duration(seconds: 1))),
       child: Container(
         padding: const EdgeInsets.all(11),
         decoration: BoxDecoration(
@@ -799,10 +674,6 @@ class _HeaderIcon extends StatelessWidget {
     );
   }
 }
-
-// ─────────────────────────────────────────────
-// Edit Dialog — بيمتلك الـ controller بنفسه (بيتعمله dispose بأمان)
-// ─────────────────────────────────────────────
 
 class _EditDialog extends StatefulWidget {
   final String initialText;
@@ -845,14 +716,7 @@ class _EditDialogState extends State<_EditDialog> {
     return AlertDialog(
       backgroundColor: const Color(0xFF1E1E1E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text(
-        'تعديل الرسالة',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+      title: const Text('تعديل الرسالة', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
       content: TextField(
         controller: _controller,
         autofocus: true,
@@ -862,12 +726,8 @@ class _EditDialogState extends State<_EditDialog> {
         decoration: const InputDecoration(
           hintText: 'تعديل النص...',
           hintStyle: TextStyle(color: Colors.white38),
-          enabledBorder: UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.white24),
-          ),
-          focusedBorder: UnderlineInputBorder(
-            borderSide: BorderSide(color: Color(0xFF4186F6)),
-          ),
+          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF4186F6))),
         ),
       ),
       actions: [
@@ -877,23 +737,12 @@ class _EditDialogState extends State<_EditDialog> {
         ),
         TextButton(
           onPressed: _save,
-          child: const Text(
-            'حفظ',
-            style: TextStyle(
-              color: Color(0xFF4186F6),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          child: const Text('حفظ', style: TextStyle(color: Color(0xFF4186F6), fontWeight: FontWeight.bold)),
         ),
       ],
     );
   }
 }
-
-
-// ─────────────────────────────────────────────
-// Date Separator
-// ─────────────────────────────────────────────
 
 class _DateSeparator extends StatelessWidget {
   final String label;
@@ -910,19 +759,12 @@ class _DateSeparator extends StatelessWidget {
             color: const Color(0x33000000),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Text(
-            label,
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-          ),
+          child: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
         ),
       ),
     );
   }
 }
-
-// ─────────────────────────────────────────────
-// Connection Banner — الـ stream واقع والرسائل لسه معروضة
-// ─────────────────────────────────────────────
 
 class _ConnectionBanner extends StatelessWidget {
   final VoidCallback onRetry;
