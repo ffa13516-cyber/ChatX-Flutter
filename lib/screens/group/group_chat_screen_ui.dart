@@ -339,7 +339,10 @@ class _GroupChatScreenUIState extends State<GroupChatScreenUI> {
                         child: ChatInput(
                           replyMessage: replyingTo,
                           onCancelReply: () => cubit.setReply(null),
-                          onSend: (text, _) => cubit.sendMessage(text),
+                          onSend: (text, _) async {
+                          cubit.sendMessage(text);
+                          return true; 
+                         },
                         ),
                       ),
                     ),
