@@ -84,7 +84,15 @@ class _ChatBubbleState extends State<ChatBubble> with TickerProviderStateMixin {
     double topPos = offset.dy - 140;
     
     // تعديل مكان الظهور لتجنب خروج القائمة الممتدة عن الشاشة
-    if (topPos < 120) topPos = offset.dy + box.size.height + 16;
+    final media = MediaQuery.of(rootContext);
+    final minTop = media.padding.top + 120;
+    const menuHeight = 330.0; // أطول حالة: الشبكة الممتدة
+    final maxTop = media.size.height -
+        media.viewInsets.bottom -
+        media.padding.bottom -
+        menuHeight;
+    if (topPos < minTop) topPos = offset.dy + box.size.height + 16;
+    topPos = math.max(minTop, math.min(topPos, maxTop));
 
     showGeneralDialog(
       context: rootContext,
@@ -116,6 +124,16 @@ class _ChatBubbleState extends State<ChatBubble> with TickerProviderStateMixin {
           onCopy: () {
             Navigator.pop(dialogCtx);
             Clipboard.setData(ClipboardData(text: widget.message.text));
+            if (mounted) {
+              ScaffoldMessenger.of(rootContext)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  const SnackBar(
+                    content: Text('تم النسخ'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+            }
           },
           onEdit: () {
             Navigator.pop(dialogCtx);
@@ -138,17 +156,14 @@ class _ChatBubbleState extends State<ChatBubble> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final isMe = widget.message.isMe;
     final hasReactions = widget.message.hasReactions;
-    final maxBubbleWidth = MediaQuery.of(context).size.width * 0.78;
+    final maxBubbleWidth = MediaQuery.sizeOf(context).width * 0.78;
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 6),
         child: GestureDetector(
-          onTapDown: (_) {
-            _isPressedListenable.value = true;
-            HapticFeedback.selectionClick();
-          },
+          onTapDown: (_) => _isPressedListenable.value = true,
           onTapUp: (_) => _isPressedListenable.value = false,
           onTapCancel: () => _isPressedListenable.value = false,
           onLongPress: () => _showActionMenu(context),
@@ -465,8 +480,8 @@ class _Bubble extends StatelessWidget {
             onTogglePlay: onTogglePlay,
           )
         else
-          // ✅ Align يعيد محاذاة النص يمين بعد تغيير الـ Column لـ stretch
-          Align(alignment: Alignment.centerRight, child: _TextContent(message: message)),
+          // الاتجاه والمحاذاة بيتحددوا جوه _TextContent حسب لغة النص
+          _TextContent(message: message),
 
         const SizedBox(height: 4),
 
@@ -518,14 +533,19 @@ class _TextContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      message.text,
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 15,
-        height: 1.3,
-        fontWeight: FontWeight.w400,
-        fontFamily: 'Roboto',
+    final bool rtl = _isRtlText(message.text);
+    return Align(
+      alignment: rtl ? Alignment.centerRight : Alignment.centerLeft,
+      child: Text(
+        message.text,
+        textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 15,
+          height: 1.3,
+          fontWeight: FontWeight.w400,
+          fontFamily: 'Roboto',
+        ),
       ),
     );
   }
@@ -547,16 +567,30 @@ class _ImageContent extends StatelessWidget {
     const double imageHeight = 200;
     const double imageWidth = 260;
 
+    final String? url = message.imageUrl;
+    if (url == null || url.isEmpty) {
+      return const _ImagePlaceholder(
+        height: imageHeight,
+        width: imageWidth,
+        isError: true,
+      );
+    }
+    final String heroTag = 'img_${message.id ?? identityHashCode(message)}';
+
     return Stack(
       children: [
         GestureDetector(
-          onTap: () {},
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => _ImageViewer(url: url, heroTag: heroTag),
+            ),
+          ),
           child: ClipRRect(
             borderRadius: radius,
             child: Hero( 
-              tag: 'img_${message.id}',
+              tag: heroTag,
               child: Image.network(
-                message.imageUrl!,
+                url,
                 height: imageHeight,
                 width: imageWidth,
                 fit: BoxFit.cover,
@@ -708,7 +742,7 @@ class _VoiceWaveVisualizer extends StatelessWidget {
       height: 30,
       width: 100,
       child: AnimatedBuilder(
-        animation: waveController,
+        animation: Listenable.merge([waveController, isPlayingListenable]),
         builder: (context, _) {
           return CustomPaint(
             painter: _WaveBarPainter(
@@ -969,7 +1003,7 @@ class _TelegramReactionsStrip extends StatelessWidget {
           child: Container(
             height: 48,
             constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.85,
+              maxWidth: MediaQuery.sizeOf(context).width * 0.85,
             ),
             decoration: BoxDecoration(
               color: const Color(0xFF2B2C31).withOpacity(0.85),
@@ -1268,3 +1302,57 @@ const _allEmojis = [
   '😀','😁','🤣','😃','😄','😅','😆','😉','😊','😋','😍','🥰','😘','😗','🤩','😏',
   '😒','😞','😔','😟','😕','🙁','😣','😖','😫','😩','🤥','😶','😐','😑','😬','🙄',
 ];
+
+
+// ─────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────
+
+/// أول حرف "قوي" بيحدد الاتجاه: عربي/عبري = RTL، لاتيني = LTR.
+bool _isRtlText(String text) {
+  for (final int r in text.runes) {
+    if ((r >= 0x0590 && r <= 0x08FF) ||
+        (r >= 0xFB1D && r <= 0xFDFF) ||
+        (r >= 0xFE70 && r <= 0xFEFF)) {
+      return true;
+    }
+    if ((r >= 0x41 && r <= 0x5A) || (r >= 0x61 && r <= 0x7A)) return false;
+  }
+  return false;
+}
+
+/// عارض صورة بملء الشاشة (Hero + zoom).
+class _ImageViewer extends StatelessWidget {
+  final String url;
+  final String heroTag;
+
+  const _ImageViewer({required this.url, required this.heroTag});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: Center(
+        child: Hero(
+          tag: heroTag,
+          child: InteractiveViewer(
+            child: Image.network(
+              url,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const Icon(
+                Icons.broken_image_outlined,
+                color: Colors.white38,
+                size: 64,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
