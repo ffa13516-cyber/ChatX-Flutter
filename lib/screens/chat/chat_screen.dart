@@ -46,7 +46,11 @@ class _ChatScreenState extends State<ChatScreen> {
   final ItemPositionsListener _itemPositionsListener =
       ItemPositionsListener.create();
 
-  late final ChatCubit _cubit;
+  late ChatCubit _cubit;
+  StreamSubscription<String>? _errorsSub;
+
+  /// عدد الرسائل الجديدة اللي وصلت وانت بعيد عن آخر الشات.
+  final ValueNotifier<int> _unread = ValueNotifier<int>(0);
 
   Timer? _highlightTimer;
   String? _highlightedMessageId;
@@ -54,21 +58,53 @@ class _ChatScreenState extends State<ChatScreen> {
   /// مجموع السحب الأفقي الحالي (للخروج من الشات بالسحب يمين).
   double _swipeDx = 0;
 
-  @override
-  void initState() {
-    super.initState();
+  void _createCubit() {
+    _errorsSub?.cancel();
     _cubit = ChatCubit(
       chatId: widget.chatId,
       myUid: widget.myUid,
       myName: widget.myName,
     );
+    // أخطاء العمليات (إرسال/حذف/تعديل/تفاعل) بتيجي هنا مش عن طريق الـ state.
+    _errorsSub = _cubit.errors.listen((message) {
+      if (mounted) _showErrorSnackBar(context, message);
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _createCubit();
+    _itemPositionsListener.itemPositions.addListener(_onPositionsChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant ChatScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // نفس الـ State اتعاد استخدامه لشات تاني → لازم cubit جديد
+    // (وإلا الرسائل كانت هتتبعت للشات القديم).
+    if (oldWidget.chatId != widget.chatId ||
+        oldWidget.myUid != widget.myUid) {
+      final previous = _cubit;
+      _unread.value = 0;
+      _createCubit();
+      previous.close();
+    }
   }
 
   @override
   void dispose() {
+    _itemPositionsListener.itemPositions.removeListener(_onPositionsChanged);
     _highlightTimer?.cancel();
+    _errorsSub?.cancel();
+    _unread.dispose();
     _cubit.close();
     super.dispose();
+  }
+
+  /// لما المستخدم ينزل لآخر الشات بإيده، صفّر عدّاد الرسائل الجديدة.
+  void _onPositionsChanged() {
+    if (_unread.value != 0 && _isNearBottom()) _unread.value = 0;
   }
 
   // ── Swipe right to leave the chat ─────────────────────────
@@ -121,7 +157,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _scrollToMessage(String id, List<Message> messages) {
     final int index = messages.indexWhere((m) => m.id == id);
-    if (index == -1 || !_itemScrollController.isAttached) return;
+    if (index == -1) {
+      _showErrorSnackBar(context, 'الرسالة الأصلية محذوفة أو غير متاحة.');
+      return;
+    }
+    if (!_itemScrollController.isAttached) return;
 
     _setHighlight(id);
 
@@ -166,10 +206,37 @@ class _ChatScreenState extends State<ChatScreen> {
     return c.id != p.id && !c.time.isBefore(p.time);
   }
 
+  // ── Date separators ───────────────────────────────────────
+
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  String _dateLabel(DateTime d) {
+    final now = DateTime.now();
+    if (_isSameDay(d, now)) return 'اليوم';
+    if (_isSameDay(d, now.subtract(const Duration(days: 1)))) return 'أمس';
+    return '${d.day}/${d.month}/${d.year}';
+  }
+
+  Widget _withDateHeader(DateTime? date, Widget child) {
+    if (date == null) return child;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _DateSeparator(label: _dateLabel(date)),
+        child,
+      ],
+    );
+  }
+
   // ── Dialogs ───────────────────────────────────────────────
 
   void _showDeleteDialog(BuildContext ctx, String? messageId) {
-    if (messageId == null || messageId.isEmpty) return;
+    if (messageId == null || messageId.isEmpty) {
+      _showErrorSnackBar(context, 'الرسالة لسه بتتبعت، حاول بعد لحظة.');
+      return;
+    }
 
     showDialog<void>(
       context: ctx,
@@ -259,13 +326,7 @@ class _ChatScreenState extends State<ChatScreen> {
       value: _cubit,
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onHorizontalDragStart: _onSwipeStart,
-          onHorizontalDragUpdate: _onSwipeUpdate,
-          onHorizontalDragEnd: _onSwipeEnd,
-          onHorizontalDragCancel: _onSwipeCancel,
-          child: Stack(
+        body: Stack(
             children: [
               // ── Background ──────────────────────────
               Positioned.fill(
@@ -282,17 +343,17 @@ class _ChatScreenState extends State<ChatScreen> {
 
               // ── Main Content ────────────────────────
               BlocConsumer<ChatCubit, ChatState>(
-                listenWhen: (prev, curr) =>
-                    (curr is ChatError && prev is! ChatError) ||
-                    _hasNewNewest(prev, curr),
+                listenWhen: (prev, curr) => _hasNewNewest(prev, curr),
                 listener: (context, state) {
-                  if (state is ChatError) {
-                    _showErrorSnackBar(context, state.errorMessage);
-                  } else if (state is ChatLoaded && state.messages.isNotEmpty) {
+                  if (state is ChatLoaded && state.messages.isNotEmpty) {
                     // انزل لتحت بس لو الرسالة بتاعتي، أو كنت قريب من تحت.
                     if (state.messages.first.isMe || _isNearBottom()) {
+                      _unread.value = 0;
                       WidgetsBinding.instance
                           .addPostFrameCallback((_) => _scrollToBottom());
+                    } else {
+                      // بتقرا رسائل قديمة: ماتنزلش، بس نبّهه.
+                      _unread.value++;
                     }
                   }
                 },
@@ -305,6 +366,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       state is ChatLoading || state is ChatInitial;
                   final bool isFatalError =
                       state is ChatError && state.isFatal && messages.isEmpty;
+                  // فيه رسائل معروضة لكن الـ stream واقع → banner بزر إعادة.
+                  final bool showBanner =
+                      state is ChatError && state.isFatal && messages.isNotEmpty;
 
                   final Widget content;
                   if (isLoading) {
@@ -332,13 +396,18 @@ class _ChatScreenState extends State<ChatScreen> {
                         final msg = messages[index];
                         final bool isNewest = index == 0;
                         final bool isOldest = index == messages.length - 1;
+                        final bool showDate = isOldest ||
+                            !_isSameDay(messages[index + 1].time, msg.time);
                         return Padding(
                           padding: EdgeInsets.only(
                             top: isOldest ? headerTotal + 24 : 14,
                             bottom: isNewest ? 20 : 0,
                           ),
-                          child: ChatBubble(
-                            key: ValueKey(msg.id ?? index),
+                          child: _withDateHeader(
+                            showDate ? msg.time : null,
+                            ChatBubble(
+                            key: ValueKey(
+                                msg.id ?? 'tmp_${msg.time.microsecondsSinceEpoch}'),
                             message: msg,
                             onReply: cubit.setReply,
                             onTapReply: (replyId) =>
@@ -350,6 +419,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             onReact: (emoji) =>
                                 cubit.addReaction(msg.id, emoji),
                           ),
+                          ),
                         );
                       },
                     );
@@ -358,7 +428,43 @@ class _ChatScreenState extends State<ChatScreen> {
                   return Column(
                     children: [
                       // ── Messages List (تحت الهيدر) ───
-                      Expanded(child: content),
+                      Expanded(
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onHorizontalDragStart: _onSwipeStart,
+                          onHorizontalDragUpdate: _onSwipeUpdate,
+                          onHorizontalDragEnd: _onSwipeEnd,
+                          onHorizontalDragCancel: _onSwipeCancel,
+                          child: Stack(
+                            children: [
+                              Positioned.fill(child: content),
+                              if (showBanner)
+                                Positioned(
+                                  top: headerTotal + 8,
+                                  left: 16,
+                                  right: 16,
+                                  child: _ConnectionBanner(onRetry: cubit.retry),
+                                ),
+                              Positioned(
+                                right: 16,
+                                bottom: 12,
+                                child: ValueListenableBuilder<int>(
+                                  valueListenable: _unread,
+                                  builder: (_, n, __) => n == 0
+                                      ? const SizedBox.shrink()
+                                      : FloatingActionButton.small(
+                                          onPressed: _scrollToBottom,
+                                          backgroundColor:
+                                              const Color(0xFF4186F6),
+                                          foregroundColor: Colors.white,
+                                          child: Text('$n'),
+                                        ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
 
                       // ── Chat Input ────────────────────
                       Container(
@@ -366,6 +472,8 @@ class _ChatScreenState extends State<ChatScreen> {
                         child: SafeArea(
                           top: false,
                           child: ChatInput(
+                            initialDraft: cubit.draft,
+                            onDraftChanged: cubit.saveDraft,
                             replyMessage: replyingTo,
                             onCancelReply: () => cubit.setReply(null),
                             onSend: (text, _) => cubit.sendMessage(text),
@@ -384,17 +492,24 @@ class _ChatScreenState extends State<ChatScreen> {
                 right: 0,
                 child: SafeArea(
                   bottom: false,
-                  child: _Header(
-                    receiverName: widget.receiverName,
-                    receiverImage: widget.receiverImage,
-                    isOnline: widget.isOnline,
-                    onTap: widget.onHeaderTap,
+                  // الهيدر ارتفاعه ثابت → نحدّ تكبير الخط عشان مفيش overflow.
+                  child: MediaQuery(
+                    data: MediaQuery.of(context).copyWith(
+                      textScaler: MediaQuery.of(context)
+                          .textScaler
+                          .clamp(maxScaleFactor: 1.2),
+                    ),
+                    child: _Header(
+                      receiverName: widget.receiverName,
+                      receiverImage: widget.receiverImage,
+                      isOnline: widget.isOnline,
+                      onTap: widget.onHeaderTap,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-        ),
       ),
     );
   }
@@ -525,16 +640,18 @@ class _Header extends StatelessWidget {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    isOnline ? 'Online' : 'Last seen recently',
-                                    style: TextStyle(
-                                      color: isOnline
-                                          ? const Color(0xFF22C55E)
-                                          : Colors.white38,
-                                      fontSize: 11,
+                                  // بنعرض الحالة بس لو معروفة فعلاً
+                                  // (شيلنا 'Last seen recently' المختلقة).
+                                  if (isOnline) ...const [
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'Online',
+                                      style: TextStyle(
+                                        color: Color(0xFF22C55E),
+                                        fontSize: 11,
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -550,6 +667,32 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _initialAvatar() {
+    return Container(
+      width: 44,
+      height: 44,
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [Color(0xFF4186F6), Color(0xFF00E6FF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Text(
+        receiverName.trim().isNotEmpty
+            ? receiverName.trim()[0].toUpperCase()
+            : '?',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
@@ -576,10 +719,14 @@ class _Header extends StatelessWidget {
           left: 8,
           top: 8,
           child: image != null && image.isNotEmpty
-              ? CircleAvatar(
-                  radius: 22,
-                  backgroundColor: Colors.white12,
-                  backgroundImage: NetworkImage(image),
+              ? ClipOval(
+                  child: Image.network(
+                    image,
+                    width: 44,
+                    height: 44,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _initialAvatar(),
+                  ),
                 )
               : Container(
                   width: 44,
@@ -630,14 +777,25 @@ class _HeaderIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(11),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: const Color(0x14FFFFFF),
-        border: Border.all(color: const Color(0x14FFFFFF)),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('قريباً'),
+            duration: Duration(seconds: 1),
+          ),
+        ),
+      child: Container(
+        padding: const EdgeInsets.all(11),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: const Color(0x14FFFFFF),
+          border: Border.all(color: const Color(0x14FFFFFF)),
+        ),
+        child: Icon(icon, color: Colors.white70, size: 22),
       ),
-      child: Icon(icon, color: Colors.white70, size: 22),
     );
   }
 }
@@ -728,6 +886,72 @@ class _EditDialogState extends State<_EditDialog> {
           ),
         ),
       ],
+    );
+  }
+}
+
+
+// ─────────────────────────────────────────────
+// Date Separator
+// ─────────────────────────────────────────────
+
+class _DateSeparator extends StatelessWidget {
+  final String label;
+  const _DateSeparator({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0x33000000),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Connection Banner — الـ stream واقع والرسائل لسه معروضة
+// ─────────────────────────────────────────────
+
+class _ConnectionBanner extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _ConnectionBanner({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFF3A2A2A),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onRetry,
+        borderRadius: BorderRadius.circular(12),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            children: [
+              Icon(Icons.wifi_off_rounded, color: Colors.white70, size: 18),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'انقطع التحديث التلقائي، اضغط لإعادة المحاولة',
+                  style: TextStyle(color: Colors.white, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
