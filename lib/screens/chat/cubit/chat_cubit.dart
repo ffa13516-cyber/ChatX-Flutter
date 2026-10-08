@@ -1,15 +1,10 @@
 // ============================================================
 // chat_cubit.dart — ChatX Business Logic
-// ✅ الإرسال مش بيضيع بصمت (sendMessage بترجع bool)
-// ✅ الأخطاء بتعدّي على قناة منفصلة (errors) ومبتكتبش فوق حالة الـ fatal
-// ✅ retry تلقائي بـ backoff + timeout للتحميل الأول
-// ✅ طابور تفاعلات لكل رسالة + rollback مع إشعار
-// ✅ مسودة لكل شات + إلغاء الرد لو الرسالة اتحذفت
 // ============================================================
 
 import 'dart:async';
 import 'dart:math' as math;
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:chatx/screens/chat/models/message_model.dart';
 import '../../../repositories/firebase_repo.dart';
@@ -51,15 +46,9 @@ class ChatLoaded extends ChatState {
   }
 }
 
-/// بقت بتتبعت **بس** لما الـ stream نفسه يفشل (isFatal = true).
-/// أخطاء العمليات (إرسال/حذف/تعديل/تفاعل) بتعدّي على [ChatCubit.errors].
 class ChatError extends ChatState {
   final String errorMessage;
-
-  /// آخر رسائل معروفة — عشان الشاشة تفضل تعرضها وقت الخطأ.
   final List<Message>? lastKnownMessages;
-
-  /// true لما الـ stream نفسه يفشل.
   final bool isFatal;
 
   const ChatError(
@@ -73,44 +62,35 @@ class ChatError extends ChatState {
 // Cubit
 // ─────────────────────────────────────────────
 
-class ChatCubit extends Cubit<ChatState> {
+class ChatCubit extends Cubit<ChatState> with WidgetsBindingObserver {
   final String chatId;
   final String myUid;
   final String myName;
 
   StreamSubscription<List<Message>>? _messagesSubscription;
 
-  /// آخر قايمة رسائل وصلت من الـ stream — للـ recovery.
   List<Message> _lastKnownMessages = [];
-
-  /// وصلتنا بيانات من الـ stream ولا لسه؟
   bool _hasData = false;
-
-  /// الرسالة اللي بيتم الرد عليها حالياً.
   Message? _replyingTo;
-
-  /// IDs الرسائل اللي اتعملها mark كـ delivered عشان منعملهاش تاني.
   final Set<String> _deliveredIds = {};
+
+  /// تتبع حالة التطبيق (هل هو في الواجهة أم في الخلفية)
+  bool _isAppInForeground = true;
 
   // ── Retry / timeout ───────────────────────────
   Timer? _retryTimer;
   Timer? _loadTimeout;
   int _retryCount = 0;
 
-  // ── قناة أخطاء العمليات (للـ snackbar) ─────────
-  final StreamController<String> _errorsController =
-      StreamController<String>.broadcast();
-
-  /// أخطاء العمليات (مش أخطاء الـ stream). الشاشة بتسمعها وتعرض snackbar.
+  // ── قناة أخطاء العمليات ─────────────────────────
+  final StreamController<String> _errorsController = StreamController<String>.broadcast();
   Stream<String> get errors => _errorsController.stream;
 
-  // ── طابور التفاعلات لكل رسالة ──────────────────
+  // ── طابور التفاعلات ───────────────────────────
   final Map<String, Future<void>> _reactionQueue = {};
 
-  // ── المسودات (in-memory، بتعيش طول عمر التطبيق) ──
+  // ── المسودات ──────────────────────────────────
   static final Map<String, String> _drafts = {};
-
-  /// المسودة المحفوظة للشات ده.
   String get draft => _drafts[chatId] ?? '';
 
   void saveDraft(String text) {
@@ -126,7 +106,30 @@ class ChatCubit extends Cubit<ChatState> {
     required this.myUid,
     required this.myName,
   }) : super(const ChatInitial()) {
+    // تسجيل مراقب دورة حياة التطبيق
+    WidgetsBinding.instance.addObserver(this);
     _initChat();
+  }
+
+  // ─────────────────────────────────────────────
+  // Lifecycle Management
+  // ─────────────────────────────────────────────
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _isAppInForeground = (state == AppLifecycleState.resumed);
+
+    // عند عودة المستخدم للتطبيق والشات مفتوح، علم الرسائل كمقروءة
+    if (_isAppInForeground) {
+      markMessagesAsSeen();
+    }
+  }
+
+  /// تحديث حالة القراءة بشرط وجود التطبيق في الواجهة
+  void markMessagesAsSeen() {
+    if (_isAppInForeground) {
+      _fireAndForget(FirebaseRepo.markAsSeen(chatId, myUid), 'markAsSeen');
+    }
   }
 
   // ─────────────────────────────────────────────
@@ -138,7 +141,6 @@ class ChatCubit extends Cubit<ChatState> {
     _loadTimeout?.cancel();
 
     if (!_hasData) {
-      // أول تحميل بس: لو عندنا رسائل ماتمسحهاش بـ spinner.
       _safeEmit(const ChatLoading());
       _loadTimeout = Timer(const Duration(seconds: 15), () {
         if (!_hasData) {
@@ -151,22 +153,18 @@ class ChatCubit extends Cubit<ChatState> {
       });
     }
 
-    _fireAndForget(FirebaseRepo.markAsSeen(chatId, myUid), 'markAsSeen');
+    markMessagesAsSeen();
 
     _messagesSubscription?.cancel();
     _messagesSubscription = FirebaseRepo.observeMessages(chatId, myUid).listen(
       (messages) {
-        // الرسائل جاية descending (الأحدث أولاً): index 0 = أحدث رسالة.
         _retryCount = 0;
         _loadTimeout?.cancel();
         _hasData = true;
         _lastKnownMessages = messages;
 
-        // لو الرسالة اللي بتردّ عليها اتحذفت، الغي الرد.
         final reply = _replyingTo;
-        if (reply != null &&
-            reply.id != null &&
-            !messages.any((m) => m.id == reply.id)) {
+        if (reply != null && reply.id != null && !messages.any((m) => m.id == reply.id)) {
           _replyingTo = null;
         }
 
@@ -175,7 +173,11 @@ class ChatCubit extends Cubit<ChatState> {
           replyingTo: _replyingTo,
         ));
 
+        // تعليم التسليم دائماً
         _handleDelivery(messages);
+
+        // تعليم القراءة فقط إذا كان المستخدم ينظر للشاشة حالياً
+        markMessagesAsSeen();
       },
       onError: (Object error) {
         debugPrint('observeMessages error: $error');
@@ -190,14 +192,12 @@ class ChatCubit extends Cubit<ChatState> {
     );
   }
 
-  /// إعادة محاولة تلقائية بـ backoff: 2، 4، 8، 16، 30 ثانية.
   void _scheduleRetry() {
     _retryTimer?.cancel();
     final seconds = math.min(30, 2 << _retryCount++);
     _retryTimer = Timer(Duration(seconds: seconds), retry);
   }
 
-  /// بيعيد الاشتراك في الـ stream (زرار/Banner "إعادة المحاولة" + التلقائي).
   void retry() {
     if (isClosed) return;
     _retryTimer?.cancel();
@@ -219,7 +219,6 @@ class ChatCubit extends Cubit<ChatState> {
         unawaited(
           FirebaseRepo.markAsDelivered(chatId, id).catchError((Object e) {
             debugPrint('markAsDelivered error: $e');
-            // اشيله من الـ set عشان يتعاد مع أول emit جاي.
             _deliveredIds.remove(id);
           }),
         );
@@ -246,16 +245,11 @@ class ChatCubit extends Cubit<ChatState> {
   // Send Message
   // ─────────────────────────────────────────────
 
-  /// بترجع true لو الإرسال نجح، false لو فشل (الـ ChatInput بيرجّع النص).
   Future<bool> sendMessage(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return false;
-    // ملحوظة: شيلنا شرط (state is ChatLoaded) — الإرسال مش معتمد على القايمة،
-    // وكان بيضيّع الرسالة بصمت وقت التحميل الأول أو بعد خطأ الـ stream.
 
     final replyMsg = _replyingTo;
-
-    // امسح الـ reply فوراً من الـ UI قبل ما نبعت.
     setReply(null);
 
     final newMessage = Message.create(
@@ -270,18 +264,17 @@ class ChatCubit extends Cubit<ChatState> {
 
     try {
       await FirebaseRepo.sendMessage(chatId, newMessage);
-      // الـ stream هيجيب الرسالة الجديدة تلقائياً.
       return true;
     } catch (e) {
       debugPrint('sendMessage error: $e');
-      setReply(replyMsg); // رجّع الـ reply في الـ state كمان
+      setReply(replyMsg);
       _emitActionError('فشل إرسال الرسالة، حاول مرة أخرى.');
       return false;
     }
   }
 
   // ─────────────────────────────────────────────
-  // Delete Message
+  // Delete / Edit / Reaction Actions
   // ─────────────────────────────────────────────
 
   Future<void> deleteMessage(String? messageId) async {
@@ -297,10 +290,6 @@ class ChatCubit extends Cubit<ChatState> {
       _emitActionError('فشل حذف الرسالة.');
     }
   }
-
-  // ─────────────────────────────────────────────
-  // Edit Message
-  // ─────────────────────────────────────────────
 
   Future<void> editMessage(String? messageId, String newText) async {
     final trimmed = newText.trim();
@@ -318,10 +307,6 @@ class ChatCubit extends Cubit<ChatState> {
     }
   }
 
-  // ─────────────────────────────────────────────
-  // Reaction (add / change / toggle-off)
-  // ─────────────────────────────────────────────
-
   Future<void> addReaction(String? messageId, String emoji) async {
     if (emoji.isEmpty) return;
     if (messageId == null || messageId.isEmpty) {
@@ -336,15 +321,12 @@ class ChatCubit extends Cubit<ChatState> {
     }
 
     final targetIndex = current.messages.indexWhere((m) => m.id == messageId);
-    if (targetIndex == -1) return; // الرسالة مش موجودة
+    if (targetIndex == -1) return;
 
     final originalMsg = current.messages[targetIndex];
     final originalReactions = originalMsg.reactions;
+    final newReactions = Map<String, String>.from(originalReactions ?? const <String, String>{});
 
-    final newReactions =
-        Map<String, String>.from(originalReactions ?? const <String, String>{});
-
-    // نفس الإيموجي تاني = شيل الـ reaction، غير كده ضيف/غيّر.
     final bool removing = newReactions[myUid] == emoji;
     if (removing) {
       newReactions.remove(myUid);
@@ -361,8 +343,6 @@ class ChatCubit extends Cubit<ChatState> {
     updatedMessages[targetIndex] = updatedMsg;
     _safeEmit(current.copyWith(messages: updatedMessages));
 
-    // طابور لكل رسالة: العمليات بتتنفذ بنفس ترتيب الضغطات،
-    // فمفيش add/remove بيتسابقوا على السيرفر.
     final previous = _reactionQueue[messageId] ?? Future<void>.value();
     final op = previous.then((_) async {
       try {
@@ -384,7 +364,6 @@ class ChatCubit extends Cubit<ChatState> {
     }
   }
 
-  /// بيرجّع الـ reactions بتاعة رسالة واحدة على آخر state (مش state قديم).
   void _rollbackReactions(
     String messageId,
     Map<String, String>? originalReactions,
@@ -405,36 +384,27 @@ class ChatCubit extends Cubit<ChatState> {
   }
 
   // ─────────────────────────────────────────────
-  // Error handling helpers
+  // Helpers & Cleanup
   // ─────────────────────────────────────────────
 
-  /// أخطاء العمليات بتعدّي على قناة منفصلة — مبتغيّرش الـ state خالص،
-  /// فمبتكتبش فوق ChatError(isFatal) ومفيش flicker.
   void _emitActionError(String message) {
     if (!_errorsController.isClosed) _errorsController.add(message);
   }
 
-  /// بينفذ عملية async من غير await، من غير ما أي exception يطلع unhandled.
   void _fireAndForget(Future<void> future, String label) {
     unawaited(future.catchError((Object e) {
       debugPrint('$label error: $e');
     }));
   }
 
-  // ─────────────────────────────────────────────
-  // Safe Emit — منع crash بعد close()
-  // ─────────────────────────────────────────────
-
   void _safeEmit(ChatState newState) {
     if (!isClosed) emit(newState);
   }
 
-  // ─────────────────────────────────────────────
-  // Cleanup
-  // ─────────────────────────────────────────────
-
   @override
   Future<void> close() {
+    // إزالة المراقب عند إغلاق Cubit
+    WidgetsBinding.instance.removeObserver(this);
     _messagesSubscription?.cancel();
     _retryTimer?.cancel();
     _loadTimeout?.cancel();
