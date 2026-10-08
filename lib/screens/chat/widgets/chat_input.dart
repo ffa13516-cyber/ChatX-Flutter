@@ -21,15 +21,24 @@ class _Style {
 }
 
 class ChatInput extends StatefulWidget {
-  final Function(String text, String? replyId) onSend;
+  /// لازم ترجّع true لو الإرسال نجح — لو false النص بيترجّع للحقل.
+  final Future<bool> Function(String text, String? replyId) onSend;
   final Message? replyMessage;
   final VoidCallback? onCancelReply;
+
+  /// مسودة محفوظة (بتتحمّل أول ما الـ widget يتبني).
+  final String initialDraft;
+
+  /// بيتنادى مع كل تغيير في النص لحفظ المسودة.
+  final ValueChanged<String>? onDraftChanged;
 
   const ChatInput({
     super.key,
     required this.onSend,
     this.replyMessage,
     this.onCancelReply,
+    this.initialDraft = '',
+    this.onDraftChanged,
   });
 
   @override
@@ -57,10 +66,25 @@ class _ChatInputState extends State<ChatInput> with SingleTickerProviderStateMix
       parent: _animController,
       curve: Curves.easeOutBack,
     );
+    // المسودة لازم تتحط قبل addListener عشان منعملش setState جوه initState.
+    _controller.text = widget.initialDraft;
+    _hasText = _controller.text.trim().isNotEmpty;
+    if (_hasText) _animController.value = 1;
+
     _controller.addListener(_onTextChanged);
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  /// لو الكيبورد فتح (المستخدم داس على الحقل) اقفل لوحة الإيموجي.
+  void _onFocusChanged() {
+    if (_focusNode.hasFocus && _showEmoji) {
+      setState(() => _showEmoji = false);
+    }
   }
 
   void _onTextChanged() {
+    widget.onDraftChanged?.call(_controller.text);
+
     final hasText = _controller.text.trim().isNotEmpty;
     if (hasText == _hasText) return;
     
@@ -76,20 +100,32 @@ class _ChatInputState extends State<ChatInput> with SingleTickerProviderStateMix
   @override
   void dispose() {
     _controller.removeListener(_onTextChanged);
+    _focusNode.removeListener(_onFocusChanged);
     _controller.dispose();
     _focusNode.dispose();
     _animController.dispose();
     super.dispose();
   }
 
-  void _send() {
+  Future<void> _send() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-    
-    widget.onSend(text, widget.replyMessage?.id);
+
+    // الجزء المتزامن من onSend بيلقط الـ reply الحالي قبل ما يتمسح.
+    final pending = widget.onSend(text, widget.replyMessage?.id);
+
     _controller.clear();
-    widget.onCancelReply?.call();
-    _focusNode.requestFocus();
+    // مفيش requestFocus لو لوحة الإيموجي مفتوحة (كان بيفتح الكيبورد فوقها).
+    if (!_showEmoji) _focusNode.requestFocus();
+
+    final ok = await pending;
+    // لو الإرسال فشل: رجّع النص (إلا لو المستخدم بدأ يكتب حاجة تانية).
+    if (!ok && mounted && _controller.text.isEmpty) {
+      _controller.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    }
   }
 
   void _toggleEmoji() {
@@ -176,7 +212,7 @@ class _ChatInputState extends State<ChatInput> with SingleTickerProviderStateMix
                 _controller.value = TextEditingValue(
                   text: newText,
                   selection: TextSelection.collapsed(
-                    offset: selection.start + emoji.characters.length,
+                    offset: selection.start + emoji.length, // UTF-16 units مش graphemes
                   ),
                 );
               } else {
@@ -221,6 +257,8 @@ class _TextFieldWidget extends StatelessWidget {
               focusNode: focusNode,
               maxLines: 4,
               minLines: 1,
+              maxLength: 4000, // حد مستند Firestore 1MiB — نص أطول بيفشل
+              buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
               style: const TextStyle(color: _Style.textColor, fontSize: _Style.inputFontSize),
               cursorColor: _Style.accentColor,
               keyboardType: TextInputType.multiline,
@@ -301,13 +339,17 @@ class _SendOrMicButtonWidget extends StatelessWidget {
                 ),
               ),
             )
-          : const Padding(
-              key: ValueKey('mic_inactive'),
-              padding: EdgeInsets.all(8.0),
-              child: Icon(
-                Icons.mic_none_rounded,
-                color: _Style.iconColor,
-                size: _Style.iconSize,
+          : GestureDetector(
+              key: const ValueKey('mic_inactive'),
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _comingSoon(context),
+              child: const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Icon(
+                  Icons.mic_none_rounded,
+                  color: _Style.iconColor,
+                  size: _Style.iconSize,
+                ),
               ),
             ),
     );
@@ -390,9 +432,7 @@ class _AttachButtonWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        // Handle Action
-      },
+      onTap: () => _comingSoon(context),
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), 
@@ -458,4 +498,17 @@ class _EmojiPanelWidget extends StatelessWidget {
       ),
     );
   }
+}
+
+
+/// تنبيه خفيف للعناصر اللي لسه مش متفعّلة (بدل ما المستخدم يداس ومفيش حاجة تحصل).
+void _comingSoon(BuildContext context) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      const SnackBar(
+        content: Text('قريباً'),
+        duration: Duration(seconds: 1),
+      ),
+    );
 }
