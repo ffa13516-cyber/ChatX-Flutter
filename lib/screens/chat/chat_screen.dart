@@ -512,11 +512,11 @@ class _Header extends StatelessWidget {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
               child: Container(
-                padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(26),
                   gradient: const LinearGradient(
-                    colors: [Color(0x1AFFFFFF), Color(0x08FFFFFF)],
+                    colors: [Color(0x99000000), Color(0x662C2C2C)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -526,17 +526,20 @@ class _Header extends StatelessWidget {
                   ],
                 ),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: onTap,
                         child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             _buildAvatar(),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
+                                mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
