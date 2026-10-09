@@ -11,6 +11,7 @@ import 'package:chatx/screens/chat/models/message_model.dart';
 import 'package:chatx/screens/chat/widgets/chat_input.dart';
 import 'package:chatx/screens/chat/widgets/chat_bubble.dart';
 import 'package:chatx/screens/chat/cubit/chat_cubit.dart';
+import 'package:chatx/repositories/firebase_repo.dart';
 
 const double _kHeaderHeight = 108.0;
 
@@ -43,6 +44,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final ItemPositionsListener _itemPositionsListener = ItemPositionsListener.create();
 
   late ChatCubit _cubit;
+  late Stream<Map<String, dynamic>> _presenceStream;
   StreamSubscription<String>? _errorsSub;
 
   final ValueNotifier<int> _unread = ValueNotifier<int>(0);
@@ -52,6 +54,12 @@ class _ChatScreenState extends State<ChatScreen> {
   double _swipeDx = 0;
 
   void _createCubit() {
+    final otherUid = widget.chatId
+        .split('_')
+        .firstWhere((id) => id != widget.myUid, orElse: () => '');
+    _presenceStream = otherUid.isEmpty
+        ? Stream<Map<String, dynamic>>.empty()
+        : FirebaseRepo.observeUserPresence(otherUid);
     _errorsSub?.cancel();
     _cubit = ChatCubit(
       chatId: widget.chatId,
@@ -433,11 +441,21 @@ class _ChatScreenState extends State<ChatScreen> {
                   data: MediaQuery.of(context).copyWith(
                     textScaler: MediaQuery.of(context).textScaler.clamp(maxScaleFactor: 1.2),
                   ),
-                  child: _Header(
-                    receiverName: widget.receiverName,
-                    receiverImage: widget.receiverImage,
-                    isOnline: widget.isOnline,
-                    onTap: widget.onHeaderTap,
+                  child: StreamBuilder<Map<String, dynamic>>(
+                    stream: _presenceStream,
+                    builder: (context, snap) {
+                      final data = snap.data;
+                      final online =
+                          data != null ? data['isOnline'] == true : widget.isOnline;
+                      final rawSeen = data?['lastSeen'];
+                      return _Header(
+                        receiverName: widget.receiverName,
+                        receiverImage: widget.receiverImage,
+                        isOnline: online,
+                        lastSeen: rawSeen is int ? rawSeen : null,
+                        onTap: widget.onHeaderTap,
+                      );
+                    },
                   ),
                 ),
               ),
@@ -490,6 +508,7 @@ class _Header extends StatelessWidget {
   final String receiverName;
   final String? receiverImage;
   final bool isOnline;
+  final int? lastSeen;
   final VoidCallback? onTap;
 
   const _Header({
@@ -497,6 +516,7 @@ class _Header extends StatelessWidget {
     required this.receiverName,
     this.receiverImage,
     this.isOnline = false,
+    this.lastSeen,
     this.onTap,
   });
 
@@ -552,9 +572,17 @@ class _Header extends StatelessWidget {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                  if (isOnline) ...const [
-                                    SizedBox(height: 2),
-                                    Text('Online', style: TextStyle(color: Color(0xFF22C55E), fontSize: 11)),
+                                  if (_statusText() != null) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      _statusText()!,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: isOnline ? const Color(0xFF22C55E) : Colors.white54,
+                                        fontSize: 11,
+                                      ),
+                                    ),
                                   ],
                                 ],
                               ),
@@ -574,6 +602,22 @@ class _Header extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String? _statusText() {
+    if (isOnline) return 'Online';
+    final ts = lastSeen;
+    if (ts == null) return null;
+
+    final seen = DateTime.fromMillisecondsSinceEpoch(ts);
+    if (DateTime.now().difference(seen) < const Duration(days: 2)) {
+      return 'Last seen recently';
+    }
+
+    String two(int n) => n.toString().padLeft(2, '0');
+    final h12 = seen.hour % 12 == 0 ? 12 : seen.hour % 12;
+    final period = seen.hour >= 12 ? 'PM' : 'AM';
+    return 'Last seen ${two(seen.day)}/${two(seen.month)}/${seen.year} at $h12:${two(seen.minute)} $period';
   }
 
   Widget _initialAvatar() {
