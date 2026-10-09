@@ -516,13 +516,17 @@ class _Header extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(26),
                   gradient: const LinearGradient(
-                    colors: [Color(0x88757575), Color(0x555C5C5C)],
+                    colors: [Color(0x99202225), Color(0x55121316)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  border: Border.all(color: const Color(0x14FFFFFF)),
+                  border: Border.all(color: const Color(0x2BFFFFFF), width: 1),
                   boxShadow: const [
-                    BoxShadow(color: Color(0x2E000000), blurRadius: 25, offset: Offset(0, 12)),
+                    BoxShadow(
+                      color: Color(0x40000000),
+                      blurRadius: 28,
+                      offset: Offset(0, 10),
+                    ),
                   ],
                 ),
                 child: Row(
@@ -669,8 +673,8 @@ class _HeaderIcon extends StatelessWidget {
         padding: const EdgeInsets.all(11),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: const Color(0x14FFFFFF),
-          border: Border.all(color: const Color(0x14FFFFFF)),
+          color: const Color(0x1AFFFFFF),
+          border: Border.all(color: const Color(0x24FFFFFF)),
         ),
         child: Icon(icon, color: Colors.white70, size: 22),
       ),
