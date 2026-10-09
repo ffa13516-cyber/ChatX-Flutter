@@ -67,6 +67,18 @@ class FirebaseRepo {
     });
   }
 
+  /// stream خفيف لحالة الاتصال (isOnline + lastSeen) لمستخدم معين
+  static Stream<Map<String, dynamic>> observeUserPresence(String uid) {
+    return usersRef.child(uid).onValue.map((event) {
+      final value = event.snapshot.value;
+      if (value is! Map) return <String, dynamic>{};
+      return <String, dynamic>{
+        'isOnline': value['isOnline'] == true,
+        'lastSeen': value['lastSeen'],
+      };
+    });
+  }
+
   // ───────────────────────── Presence (Online/Offline) ─────────────────────────
 
   /// دالة ذكية لإدارة حالة الاتصال تلقائياً باستخدام Realtime Database
