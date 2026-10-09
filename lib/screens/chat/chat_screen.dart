@@ -516,7 +516,7 @@ class _Header extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(26),
                   gradient: const LinearGradient(
-                    colors: [Color(0x99000000), Color(0x662C2C2C)],
+                    colors: [Color(0x88757575), Color(0x555C5C5C)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
